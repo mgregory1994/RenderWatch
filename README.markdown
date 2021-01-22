@@ -14,14 +14,14 @@ Once you have installed Render Watch, you can find it among your installed
 applications.
 
 You can also run Render Watch from the command line
-'''bash
+```bash
 render-watch
-'''
+```
 
 You can also run Render Watch in debug mode
-'''bash
+```bash
 render-watch --debug
-'''
+```
 
 ## Contributing
 Pull requests and issue reports are welcome.
