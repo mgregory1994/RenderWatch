@@ -6201,7 +6201,6 @@
                                                             <child>
                                                             <object class="GtkButtonBox" id="vp9_bitrate_type_buttonsbox">
                                                             <property name="visible">True</property>
-                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="homogeneous">True</property>
                                                             <property name="layout-style">expand</property>
