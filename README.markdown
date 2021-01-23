@@ -23,6 +23,11 @@ You can also run Render Watch in debug mode
 render-watch-debug
 ```
 
+The log file can then be found in
+```bash
+~/.config/"Render Watch"/
+```
+
 ## Contributing
 Pull requests and issue reports are welcome.
 
