@@ -20,7 +20,7 @@ render-watch
 
 You can also run Render Watch in debug mode
 ```bash
-render-watch --debug
+render-watch-debug
 ```
 
 ## Contributing
