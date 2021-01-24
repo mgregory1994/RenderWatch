@@ -358,7 +358,7 @@
     <property name="program-name">Render Watch</property>
     <property name="version">0.1.0</property>
     <property name="copyright" translatable="yes">Copyright 2021 Michael Gregory</property>
-    <property name="comments" translatable="yes">A professional video transcoder for all</property>
+    <property name="comments" translatable="yes">A professional video transcoder for Linux</property>
     <property name="website">https://github.com/mgregory1994/RenderWatch</property>
     <property name="website-label" translatable="yes">Visit GitHub web page</property>
     <property name="authors">Michael Gregory</property>
