@@ -142,4 +142,7 @@ dmypy.json
 # profiling data
 .prof
 
+# glade backups
+.glade~
+
 # End of https://www.toptal.com/developers/gitignore/api/python
