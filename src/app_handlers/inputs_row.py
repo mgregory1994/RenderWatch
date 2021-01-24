@@ -83,8 +83,8 @@ class InputsRow(Gtk.ListBoxRow):
         self.info_output_channels_label = self.gtk_builder.get_object('info_output_channels_label')
 
         self.__setup_row_state()
-        self.setup_labels()
         self.__setup_streams()
+        self.setup_labels()
         self.add(self.__listbox_row_widget_container)
         self.remove_button.connect('clicked', self.on_remove_button_clicked)
         self.start_button.connect('clicked', self.on_start_button_clicked)
@@ -190,7 +190,6 @@ class InputsRow(Gtk.ListBoxRow):
         self.__setup_inputs_row_audio_codec_label()
         self.__setup_inputs_row_resolution_label()
         self.__setup_inputs_row_duration_label()
-        #self.__setup_streams()
         self.__setup_info_popover()
 
     def __setup_inputs_row_video_codec_label(self):
