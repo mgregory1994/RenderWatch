@@ -244,19 +244,19 @@ class Settings:
     def audio_sample_rate_origin(self, value):
         self.input_file_info['sample_rate'] = value
 
-    def get_args(self):
+    def get_args(self, cmd_args_enabled=False):
         ffmpeg_args = self.ffmpeg_init_args.copy()
 
         self.__apply_trim_start_args(ffmpeg_args)
         self.__apply_nvdec_args(ffmpeg_args)
-        self.__apply_input_file_args(ffmpeg_args)
+        self.__apply_input_file_args(ffmpeg_args, cmd_args_enabled)
         self.__apply_map_args(ffmpeg_args)
         self.__apply_video_settings_args(ffmpeg_args)
         self.__apply_audio_settings_args(ffmpeg_args)
         self.__apply_picture_settings_args(ffmpeg_args)
         self.__apply_general_settings_args(ffmpeg_args)
         self.__apply_trim_settings_args(ffmpeg_args)
-        self.__apply_output_file_args(ffmpeg_args)
+        self.__apply_output_file_args(ffmpeg_args, cmd_args_enabled)
         self.__apply_2pass_args(ffmpeg_args)
 
         return ffmpeg_args
@@ -280,9 +280,15 @@ class Settings:
             for arg in self.nvdec_args:
                 ffmpeg_args.append(arg)
 
-    def __apply_input_file_args(self, ffmpeg_args):
+    def __apply_input_file_args(self, ffmpeg_args, cmd_args_enabled):
         ffmpeg_args.append('-i')
-        ffmpeg_args.append(self.input_file)
+
+        input_file_path = self.input_file
+
+        if cmd_args_enabled:
+            input_file_path = '\"' + input_file_path + '\"'
+
+        ffmpeg_args.append(input_file_path)
 
     def __apply_video_settings_args(self, ffmpeg_args):
         if self.video_settings is not None:
@@ -366,15 +372,20 @@ class Settings:
             ffmpeg_args.append('-to')
             ffmpeg_args.append(self.trim_settings.ffmpeg_args['-to'])
 
-    def __apply_output_file_args(self, ffmpeg_args):
+    def __apply_output_file_args(self, ffmpeg_args, cmd_args_enabled):
         if self.video_chunk:
             for arg in self.vsync_args:
                 ffmpeg_args.append(arg)
 
         if self.folder_state:
-            ffmpeg_args.append(self.output_directory)
+            output_file_path = self.output_directory
         else:
-            ffmpeg_args.append(self.output_directory + self.filename + self.output_container)
+            output_file_path = self.output_directory + self.filename + self.output_container
+
+        if cmd_args_enabled:
+            output_file_path = '\"' + output_file_path + '\"'
+
+        ffmpeg_args.append(output_file_path)
 
     def __apply_2pass_args(self, ffmpeg_args):
         if self.is_video_settings_2_pass():

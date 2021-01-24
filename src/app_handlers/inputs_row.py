@@ -174,7 +174,7 @@ class InputsRow(Gtk.ListBoxRow):
             self.info_input_resolution_label.set_text('Resolution: ' + self.ffmpeg.resolution_origin)
 
     def __setup_info_popover_ffmpeg_params(self):
-        args = self.ffmpeg.get_args()
+        args = self.ffmpeg.get_args(cmd_args_enabled=True)
         params = ''
 
         for index, arg in enumerate(args):
