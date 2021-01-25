@@ -553,7 +553,6 @@
                     <property name="receives-default">True</property>
                     <property name="halign">start</property>
                     <property name="valign">start</property>
-                    <property name="margin-top">2</property>
                     <child>
                       <object class="GtkImage" id="info_image">
                         <property name="visible">True</property>
@@ -584,7 +583,6 @@
                         <property name="receives-default">True</property>
                         <property name="halign">center</property>
                         <property name="valign">start</property>
-                        <property name="margin-top">2</property>
                         <property name="popover">chunks_popover</property>
                         <child>
                           <object class="GtkImage">
@@ -829,7 +827,7 @@
       <object class="GtkScrolledWindow">
         <property name="visible">True</property>
         <property name="can-focus">True</property>
-        <property name="border-width">10</property>
+        <property name="border-width">5</property>
         <property name="hscrollbar-policy">never</property>
         <property name="shadow-type">in</property>
         <child>
@@ -1242,7 +1240,7 @@
         <property name="visible">True</property>
         <property name="can-focus">True</property>
         <property name="receives-default">True</property>
-        <property name="tooltip-text" translatable="yes">Remove</property>
+        <property name="tooltip-text" translatable="yes">Remove this task</property>
         <property name="halign">center</property>
         <property name="valign">center</property>
         <property name="always-show-image">True</property>
@@ -1560,6 +1558,7 @@
                                       <object class="GtkComboBoxText" id="video_stream_combobox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Select video stream to use from input</property>
                                         <signal name="changed" handler="on_video_stream_combobox_changed" swapped="no"/>
                                       </object>
                                       <packing>
@@ -1598,6 +1597,7 @@
                                       <object class="GtkComboBoxText" id="audio_stream_combobox">
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Select audio stream to use from input</property>
                                         <signal name="changed" handler="on_audio_stream_combobox_changed" swapped="no"/>
                                       </object>
                                       <packing>
@@ -1717,7 +1717,7 @@
                     <property name="can-focus">True</property>
                     <property name="focus-on-click">False</property>
                     <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">More info.</property>
+                    <property name="tooltip-text" translatable="yes">Show task info.</property>
                     <property name="valign">center</property>
                     <property name="margin-bottom">20</property>
                     <property name="popover">info_popover</property>
@@ -1740,7 +1740,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
-                    <property name="tooltip-text" translatable="yes">Start and send to active page</property>
+                    <property name="tooltip-text" translatable="yes">Queue this task and send to active page</property>
                     <property name="valign">center</property>
                     <property name="margin-bottom">20</property>
                     <property name="always-show-image">True</property>

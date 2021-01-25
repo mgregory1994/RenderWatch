@@ -361,8 +361,10 @@
     <property name="comments" translatable="yes">A professional video transcoder for Linux</property>
     <property name="website">https://github.com/mgregory1994/RenderWatch</property>
     <property name="website-label" translatable="yes">Visit GitHub web page</property>
-    <property name="authors">Michael Gregory</property>
-    <property name="artists">Laura Pluckhan</property>
+    <property name="authors">- Developers -
+Michael Gregory</property>
+    <property name="artists">- Render Watch Icon -
+Laura Pluckhan</property>
     <property name="logo">rw_128.png</property>
     <property name="license-type">gpl-3-0</property>
     <child internal-child="vbox">
@@ -549,6 +551,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
+                                <property name="tooltip-text" translatable="yes">Return to the inputs page</property>
                                 <property name="halign">end</property>
                                 <property name="valign">start</property>
                                 <property name="relief">none</property>
@@ -739,7 +742,7 @@
                                               <object class="GtkScale" id="trim_start_scale">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Adjust trim start time</property>
+                                                <property name="tooltip-text" translatable="yes">Adjust the trim start time</property>
                                                 <property name="adjustment">trim_start_adjustment</property>
                                                 <property name="draw-value">False</property>
                                                 <signal name="button-release-event" handler="on_trim_start_scale_button_release_event" swapped="no"/>
@@ -756,7 +759,7 @@
                                               <object class="GtkScale" id="trim_end_scale">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Adjust trim end time</property>
+                                                <property name="tooltip-text" translatable="yes">Adjust the trim end time</property>
                                                 <property name="adjustment">trim_end_adjustment</property>
                                                 <property name="draw-value">False</property>
                                                 <property name="value-pos">bottom</property>
@@ -778,7 +781,6 @@
                                             <property name="visible">True</property>
                                             <property name="can-focus">True</property>
                                             <property name="receives-default">False</property>
-                                            <property name="tooltip-text" translatable="yes">Toggle trim settings</property>
                                             <property name="draw-indicator">True</property>
                                             <signal name="toggled" handler="on_trim_enabled_checkbox_toggled" swapped="no"/>
                                           </object>
@@ -919,7 +921,7 @@
                                                           <object class="GtkSpinButton" id="crop_width_spinbutton">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Adjust crop width</property>
+                                                            <property name="tooltip-text" translatable="yes">Adjust crop width dimension</property>
                                                             <property name="text" translatable="yes">0</property>
                                                             <property name="adjustment">crop_width_adjustment</property>
                                                             <signal name="value-changed" handler="on_crop_width_spinbutton_value_changed" swapped="no"/>
@@ -958,7 +960,7 @@
                                                           <object class="GtkSpinButton" id="crop_height_spinbutton">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
-                                                            <property name="tooltip-text" translatable="yes">Adjust crop height</property>
+                                                            <property name="tooltip-text" translatable="yes">Adjust crop height dimension</property>
                                                             <property name="text" translatable="yes">0</property>
                                                             <property name="adjustment">crop_height_adjustment</property>
                                                             <signal name="value-changed" handler="on_crop_height_spinbutton_value_changed" swapped="no"/>
@@ -1005,7 +1007,7 @@
                                                       <object class="GtkScale" id="crop_x_scale">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Adjust crop X padding</property>
+                                                        <property name="tooltip-text" translatable="yes">Adjust crop X-axis padding</property>
                                                         <property name="adjustment">crop_x_adjustment</property>
                                                         <property name="round-digits">0</property>
                                                         <property name="value-pos">bottom</property>
@@ -1048,7 +1050,7 @@
                                                       <object class="GtkScale" id="crop_y_scale">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Adjust crop Y padding</property>
+                                                        <property name="tooltip-text" translatable="yes">Adjust crop Y-axis padding</property>
                                                         <property name="adjustment">crop_y_adjustment</property>
                                                         <property name="round-digits">0</property>
                                                         <property name="value-pos">bottom</property>
@@ -1081,7 +1083,7 @@
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Toggle auto crop</property>
+                                                    <property name="tooltip-text" translatable="yes">When enabled, detect and crop out "black bars"</property>
                                                     <property name="active">True</property>
                                                     <property name="draw-indicator">True</property>
                                                     <signal name="toggled" handler="on_crop_autocrop_enabled_button_toggled" swapped="no"/>
@@ -1110,7 +1112,6 @@
                                                     <property name="sensitive">False</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Toggle crop settings</property>
                                                     <property name="active">True</property>
                                                     <property name="draw-indicator">True</property>
                                                     <signal name="toggled" handler="on_crop_enabled_button_toggled" swapped="no"/>
@@ -1167,7 +1168,7 @@
                                                       <object class="GtkSpinButton" id="scale_width_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Adjust scale width</property>
+                                                        <property name="tooltip-text" translatable="yes">Adjust output scale width dimension</property>
                                                         <property name="text" translatable="yes">0</property>
                                                         <property name="adjustment">scale_width_adjustment</property>
                                                         <signal name="value-changed" handler="on_scale_spinbutton_value_changed" swapped="no"/>
@@ -1207,7 +1208,7 @@
                                                       <object class="GtkSpinButton" id="scale_height_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
-                                                        <property name="tooltip-text" translatable="yes">Adjust scale height</property>
+                                                        <property name="tooltip-text" translatable="yes">Adjust output scale height dimension</property>
                                                         <property name="text" translatable="yes">0</property>
                                                         <property name="adjustment">scale_height_adjustment</property>
                                                         <signal name="value-changed" handler="on_scale_spinbutton_value_changed" swapped="no"/>
@@ -1233,7 +1234,6 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Toggle image scaling settings</property>
                                                 <property name="draw-indicator">True</property>
                                                 <signal name="toggled" handler="on_scale_enabled_button_toggled" swapped="no"/>
                                               </object>
@@ -1410,7 +1410,7 @@
                                               <object class="GtkScale" id="preview_time_scale">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
-                                                <property name="tooltip-text" translatable="yes">Change current position</property>
+                                                <property name="tooltip-text" translatable="yes">Adjust the current position to preview</property>
                                                 <property name="adjustment">preview_time_adjustment</property>
                                                 <property name="digits">3</property>
                                                 <property name="draw-value">False</property>
@@ -1443,7 +1443,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Preview current position as a still image</property>
+                                                <property name="tooltip-text" translatable="yes">Preview the current position as a still image</property>
                                                 <property name="halign">center</property>
                                                 <property name="active">True</property>
                                                 <property name="draw-indicator">True</property>
@@ -1461,7 +1461,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Preview 5 seconds at the current position</property>
+                                                <property name="tooltip-text" translatable="yes">Generate a 5 second preview starting at the current position</property>
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_still_radio_button</property>
@@ -1479,7 +1479,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Preview 10 seconds at the current position</property>
+                                                <property name="tooltip-text" translatable="yes">Generate a 10 second preview starting at the current position</property>
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_still_radio_button</property>
@@ -1497,7 +1497,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Preview 20 seconds at the current position</property>
+                                                <property name="tooltip-text" translatable="yes">Generate a 20 second preview starting at the current position</property>
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_still_radio_button</property>
@@ -1515,7 +1515,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Preview 30 seconds at the current position</property>
+                                                <property name="tooltip-text" translatable="yes">Generate a 30 second preview starting at the current position</property>
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_still_radio_button</property>
@@ -1685,6 +1685,7 @@
                                                   <object class="GtkComboBoxText" id="container_combobox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Select the desired output video container</property>
                                                     <signal name="changed" handler="on_container_combobox_changed" swapped="no"/>
                                                   </object>
                                                   <packing>
@@ -1707,7 +1708,7 @@
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="receives-default">False</property>
-                                                <property name="tooltip-text" translatable="yes">Toggle streaming optimized setting for the container</property>
+                                                <property name="tooltip-text" translatable="yes">Toggle the streaming optimized mode for the selected container</property>
                                                 <property name="halign">start</property>
                                                 <property name="margin-start">10</property>
                                                 <property name="draw-indicator">True</property>
@@ -1750,6 +1751,9 @@
                                                   <object class="GtkComboBoxText" id="video_codec_combobox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Selected the video codec to use
+
+If using the "copy" codec, make sure that the input's video codec is compatible with the selected container</property>
                                                     <signal name="changed" handler="on_video_codec_combobox_changed" swapped="no"/>
                                                   </object>
                                                   <packing>
@@ -1797,6 +1801,9 @@
                                                   <object class="GtkComboBoxText" id="audio_codec_combobox">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Selected the audio codec to use
+
+If using the "copy" codec, make sure that the input's audio codec is compatible with the selected container</property>
                                                     <signal name="changed" handler="on_audio_codec_combobox_changed" swapped="no"/>
                                                   </object>
                                                   <packing>
@@ -1855,11 +1862,11 @@
                                                         <property name="layout-style">spread</property>
                                                         <child>
                                                           <object class="GtkRadioButton" id="framerate_auto_radiobutton">
-                                                            <property name="label" translatable="yes">Auto</property>
+                                                            <property name="label" translatable="yes">Same</property>
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Automatically pick a framerate</property>
+                                                            <property name="tooltip-text" translatable="yes">Use the input's frame rate</property>
                                                             <property name="halign">end</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -1877,7 +1884,9 @@
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
-                                                            <property name="tooltip-text" translatable="yes">Choose a custom framerate</property>
+                                                            <property name="tooltip-text" translatable="yes">Choose a custom output framerate
+
+Warning: May cause stuttering if the frame rate is different from the input's frame rate</property>
                                                             <property name="halign">end</property>
                                                             <property name="draw-indicator">True</property>
                                                             <property name="group">framerate_auto_radiobutton</property>
@@ -2045,6 +2054,11 @@
                                                       <object class="GtkComboBoxText" id="x264_preset_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">The preset will offer a tradeoff between encoding speed and compression efficiency
+
+The options that are set by the preset are applied before other set options
+
+Recommended: Choose the slowest preset you can tolerate</property>
                                                         <signal name="changed" handler="on_x264_preset_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -2092,6 +2106,9 @@
                                                       <object class="GtkComboBoxText" id="x264_profile_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the profile limit for the output stream in order to conform with device or content service specifications
+
+Recommended: Only set if you need compatibility with a certain device or content service</property>
                                                         <signal name="changed" handler="on_x264_profile_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -2139,6 +2156,11 @@
                                                       <object class="GtkComboBoxText" id="x264_level_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Sets the level for the output bitstream
+
+This will restrict what settings can be used and what they can be set to in order to stay in compliance with the level specified
+
+Recommended: Don't set unless you need to ensure compatibility with a certain device</property>
                                                         <signal name="changed" handler="on_x264_level_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -2186,6 +2208,15 @@
                                                       <object class="GtkComboBoxText" id="x264_tune_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Optimizes certain settings in order to better conform with the type of input media
+
+Film: Use for high quality content that has a large frame size (&gt;= 1280x720)
+
+Grain: Use for high quality content that makes use of film grain
+
+Animation: Use for 2D cartoons / anime
+
+Other: Use only if you know what you're doing</property>
                                                         <signal name="changed" handler="on_x264_tune_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -2227,6 +2258,11 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the constant rate factor
+
+CRF targets a perceived "quality" and adjusts the bitrate in order to reach the desired "quality". You cannot predict the output's bitrate when using CRF, so don't use if the bitrate needs to be constrained
+
+Common Values: 18-28</property>
                                                         <property name="halign">start</property>
                                                         <property name="active">True</property>
                                                         <property name="draw-indicator">True</property>
@@ -2244,6 +2280,11 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Sets the constant quantizer for P-frames. The quantizer for both I and B frames are set by ipratio and bpratio and will be set automatically by x264
+
+Generally, CQ requires a higher bitrate to achieve the same "quality" of CRF.
+
+Recommended: Use CRF unless you have a good reason to use CQ</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">x264_crf_radiobutton</property>
@@ -2261,6 +2302,13 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the output's target bitrate using the bitrate mode specified
+
+Average: The encoder will try to make the output's average bitrate equal the bitrate specified
+
+Constant: The bitrate specified will be used throughout the entirety of the video (predictable bitrate, generally lower quality and higher file size)
+
+2-Pass: Run the encode in 2 passes, the first pass will analyze the input and the second pass will encode the input using the information from the first pass in order to achieve better quality and a more accurate average bitrate</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">x264_crf_radiobutton</property>
@@ -3962,6 +4010,11 @@
                                                       <object class="GtkComboBoxText" id="x265_preset_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">The preset will offer a tradeoff between encoding speed and compression efficiency
+
+The options that are set by the preset are applied before other set options
+
+Recommended: Choose the slowest preset you can tolerate</property>
                                                         <signal name="changed" handler="on_x265_preset_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -4009,6 +4062,9 @@
                                                       <object class="GtkComboBoxText" id="x265_profile_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the profile limit for the output stream in order to conform with device or content service specifications
+
+Recommended: Main</property>
                                                         <signal name="changed" handler="on_x265_profile_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -4056,6 +4112,11 @@
                                                       <object class="GtkComboBoxText" id="x265_level_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Sets the level for the output bitstream
+
+This will restrict what settings can be used and what they can be set to in order to stay in compliance with the level specified
+
+Recommended: Don't set unless you need to ensure compatibility with a certain device</property>
                                                         <signal name="changed" handler="on_x265_level_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -4103,6 +4164,13 @@
                                                       <object class="GtkComboBoxText" id="x265_tune_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Optimizes certain settings in order to better conform with the type of input media
+
+Grain: Use for high quality content that makes use of film grain
+
+Animation: Use for 2D cartoons / anime
+
+Other: Use only if you know what you're doing</property>
                                                         <signal name="changed" handler="on_x265_tune_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -4144,6 +4212,11 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the constant rate factor
+
+CRF targets a perceived "quality" and adjusts the bitrate in order to reach the desired "quality". You cannot predict the output's bitrate when using CRF, so don't use if the bitrate needs to be constrained
+
+Common Values: 18-28</property>
                                                         <property name="halign">start</property>
                                                         <property name="active">True</property>
                                                         <property name="draw-indicator">True</property>
@@ -4161,6 +4234,11 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Sets the constant quantizer for P-frames. The quantizer for both I and B frames are set by ipratio and bpratio and will be set automatically by x265
+
+Generally, CQ requires a higher bitrate to achieve the same "quality" of CRF.
+
+Recommended: Use CRF unless you have a good reason to use CQ</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">x265_crf_radiobutton</property>
@@ -4178,6 +4256,11 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the output's target bitrate using the bitrate mode specified
+
+Average: The encoder will try to make the output's average bitrate equal the bitrate specified
+
+2-Pass: Run the encode in 2 passes, the first pass will analyze the input and the second pass will encode the input using the information from the first pass in order to achieve better quality and a more accurate average bitrate</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">x265_crf_radiobutton</property>
@@ -5904,6 +5987,13 @@
                                                       <object class="GtkComboBoxText" id="vp9_quality_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the desired encoder quality
+
+Good: Best for most tasks, provides good quality and speed
+
+Best: Used to achieve the highest quality and best compression but results in a slow encode
+
+Recommended: Good or auto</property>
                                                         <signal name="changed" handler="on_vp9_quality_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -5936,6 +6026,11 @@
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Set the constant rate factor
+
+CRF targets a perceived "quality" and adjusts the bitrate in order to reach the desired "quality". You cannot predict the output's bitrate when using CRF, so don't use if the bitrate needs to be constrained
+
+Common Values: 15-30</property>
                                                             <property name="halign">center</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_vp9_crf_radiobutton_toggled" swapped="no"/>
@@ -5952,6 +6047,13 @@
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Set the output's target bitrate using the bitrate mode specified
+
+Average: The encoder will try to make the output's average bitrate equal the bitrate specified
+
+Constant: The bitrate specified will be used throughout the entirety of the video (predictable bitrate, generally lower quality and higher file size)
+
+VBR: Set the maximum and minimum bitrate. The encoder will make the output's bitrate conform to these constraints while keeping the average bitrate as specified</property>
                                                             <property name="halign">center</property>
                                                             <property name="active">True</property>
                                                             <property name="draw-indicator">True</property>
@@ -5970,6 +6072,9 @@
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Set both the CRF and bitrate
+
+This will use CRF for achieving the desired "quality" while using the bitrate option to cap the bitrate. Inputs that aren't complex enough to meet this bitrate cap will be processed the same as using just CRF</property>
                                                             <property name="halign">center</property>
                                                             <property name="draw-indicator">True</property>
                                                             <property name="group">vp9_crf_radiobutton</property>
@@ -6188,6 +6293,9 @@
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
+                                                            <property name="tooltip-text" translatable="yes">Use a 2-pass encode process
+
+The first pass will analyze the input and the second pass will encode the input using the information from the first pass. This will achieve better quality, but will also result in a slower encode time</property>
                                                             <property name="halign">start</property>
                                                             <property name="draw-indicator">True</property>
                                                             <signal name="toggled" handler="on_vp9_2_pass_checkbox_toggled" swapped="no"/>
@@ -6327,6 +6435,13 @@
                                                       <object class="GtkComboBoxText" id="vp9_speed_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">The lower the number, the better the quality but the slower the encode
+
+Values 1-2: Causes a decent speed boost while maintaining good quality
+
+Values 4-5: Disables rate distortion optimization but results in a faster encode
+
+Recommended: Auto or slowest you can tolerate</property>
                                                         <signal name="changed" handler="on_vp9_speed_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -6349,6 +6464,9 @@
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Allows the encoder to utilize more CPU threads. For inputs with large frame sizes, you can expect more CPU utilization and a more drastic speed improvement
+
+Recommended: Use only if encoder does not fully utilize CPU without this option</property>
                                                     <property name="halign">start</property>
                                                     <property name="draw-indicator">True</property>
                                                     <signal name="toggled" handler="on_vp9_row_multithreading_checkbox_toggled" swapped="no"/>
@@ -6403,6 +6521,11 @@
                                                       <object class="GtkComboBoxText" id="nvenc_preset_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">The preset will offer a tradeoff between encoding speed and compression efficiency
+
+The options that are set by the preset are applied before other set options
+
+Recommended: Choose the slowest preset you can tolerate</property>
                                                         <signal name="changed" handler="on_nvenc_preset_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -6450,6 +6573,9 @@
                                                       <object class="GtkComboBoxText" id="nvenc_profile_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the profile limit for the output stream in order to conform with device or content service specifications
+
+Recommended: Only set if you need compatibility with a certain device or content service</property>
                                                         <signal name="changed" handler="on_nvenc_profile_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -6497,6 +6623,11 @@
                                                       <object class="GtkComboBoxText" id="nvenc_level_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Sets the level for the output bitstream
+
+This will restrict what settings can be used and what they can be set to in order to stay in compliance with the level specified
+
+Recommended: Don't set unless you need to ensure compatibility with a certain device</property>
                                                         <signal name="changed" handler="on_nvenc_level_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -6537,6 +6668,11 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Use constant quality
+
+The encoder will keep the same "quality" by using as much bitrate as it needs
+
+Common Values: 18-28</property>
                                                         <property name="halign">start</property>
                                                         <property name="active">True</property>
                                                         <property name="draw-indicator">True</property>
@@ -6554,6 +6690,13 @@
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the output's target bitrate using the bitrate mode specified
+
+Average: The encoder will try to make the output's average bitrate equal the bitrate specified
+
+Constant: The bitrate specified will be used throughout the entirety of the video (predictable bitrate, generally lower quality and higher file size)
+
+2-Pass: Run the encode in 2 passes, the first pass will analyze the input and the second pass will encode the input using the information from the first pass in order to achieve better quality and a more accurate average bitrate</property>
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">nvenc_qp_radiobutton</property>
@@ -7687,6 +7830,7 @@
                                                       <object class="GtkSpinButton" id="aac_bitrate_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the audio average bitrate</property>
                                                         <property name="max-length">5</property>
                                                         <property name="text" translatable="yes">128</property>
                                                         <property name="placeholder-text" translatable="yes">Bitrate(kbps)</property>
@@ -7742,6 +7886,9 @@
                                                       <object class="GtkComboBoxText" id="aac_channels_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Choose the number of audio channels to use
+
+Recommended: Auto unless you're downmixing the audio to fewer channels</property>
                                                         <signal name="changed" handler="on_aac_channels_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -7802,6 +7949,7 @@
                                                       <object class="GtkSpinButton" id="opus_bitrate_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
+                                                        <property name="tooltip-text" translatable="yes">Set the audio average bitrate</property>
                                                         <property name="width-chars">3</property>
                                                         <property name="text" translatable="yes">128</property>
                                                         <property name="input-purpose">digits</property>
@@ -7856,6 +8004,9 @@
                                                       <object class="GtkComboBoxText" id="opus_channels_combobox">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">Choose the number of audio channels to use
+
+Recommended: Auto unless you're downmixing the audio to fewer channels</property>
                                                         <signal name="changed" handler="on_opus_channels_combobox_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
@@ -8244,7 +8395,7 @@
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">True</property>
-                                                    <property name="tooltip-text" translatable="yes">Stop the current benchmark</property>
+                                                    <property name="tooltip-text" translatable="yes">Stop the currently running benchmark</property>
                                                     <signal name="clicked" handler="on_benchmark_stop_button_clicked" swapped="no"/>
                                                   </object>
                                                   <packing>
@@ -8303,7 +8454,7 @@
                                 <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Show crop settings for selected input</property>
+                                <property name="tooltip-text" translatable="yes">Crop settings</property>
                                 <signal name="clicked" handler="on_crop_button_clicked" swapped="no"/>
                                 <child>
                                   <object class="GtkImage" id="crop_image">
@@ -8326,7 +8477,7 @@
                                 <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Show trim settings for selected input</property>
+                                <property name="tooltip-text" translatable="yes">Trim settings</property>
                                 <signal name="clicked" handler="on_trim_button_clicked" swapped="no"/>
                                 <child>
                                   <object class="GtkImage" id="trim_image">
@@ -8348,7 +8499,7 @@
                                 <property name="sensitive">False</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="tooltip-text" translatable="yes">Get a preview for selected input's settings</property>
+                                <property name="tooltip-text" translatable="yes">Output preview</property>
                                 <signal name="clicked" handler="on_preview_button_clicked" swapped="no"/>
                                 <child>
                                   <object class="GtkImage" id="preview_image">
@@ -8575,6 +8726,7 @@
             <property name="can-focus">True</property>
             <property name="focus-on-click">False</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Show settings</property>
             <property name="margin-end">5</property>
             <property name="draw-indicator">True</property>
             <property name="popover">prefs_popover</property>
@@ -8603,7 +8755,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Show settings sidebar</property>
+                <property name="tooltip-text" translatable="yes">Show input settings sidebar</property>
                 <property name="image">show_settings_image</property>
                 <property name="always-show-image">True</property>
                 <signal name="clicked" handler="on_show_settings_button_clicked" swapped="no"/>
@@ -8618,7 +8770,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Hide settings sidebar</property>
+                <property name="tooltip-text" translatable="yes">Hide input settings sidebar</property>
                 <property name="image">hide_settings_image</property>
                 <property name="always-show-image">True</property>
                 <signal name="clicked" handler="on_hide_settings_button_clicked" swapped="no"/>
@@ -8639,7 +8791,7 @@
           <object class="GtkFileChooserButton" id="output_chooserbutton">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="tooltip-text" translatable="yes">Choose the output location for completed encodes</property>
+            <property name="tooltip-text" translatable="yes">Choose the output location for all inputs</property>
             <property name="halign">end</property>
             <property name="action">select-folder</property>
             <property name="title" translatable="yes">Output Location</property>
@@ -8675,6 +8827,7 @@
               <object class="GtkComboBoxText" id="add_combobox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Set the input type</property>
                 <property name="active">0</property>
                 <property name="popup-fixed-width">False</property>
                 <items>
@@ -8750,7 +8903,7 @@
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkLabel" id="prefs_temp_title">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
@@ -8769,14 +8922,14 @@
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="margin-start">10</property>
                         <property name="spacing">10</property>
                         <child>
                           <object class="GtkFileChooserButton" id="prefs_temp_chooserbutton">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Choose a location to store temporary files while Render Watch is running.</property>
+                            <property name="tooltip-text" translatable="yes">Choose a location to store temporary files while Render Watch is running</property>
                             <property name="halign">start</property>
-                            <property name="margin-start">10</property>
                             <property name="action">select-folder</property>
                             <property name="title" translatable="yes">Choose folder for temp storage</property>
                             <signal name="file-set" handler="on_prefs_temp_chooserbutton_file_set" swapped="no"/>
@@ -8836,7 +8989,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Delete the temporary directory and all files stored within it.</property>
+                        <property name="tooltip-text" translatable="yes">Delete the temporary directory selected above and all files stored within it upon closing the application</property>
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
@@ -8863,7 +9016,7 @@
                     <property name="orientation">vertical</property>
                     <property name="spacing">10</property>
                     <child>
-                      <object class="GtkLabel" id="prefs_misc_label">
+                      <object class="GtkLabel" id="prefs_misc_title">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="halign">start</property>
@@ -8991,7 +9144,7 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                           <object class="GtkComboBoxText" id="prefs_concurrent_combobox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Choose the number of tasks that will be processed at the same time.</property>
+                            <property name="tooltip-text" translatable="yes">Choose how many tasks will be processed simultaneously when running parallel tasks</property>
                             <signal name="changed" handler="on_prefs_concurrent_combobox_changed" swapped="no"/>
                           </object>
                           <packing>
@@ -9165,7 +9318,7 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                           <object class="GtkComboBoxText" id="prefs_nvenc_concurrent_combobox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Choose the number of NVENC tasks that will process at the same time.
+                            <property name="tooltip-text" translatable="yes">Choose the number of NVENC tasks that will process simultaneously when running parallel tasks
 
 Recommended: "auto"
 
@@ -9231,7 +9384,7 @@ Restart Render Watch for changes to take effect</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Allow NVENC tasks to run at the same time as other non-NVENC tasks.</property>
+                        <property name="tooltip-text" translatable="yes">Allow NVENC tasks to run at the same time as other non-NVENC tasks when running parallel tasks</property>
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
@@ -9279,9 +9432,9 @@ Restart Render Watch for changes to take effect</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Overwrites files that already exist with the same name in the output directory.
+                        <property name="tooltip-text" translatable="yes">Overwrites files that already exist with the same name in the output directory
 
-If this option is disabled, then conflicting tasks will have the output file renamed.</property>
+If this option is disabled, then conflicting tasks will have their output file renamed</property>
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
@@ -9352,7 +9505,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Wait for other non-watch folder tasks to complete before starting / continuing watch folder processing.</property>
+                        <property name="tooltip-text" translatable="yes">Wait for other non-watch folder tasks to complete before starting or continuing queued watch folder tasks</property>
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
@@ -9371,7 +9524,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Run all watch folder tasks simultaneously.</property>
+                        <property name="tooltip-text" translatable="yes">Run all queued watch folder tasks simultaneously</property>
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="draw-indicator">True</property>
@@ -9418,7 +9571,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">False</property>
-                        <property name="tooltip-text" translatable="yes">Move every file that has finished processing into a "done" folder that's created and placed in the watch folder directory.</property>
+                        <property name="tooltip-text" translatable="yes">Move every file that has finished processing into a "done" folder that's created and placed in the watch folder directory</property>
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
@@ -9536,6 +9689,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Settings will be applied to all inputs except for trim, crop, and subtitle settings</property>
                     <property name="halign">start</property>
                     <property name="draw-indicator">True</property>
                     <signal name="toggled" handler="on_apply_to_all_button_toggled" swapped="no"/>
@@ -9552,6 +9706,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Automatically detect and remove "black bars" by cropping input</property>
                     <property name="halign">start</property>
                     <property name="active">True</property>
                     <property name="draw-indicator">True</property>
@@ -9592,6 +9747,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">Started inputs will be processed as a standard task</property>
                             <property name="halign">start</property>
                             <property name="active">True</property>
                             <property name="draw-indicator">True</property>
@@ -9608,6 +9764,9 @@ If this option is disabled, then conflicting tasks will have the output file ren
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">Started inputs will be processed as a parallel task
+
+The parallel task type selected below will be used</property>
                             <property name="halign">start</property>
                             <property name="active">True</property>
                             <property name="draw-indicator">True</property>
@@ -9640,6 +9799,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">Multiple inputs will be processed simultaneously</property>
                             <property name="halign">start</property>
                             <property name="active">True</property>
                             <property name="draw-indicator">True</property>
@@ -9656,6 +9816,8 @@ If this option is disabled, then conflicting tasks will have the output file ren
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">Inputs will be split into chunks and each chunk will be processed simultaneously</property>
+                            <property name="halign">start</property>
                             <property name="draw-indicator">True</property>
                             <property name="group">batch_radio_button</property>
                           </object>
@@ -9693,7 +9855,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                 <property name="spacing">10</property>
                 <child>
                   <object class="GtkButton" id="pause_all_proc_button">
-                    <property name="label" translatable="yes">Pause All Processes</property>
+                    <property name="label" translatable="yes">Pause All Tasks</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
@@ -9708,7 +9870,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                 </child>
                 <child>
                   <object class="GtkButton" id="resume_all_proc_button">
-                    <property name="label" translatable="yes">Resume All Processes</property>
+                    <property name="label" translatable="yes">Resume All Tasks</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
@@ -9723,7 +9885,7 @@ If this option is disabled, then conflicting tasks will have the output file ren
                 </child>
                 <child>
                   <object class="GtkButton" id="stop_all_proc_button">
-                    <property name="label" translatable="yes">Stop All Processes</property>
+                    <property name="label" translatable="yes">Stop All Tasks</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can-focus">True</property>
@@ -9756,6 +9918,8 @@ If this option is disabled, then conflicting tasks will have the output file ren
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
+                    <property name="tooltip-text" translatable="yes">Generate live thumbnails that show where the task is currently processing</property>
+                    <property name="halign">start</property>
                     <property name="active">True</property>
                     <property name="draw-indicator">True</property>
                     <signal name="toggled" handler="on_live_thumbnails_button_toggled" swapped="no"/>
