@@ -186,6 +186,8 @@ class CropPageHandlers:
         if auto_crop_enabled:
             threading.Thread(target=self.__setup_autocrop, args=()).start()
         else:
+            self.ffmpeg.picture_settings.auto_crop = False
+
             self.__setup_crop_settings()
             threading.Thread(target=self.__set_crop_thumbnail, args=()).start()
 
