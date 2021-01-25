@@ -448,6 +448,9 @@ class Settings:
             ffmpeg_copy.picture_settings.ffmpeg_args = self.picture_settings.ffmpeg_args.copy()
             ffmpeg_copy.video_stream_index = self.video_stream_index
             ffmpeg_copy.audio_stream_index = self.audio_stream_index
+            ffmpeg_copy.no_video = self.no_video
+            ffmpeg_copy.no_audio = self.no_audio
+            ffmpeg_copy.video_chunk = self.video_chunk
 
             if self.is_output_container_set():
                 ffmpeg_copy.output_container = self.output_container
