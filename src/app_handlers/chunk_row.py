@@ -63,18 +63,14 @@ class ChunkRow(Gtk.ListBoxRow):
         if self.ffmpeg.trim_settings is None:
             start_time = 0
             trim_duration = self.ffmpeg.duration_origin
-
-            self.chunk_identifier_label.set_text('Audio:')
         else:
             start_time = self.ffmpeg.trim_settings.start_time
             trim_duration = self.ffmpeg.trim_settings.trim_duration
 
-            self.chunk_identifier_label.set_text('Chunk ' + str(self.chunk_number) + ':')
-
         return start_time, trim_duration
 
     def __setup_chunk_identifier_label(self):
-        if self.ffmpeg.trim_settings is None:
+        if self.ffmpeg.no_video:
             self.chunk_identifier_label.set_text('Audio:')
         else:
             self.chunk_identifier_label.set_text('Chunk ' + str(self.chunk_number) + ':')
