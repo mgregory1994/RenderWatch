@@ -40,7 +40,8 @@ class Settings:
     video_none_arg = '-vn'
     raw_video_args = ('-f', 'rawvideo')
     vsync_args = ('-vsync', '0')
-    nvdec_args = ('-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda')
+    nvdec_args = ('-hwaccel', 'nvdec')
+    nvdec_out_format_args = ('-hwaccel_output_format', 'cuda')
 
     def __init__(self):
         self.input_file_info = {
@@ -277,8 +278,10 @@ class Settings:
 
     def __apply_nvdec_args(self, ffmpeg_args):
         if self.is_video_settings_nvenc():
-            for arg in self.nvdec_args:
-                ffmpeg_args.append(arg)
+            ffmpeg_args.extend(self.nvdec_args)
+
+            if self.picture_settings.crop is None:
+                ffmpeg_args.extend(self.nvdec_out_format_args)
 
     def __apply_input_file_args(self, ffmpeg_args, cmd_args_enabled):
         ffmpeg_args.append('-i')
@@ -297,8 +300,7 @@ class Settings:
         elif self.no_video:
             ffmpeg_args.append(self.video_none_arg)
         else:
-            for value in self.video_copy_args:
-                ffmpeg_args.append(value)
+            ffmpeg_args.extend(self.video_copy_args)
 
     def __generate_video_settings_args(self):
         args = []
@@ -326,8 +328,7 @@ class Settings:
         elif self.no_audio or self.is_video_settings_2_pass():
             ffmpeg_args.append(self.audio_none_arg)
         else:
-            for value in self.audio_copy_args:
-                ffmpeg_args.append(value)
+            ffmpeg_args.extend(self.audio_copy_args)
 
     def __generate_audio_settings_args(self):
         args = []
@@ -346,10 +347,14 @@ class Settings:
     def __generate_picture_settings_args(self):
         args = []
 
-        for key, value in self.picture_settings.ffmpeg_args.items():
-            if value is not None:
-                args.append(key)
-                args.append(value)
+        if self.is_video_settings_nvenc() and self.picture_settings.crop is None:
+            args.extend(self.picture_settings.get_scale_nvenc_args())
+        else:
+
+            for key, value in self.picture_settings.ffmpeg_args.items():
+                if value is not None:
+                    args.append(key)
+                    args.append(value)
 
         return args
 
@@ -393,9 +398,7 @@ class Settings:
             ffmpeg_copy.video_settings.encode_pass = 2
 
             ffmpeg_args.append('&&')
-
-            for arg in ffmpeg_copy.get_args():
-                ffmpeg_args.append(arg)
+            ffmpeg_args.extend(ffmpeg_copy.get_args())
 
     def is_video_settings_x264(self):
         if self.video_settings is not None and self.video_settings.codec_name == 'libx264':
@@ -422,7 +425,7 @@ class Settings:
         return False
 
     def is_video_settings_nvenc(self):
-        if self.video_settings is not None and 'nvenc' in self.video_settings.codec_name:
+        if self.video_settings is not None and not self.no_video and 'nvenc' in self.video_settings.codec_name:
             return True
 
         return False

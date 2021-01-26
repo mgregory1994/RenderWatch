@@ -28,14 +28,13 @@ class PictureSettings:
 
     @property
     def scale(self):
-        scale = self.ffmpeg_args['-s']
-
-        if scale is None:
+        try:
+            scale = self.ffmpeg_args['-s']
+            width, height = scale.split('x')
+        except:
             return None
-
-        width, height = scale.split('x')
-
-        return int(width), int(height)
+        else:
+            return int(width), int(height)
 
     @scale.setter
     def scale(self, dimensions):
@@ -49,16 +48,29 @@ class PictureSettings:
         else:
             self.ffmpeg_args['-s'] = str(width) + 'x' + str(height)
 
+    def get_scale_nvenc_args(self):
+        args = ['-vf']
+
+        try:
+            width, height = self.scale
+        except:
+            return []
+        else:
+            nvenc_scale_arg = 'scale_npp=' + str(width) + ':' + str(height)
+
+            args.append(nvenc_scale_arg)
+
+            return args
+
     @property
     def crop(self):
-        crop = self.ffmpeg_args['-filter:v']
-
-        if crop is None:
+        try:
+            crop = self.ffmpeg_args['-filter:v']
+            width, height, x, y = crop.split('=')[1].split(':')
+        except:
             return None
-
-        width, height, x, y = crop.split('=')[1].split(':')
-
-        return int(width), int(height), int(x), int(y)
+        else:
+            return int(width), int(height), int(x), int(y)
 
     @crop.setter
     def crop(self, crop_parameters):
