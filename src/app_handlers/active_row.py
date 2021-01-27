@@ -365,7 +365,7 @@ class ActiveRow(Gtk.ListBoxRow):
     def ffmpeg(self, ffmpeg):
         self.__ffmpeg = ffmpeg
 
-        self.active_row_folder_filename_label.set_text(ffmpeg.filename)
+        GLib.idle_add(self.active_row_folder_filename_label.set_text, ffmpeg.filename)
 
     @property
     def thumbnail(self):
