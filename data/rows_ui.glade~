@@ -76,11 +76,13 @@
                         <property name="can-focus">False</property>
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">9999kbits/s</property>
-                        <property name="width-chars">11</property>
+                        <property name="width-chars">12</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -116,10 +118,12 @@
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">99.9x</property>
                         <property name="width-chars">6</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -155,10 +159,12 @@
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">999Mb</property>
                         <property name="width-chars">6</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -193,11 +199,13 @@
                         <property name="can-focus">False</property>
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">##:##:##.#</property>
-                        <property name="width-chars">9</property>
+                        <property name="width-chars">10</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -220,6 +228,7 @@
                 <property name="can-focus">True</property>
                 <property name="focus-on-click">False</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Show task info.</property>
                 <property name="halign">center</property>
                 <property name="valign">start</property>
                 <child>
@@ -304,6 +313,7 @@
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Remove this task</property>
             <property name="halign">center</property>
             <property name="valign">center</property>
             <property name="always-show-image">True</property>
@@ -376,7 +386,7 @@
                 <property name="valign">start</property>
                 <property name="margin-top">13</property>
                 <property name="row-spacing">5</property>
-                <property name="column-spacing">5</property>
+                <property name="column-spacing">10</property>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
@@ -402,11 +412,13 @@
                         <property name="can-focus">False</property>
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">##:##:##.#</property>
-                        <property name="width-chars">9</property>
+                        <property name="width-chars">10</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -442,10 +454,12 @@
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">999Mb</property>
                         <property name="width-chars">6</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -479,12 +493,15 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="opacity">0.50196078431372548</property>
+                        <property name="halign">end</property>
                         <property name="label" translatable="yes">9999kbits/s</property>
-                        <property name="width-chars">11</property>
+                        <property name="width-chars">12</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -520,10 +537,12 @@
                         <property name="opacity">0.50196078431372548</property>
                         <property name="label" translatable="yes">99.9x</property>
                         <property name="width-chars">6</property>
+                        <property name="xalign">1</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -551,6 +570,7 @@
                     <property name="can-focus">True</property>
                     <property name="focus-on-click">False</property>
                     <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Show task info.</property>
                     <property name="halign">start</property>
                     <property name="valign">start</property>
                     <child>
@@ -581,6 +601,7 @@
                         <property name="can-focus">True</property>
                         <property name="focus-on-click">False</property>
                         <property name="receives-default">True</property>
+                        <property name="tooltip-text" translatable="yes">Show chunks info.</property>
                         <property name="halign">center</property>
                         <property name="valign">start</property>
                         <property name="popover">chunks_popover</property>
@@ -705,6 +726,7 @@
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Pause this task</property>
                 <property name="halign">center</property>
                 <property name="valign">center</property>
                 <property name="always-show-image">True</property>
@@ -756,6 +778,7 @@
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
+            <property name="tooltip-text" translatable="yes">Stop and remove this task</property>
             <property name="halign">end</property>
             <property name="valign">center</property>
             <property name="always-show-image">True</property>
@@ -1230,8 +1253,8 @@
   <object class="GtkBox" id="inputs_row_container">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="margin-start">5</property>
-    <property name="margin-end">5</property>
+    <property name="margin-start">10</property>
+    <property name="margin-end">10</property>
     <property name="margin-top">5</property>
     <property name="margin-bottom">5</property>
     <property name="spacing">10</property>
@@ -1262,8 +1285,8 @@
     <child>
       <object class="GtkImage" id="input_thumbnail">
         <property name="can-focus">False</property>
-        <property name="halign">start</property>
         <property name="valign">center</property>
+        <property name="hexpand">True</property>
         <property name="pixel-size">96</property>
         <property name="icon-name">applications-multimedia-symbolic</property>
         <property name="icon_size">6</property>
@@ -1773,7 +1796,7 @@
         </child>
       </object>
       <packing>
-        <property name="expand">True</property>
+        <property name="expand">False</property>
         <property name="fill">True</property>
         <property name="position">2</property>
       </packing>
