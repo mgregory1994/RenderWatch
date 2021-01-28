@@ -1,9 +1,8 @@
+# Render Watch
 <p align="center">
   <img src="https://github.com/mgregory1994/RenderWatch/blob/main/data/rw_512.png" alt="Render Watch Icon"/>
 </p>
 
-
-# Render Watch
 Render Watch is an open source professional video transcoder for Linux.
 
 Render Watch can be used to convert video files from one format to another
