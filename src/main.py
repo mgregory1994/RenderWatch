@@ -60,6 +60,7 @@ def __setup_application():
 
 def __start_application():
     __load_preferences()
+    __setup_logging()
     __set_nvenc_max_workers()
     __setup_encoder()
     __setup_application()
@@ -119,7 +120,5 @@ def __is_watchdog_installed():
 
 
 if __name__ == '__main__':
-    __setup_logging()
-
     if __is_watchdog_installed() and __is_ffmpeg_installed():
         __start_application()

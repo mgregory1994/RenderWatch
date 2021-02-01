@@ -43,7 +43,7 @@ class AppUI:
         self.gtk_settings = Gtk.Settings.get_default()
         self.gtk_builder = Gtk.Builder()
 
-        self.gtk_builder.add_from_file('../data/rw_ui.glade')
+        self.gtk_builder.add_from_file('render_watch_data/rw_ui.glade')
 
     def setup_and_run_application(self):
         self.__setup_prefs_dialog()

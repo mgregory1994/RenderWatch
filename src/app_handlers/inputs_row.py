@@ -42,7 +42,7 @@ class InputsRow(Gtk.ListBoxRow):
         self.main_window_handlers = main_window_handlers
         self.gtk_builder = Gtk.Builder()
 
-        self.gtk_builder.add_from_file('../data/rows_ui.glade')
+        self.gtk_builder.add_from_file('render_watch_data/rows_ui.glade')
 
         self.__listbox_row_widget_container = self.gtk_builder.get_object('inputs_row_container')
         self.preview_thumbnail = self.gtk_builder.get_object('input_thumbnail')
