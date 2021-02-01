@@ -143,6 +143,6 @@ dmypy.json
 .prof
 
 # glade backups
-.glade~
+*.glade~
 
 # End of https://www.toptal.com/developers/gitignore/api/python
