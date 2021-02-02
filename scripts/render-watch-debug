@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd /usr/share/render-watch/src
+cd /usr/lib/python3/dist-packages/render_watch
 
 python3 main.py --debug
