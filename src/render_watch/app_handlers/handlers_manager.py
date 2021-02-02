@@ -19,15 +19,15 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 
-from app_handlers.main_window_handlers import MainWindowHandlers
-from app_handlers.inputs_page_handlers import InputsPageHandlers
-from app_handlers.preview_page_handlers import PreviewPageHandlers
-from app_handlers.crop_page_handlers import CropPageHandlers
-from app_handlers.trim_page_handlers import TrimPageHandlers
-from app_handlers.active_page_handlers import ActivePageHandlers
-from app_handlers.completed_page_handlers import CompletedPageHandlers
-from app_handlers.settings_sidebar_handlers import SettingsSidebarHandlers
-from app_handlers.prefs_handlers import PrefsHandlers
+from render_watch.app_handlers.main_window_handlers import MainWindowHandlers
+from render_watch.app_handlers.inputs_page_handlers import InputsPageHandlers
+from render_watch.app_handlers.preview_page_handlers import PreviewPageHandlers
+from render_watch.app_handlers.crop_page_handlers import CropPageHandlers
+from render_watch.app_handlers.trim_page_handlers import TrimPageHandlers
+from render_watch.app_handlers.active_page_handlers import ActivePageHandlers
+from render_watch.app_handlers.completed_page_handlers import CompletedPageHandlers
+from render_watch.app_handlers.settings_sidebar_handlers import SettingsSidebarHandlers
+from render_watch.app_handlers.prefs_handlers import PrefsHandlers
 
 
 class HandlersManager(object):

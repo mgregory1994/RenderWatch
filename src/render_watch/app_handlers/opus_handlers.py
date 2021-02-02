@@ -18,7 +18,7 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from ffmpeg.opus import Opus
+from render_watch.ffmpeg.opus import Opus
 
 
 class OpusHandlers:

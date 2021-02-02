@@ -20,10 +20,10 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import threading
 
-from app_formatting import format_converter
-from encoding import preview
-from ffmpeg.trim_settings import TrimSettings
-from startup import GLib, GdkPixbuf
+from render_watch.app_formatting import format_converter
+from render_watch.encoding import preview
+from render_watch.ffmpeg.trim_settings import TrimSettings
+from render_watch.startup import GLib, GdkPixbuf
 
 
 class TrimPageHandlers:

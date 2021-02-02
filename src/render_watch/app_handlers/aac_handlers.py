@@ -18,7 +18,7 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from ffmpeg.aac import Aac
+from render_watch.ffmpeg.aac import Aac
 
 
 class AacHandlers:

@@ -20,8 +20,8 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import threading
 
-from encoding import preview
-from startup import GLib, Gtk, GdkPixbuf
+from render_watch.encoding import preview
+from render_watch.startup import Gtk, GLib, GdkPixbuf
 
 
 class CropPageHandlers:

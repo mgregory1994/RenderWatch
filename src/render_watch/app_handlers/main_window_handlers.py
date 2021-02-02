@@ -22,13 +22,13 @@ import threading
 import copy
 import os
 
-from app_handlers.inputs_row import InputsRow
-from ffmpeg.settings import Settings
-from encoding import directory_helper
-from encoding import preview
-from encoding import encoder_helper
-from app_formatting.alias import AliasGenerator
-from startup import Gtk, GLib
+from render_watch.app_handlers.inputs_row import InputsRow
+from render_watch.ffmpeg.settings import Settings
+from render_watch.encoding import directory_helper
+from render_watch.encoding import preview
+from render_watch.encoding import encoder_helper
+from render_watch.app_formatting.alias import AliasGenerator
+from render_watch.startup import Gtk, GLib
 
 
 class MainWindowHandlers:

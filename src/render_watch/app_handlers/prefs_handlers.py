@@ -19,9 +19,9 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 
-from startup.preferences import Preferences
-from encoding import directory_helper
-from startup import Gtk
+from render_watch.startup.preferences import Preferences
+from render_watch.encoding import directory_helper
+from render_watch.startup import Gtk
 
 
 class PrefsHandlers:

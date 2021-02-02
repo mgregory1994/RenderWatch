@@ -19,9 +19,10 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
 import threading
+import os
 
-from app_formatting import format_converter
-from startup import Gtk, GLib
+from render_watch.app_formatting import format_converter
+from render_watch.startup import Gtk
 
 
 class ChunkRow(Gtk.ListBoxRow):
@@ -41,7 +42,11 @@ class ChunkRow(Gtk.ListBoxRow):
             'current_time': 0,
         }
         gtk_builder = Gtk.Builder()
-        gtk_builder.add_from_file('../data/chunk_ui.glade')
+        this_file_directory_file_path = os.path.dirname(os.path.abspath(__file__))
+        chunk_ui_file_path = os.path.join(this_file_directory_file_path, '../render_watch_data/chunk_ui.glade')
+
+        gtk_builder.add_from_file(chunk_ui_file_path)
+
         self.__chunk_row_container = gtk_builder.get_object('chunk_row_container')
         self.chunk_identifier_label = gtk_builder.get_object('chunk_identifier_label')
         self.chunk_timespan_label = gtk_builder.get_object('chunk_timespan_label')

@@ -20,23 +20,23 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import threading
 
-from ffmpeg.general_settings import GeneralSettings
-from ffmpeg.x265 import X265
-from ffmpeg.x264 import X264
-from ffmpeg.vp9 import VP9
-from ffmpeg.h264_nvenc import H264Nvenc
-from ffmpeg.hevc_nvenc import HevcNvenc
-from ffmpeg.aac import Aac
-from ffmpeg.opus import Opus
-from encoding import preview
-from app_handlers.x265_handlers import X265Handlers
-from app_handlers.x264_handlers import X264Handlers
-from app_handlers.nvenc_handlers import NvencHandlers
-from app_handlers.vp9_handlers import VP9Handlers
-from app_handlers.aac_handlers import AacHandlers
-from app_handlers.opus_handlers import OpusHandlers
-from startup.app_requirements import AppRequirements
-from startup import GLib
+from render_watch.ffmpeg.general_settings import GeneralSettings
+from render_watch.ffmpeg.x264 import X264
+from render_watch.ffmpeg.x265 import X265
+from render_watch.ffmpeg.vp9 import VP9
+from render_watch.ffmpeg.h264_nvenc import H264Nvenc
+from render_watch.ffmpeg.hevc_nvenc import HevcNvenc
+from render_watch.ffmpeg.aac import Aac
+from render_watch.ffmpeg.opus import Opus
+from render_watch.encoding import preview
+from render_watch.app_handlers.x264_handlers import X264Handlers
+from render_watch.app_handlers.x265_handlers import X265Handlers
+from render_watch.app_handlers.nvenc_handlers import NvencHandlers
+from render_watch.app_handlers.vp9_handlers import VP9Handlers
+from render_watch.app_handlers.aac_handlers import AacHandlers
+from render_watch.app_handlers.opus_handlers import OpusHandlers
+from render_watch.startup.app_requirements import AppRequirements
+from render_watch.startup import GLib
 
 
 class SettingsSidebarHandlers:
@@ -413,7 +413,7 @@ class SettingsSidebarHandlers:
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_mp4_ui_list)
 
     def __rebuild_video_codec_combobox(self, video_codec_combobox_list):
-        from startup.app_ui import AppUI  # Can't do a global import because app_ui imports this class too
+        from render_watch.startup.app_ui import AppUI  # Can't do a global import because app_ui imports this class too
 
         self.__is_video_codec_combobox_being_rebuilt = True
 
@@ -425,7 +425,7 @@ class SettingsSidebarHandlers:
         self.__rebuild_audio_codec_combobox(GeneralSettings.audio_codec_mp4_ui_list)
 
     def __rebuild_audio_codec_combobox(self, audio_codec_combobox_list):
-        from startup.app_ui import AppUI  # Can't do a global import because app_ui imports this class too
+        from render_watch.startup.app_ui import AppUI  # Can't do a global import because app_ui imports this class too
 
         self.__is_audio_codec_combobox_being_rebuilt = True
 

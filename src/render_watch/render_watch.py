@@ -23,9 +23,9 @@ import os
 import faulthandler
 
 from datetime import datetime
-from startup.app_ui import AppUI
-from startup.preferences import Preferences
-from startup.app_requirements import AppRequirements
+from render_watch.startup.app_ui import AppUI
+from render_watch.startup.preferences import Preferences
+from render_watch.startup.app_requirements import AppRequirements
 
 application_preferences = None
 encoder = None
@@ -46,7 +46,7 @@ def __set_nvenc_max_workers():
 
 
 def __setup_encoder():
-    from encoding.encoder import Encoder
+    from render_watch.encoding.encoder import Encoder
     global encoder
 
     encoder = Encoder(application_preferences)
@@ -96,7 +96,10 @@ def __set_debug_logging_type():
     log_file_name = datetime.now().strftime('%d-%m-%Y %H:%M:%S') + '.log'
     log_file_path = os.path.join(Preferences.default_config_directory, log_file_name)
 
-    logging.basicConfig(filename=log_file_path, filemode='w', level=logging.INFO)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    logging.basicConfig(filename=log_file_path, level=logging.DEBUG)
 
 
 def __is_ffmpeg_installed():
@@ -119,6 +122,13 @@ def __is_watchdog_installed():
         return True
 
 
-if __name__ == '__main__':
+def main(args=None):
+    if args is not None:
+        sys.argv.extend(args)
+
     if __is_watchdog_installed() and __is_ffmpeg_installed():
         __start_application()
+
+
+if __name__ == '__main__':
+    main()

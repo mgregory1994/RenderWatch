@@ -21,8 +21,8 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 import copy
 import logging
 
-from ffmpeg.general_settings import GeneralSettings
-from ffmpeg.picture_settings import PictureSettings
+from render_watch.ffmpeg.general_settings import GeneralSettings
+from render_watch.ffmpeg.picture_settings import PictureSettings
 
 
 class Settings:

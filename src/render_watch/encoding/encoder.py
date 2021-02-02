@@ -27,14 +27,14 @@ import signal
 import logging
 
 from concurrent.futures import ThreadPoolExecutor
-from app_formatting import format_converter
-from app_formatting.alias import AliasGenerator
-from startup.app_requirements import AppRequirements
-from encoding import directory_helper
-from encoding import encoder_helper
-from encoding.watch_folder import WatchFolder
-from encoding import preview
-from startup import GLib
+from render_watch.app_formatting import format_converter
+from render_watch.app_formatting.alias import AliasGenerator
+from render_watch.startup.app_requirements import AppRequirements
+from render_watch.encoding import directory_helper
+from render_watch.encoding import encoder_helper
+from render_watch.encoding import preview
+from render_watch.encoding.watch_folder import WatchFolder
+from render_watch.startup import GLib
 
 
 class Encoder:

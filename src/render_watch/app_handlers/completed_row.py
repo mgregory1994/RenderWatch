@@ -20,9 +20,9 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import threading
 
-from encoding import preview
-from app_formatting import format_converter
-from startup import Gtk, GLib
+from render_watch.encoding import preview
+from render_watch.app_formatting import format_converter
+from render_watch.startup import Gtk, GLib
 
 
 class CompletedRow(Gtk.ListBoxRow):

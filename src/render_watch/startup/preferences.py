@@ -21,7 +21,7 @@ import logging
 import os
 import shutil
 
-from encoding import directory_helper
+from render_watch.encoding import directory_helper
 
 
 class Preferences:

@@ -21,9 +21,9 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 import threading
 import queue
 
-from encoding import preview
-from app_formatting import format_converter
-from startup import GLib, GdkPixbuf
+from render_watch.encoding import preview
+from render_watch.app_formatting import format_converter
+from render_watch.startup import GLib, GdkPixbuf
 
 
 class PreviewPageHandlers:

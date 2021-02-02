@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/python3
 
-cd /usr/lib/python3/dist-packages/render_watch
+from render_watch import render_watch
 
-python3 main.py --debug
+if __name__ == '__main__':
+    render_watch.main(args=['--debug'])

@@ -23,8 +23,8 @@ import time
 import os
 
 from urllib.parse import unquote, urlparse
-from startup import Gtk, Gdk, GLib
-from encoding import directory_helper
+from render_watch.startup import Gtk, GLib, Gdk
+from render_watch.encoding import directory_helper
 
 TARGET_TYPE_URI_LIST = 80
 

@@ -21,13 +21,13 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 import threading
 import os
 
-from ffmpeg import general_settings
-from encoding import preview
-from encoding import encoder_helper
-from app_formatting import format_converter
-from app_handlers.active_row import ActiveRow
-from app_handlers.chunk_row import ChunkRow
-from startup import Gtk, GLib
+from render_watch.ffmpeg import general_settings
+from render_watch.encoding import preview
+from render_watch.encoding import encoder_helper
+from render_watch.app_formatting import format_converter
+from render_watch.app_handlers.active_row import ActiveRow
+from render_watch.app_handlers.chunk_row import ChunkRow
+from render_watch.startup import Gtk, GLib
 
 
 class InputsRow(Gtk.ListBoxRow):
@@ -41,8 +41,10 @@ class InputsRow(Gtk.ListBoxRow):
         self.encoder = encoder
         self.main_window_handlers = main_window_handlers
         self.gtk_builder = Gtk.Builder()
+        this_file_directory_file_path = os.path.dirname(os.path.abspath(__file__))
+        rows_ui_file_path = os.path.join(this_file_directory_file_path, '../render_watch_data/rows_ui.glade')
 
-        self.gtk_builder.add_from_file('render_watch_data/rows_ui.glade')
+        self.gtk_builder.add_from_file(rows_ui_file_path)
 
         self.__listbox_row_widget_container = self.gtk_builder.get_object('inputs_row_container')
         self.preview_thumbnail = self.gtk_builder.get_object('input_thumbnail')

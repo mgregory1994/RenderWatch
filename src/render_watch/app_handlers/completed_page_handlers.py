@@ -18,7 +18,7 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from startup import Gtk
+from render_watch.startup import Gtk
 
 
 class CompletedPageHandlers:

@@ -20,9 +20,9 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 import subprocess
 import logging
 
-from ffmpeg.trim_settings import TrimSettings
-from ffmpeg.settings import Settings
-from startup.app_requirements import AppRequirements
+from render_watch.ffmpeg.trim_settings import TrimSettings
+from render_watch.ffmpeg.settings import Settings
+from render_watch.startup.app_requirements import AppRequirements
 
 
 def get_chunks(ffmpeg, preferences):

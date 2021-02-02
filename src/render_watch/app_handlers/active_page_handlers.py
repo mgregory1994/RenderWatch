@@ -18,8 +18,8 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from app_handlers.completed_row import CompletedRow
-from startup import Gtk
+from render_watch.app_handlers.completed_row import CompletedRow
+from render_watch.startup import Gtk
 
 
 class ActivePageHandlers:

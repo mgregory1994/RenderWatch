@@ -20,9 +20,9 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import threading
 
-from ffmpeg.hevc_nvenc import HevcNvenc
-from ffmpeg.h264_nvenc import H264Nvenc
-from startup import GLib
+from render_watch.ffmpeg.hevc_nvenc import HevcNvenc
+from render_watch.ffmpeg.h264_nvenc import H264Nvenc
+from render_watch.startup import GLib
 
 
 class NvencHandlers:

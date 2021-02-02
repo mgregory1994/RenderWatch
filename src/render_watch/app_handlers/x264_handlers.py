@@ -20,8 +20,8 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 import threading
 
-from ffmpeg.x264 import X264
-from startup import GLib
+from render_watch.ffmpeg.x264 import X264
+from render_watch.startup import GLib
 
 
 class X264Handlers:

@@ -18,18 +18,19 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import logging
+import os
 
-from ffmpeg.general_settings import GeneralSettings
-from ffmpeg.x265 import X265
-from ffmpeg.x264 import X264
-from ffmpeg.h264_nvenc import H264Nvenc
-from ffmpeg.vp9 import VP9
-from ffmpeg.aac import Aac
-from ffmpeg.opus import Opus
-from app_handlers.handlers_manager import HandlersManager
-from startup.preferences import Preferences
-from startup.app_requirements import AppRequirements
-from startup import Gtk
+from render_watch.ffmpeg.general_settings import GeneralSettings
+from render_watch.ffmpeg.x265 import X265
+from render_watch.ffmpeg.x264 import X264
+from render_watch.ffmpeg.h264_nvenc import H264Nvenc
+from render_watch.ffmpeg.vp9 import VP9
+from render_watch.ffmpeg.aac import Aac
+from render_watch.ffmpeg.opus import Opus
+from render_watch.app_handlers.handlers_manager import HandlersManager
+from render_watch.startup.preferences import Preferences
+from render_watch.startup.app_requirements import AppRequirements
+from render_watch.startup import Gtk
 
 
 class AppUI:
@@ -40,10 +41,12 @@ class AppUI:
         self.__setup_application_gtk_builder()
 
     def __setup_application_gtk_builder(self):
+        this_file_directory_file_path = os.path.dirname(os.path.abspath(__file__))
+        rw_ui_file_path = os.path.join(this_file_directory_file_path, '../render_watch_data/rw_ui.glade')
         self.gtk_settings = Gtk.Settings.get_default()
         self.gtk_builder = Gtk.Builder()
 
-        self.gtk_builder.add_from_file('render_watch_data/rw_ui.glade')
+        self.gtk_builder.add_from_file(rw_ui_file_path)
 
     def setup_and_run_application(self):
         self.__setup_prefs_dialog()

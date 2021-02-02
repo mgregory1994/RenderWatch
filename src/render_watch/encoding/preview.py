@@ -21,10 +21,10 @@ import subprocess
 import os
 import logging
 
-from app_formatting import format_converter
-from ffmpeg.settings import Settings
-from ffmpeg.trim_settings import TrimSettings
-from startup import GLib
+from render_watch.app_formatting import format_converter
+from render_watch.ffmpeg.settings import Settings
+from render_watch.ffmpeg.trim_settings import TrimSettings
+from render_watch.startup import GLib
 
 
 def get_crop_preview_file(ffmpeg, preferences, preview_height=None, start_time_param=None):

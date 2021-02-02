@@ -18,7 +18,7 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-from ffmpeg.vp9 import VP9
+from render_watch.ffmpeg.vp9 import VP9
 
 
 class VP9Handlers:

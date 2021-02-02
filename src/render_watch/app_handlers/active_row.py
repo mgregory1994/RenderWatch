@@ -22,10 +22,10 @@ import threading
 import time
 import logging
 
-from encoding import preview
-from encoding import encoder_helper
-from app_formatting import format_converter
-from startup import Gtk, GLib
+from render_watch.encoding import preview
+from render_watch.encoding import encoder_helper
+from render_watch.app_formatting import format_converter
+from render_watch.startup import Gtk, GLib
 
 
 class ActiveRow(Gtk.ListBoxRow):

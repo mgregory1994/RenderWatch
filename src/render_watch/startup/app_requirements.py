@@ -21,7 +21,7 @@ import logging
 import subprocess
 
 from concurrent.futures import ThreadPoolExecutor
-from ffmpeg.settings import Settings
+from render_watch.ffmpeg.settings import Settings
 
 
 class AppRequirements:
