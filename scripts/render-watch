@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd /usr/share/render-watch/src
+
+python3 main.py

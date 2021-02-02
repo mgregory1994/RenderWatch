@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Name=Render Watch
+Comment=Transcode video files
+Exec=render-watch
+Icon=RenderWatch
+Terminal=false
+Keywords=Video;Transcode;Convert;Media
+Categories=AudioVideo
