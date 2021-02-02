@@ -8,11 +8,11 @@ Render Watch is an open source professional video transcoder for Linux.
 Render Watch can be used to convert video files from one format to another
 in order to meet format specifications for devices, streaming, local playback, 
 etc. Render Watch can also be used as a video compression tool so that you 
-can make a lossy version of your video projects or make smaller backup 
+can make a lossy version of your video projects or make compressed backups 
 of your videos.
 
 ## Compatibility
-Render Watch is compatible with Ubuntu / Ubuntu based distros as well as debian.
+Render Watch is compatible with Debian and Ubuntu / Ubuntu based distros.
 
 ## Installation
 WIP
