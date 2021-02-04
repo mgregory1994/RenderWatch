@@ -26,7 +26,7 @@ from render_watch.ffmpeg.picture_settings import PictureSettings
 
 
 class Settings:
-    valid_input_containers = ('mp4', 'mkv', 'm4v', 'avi', 'ts', 'm2ts', 'mpg', 'vob', 'VOB', 'mov', 'webm')
+    valid_input_containers = ('mp4', 'mkv', 'm4v', 'avi', 'ts', 'm2ts', 'mpg', 'vob', 'VOB', 'mov', 'webm', 'wmv')
     ffmpeg_init_args = ["ffmpeg", "-hide_banner", '-loglevel', 'quiet', '-stats', "-y"]
     ffmpeg_init_auto_crop_args = ["ffmpeg", "-hide_banner", "-y"]
     ffprobe_args = ['ffprobe', '-hide_banner', '-loglevel', 'warning', '-show_entries',
@@ -152,7 +152,7 @@ class Settings:
         self.__output_container = container
 
     def is_output_container_set(self):
-        return self.__output_container is not None
+        return self.output_container in GeneralSettings.video_file_containers_list
 
     @property
     def filename(self):

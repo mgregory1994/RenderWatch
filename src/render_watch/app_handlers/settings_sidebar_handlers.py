@@ -231,7 +231,7 @@ class SettingsSidebarHandlers:
         if is_output_container_set:
             self.container_combobox.set_active(GeneralSettings.video_file_containers_list.index(output_container))
         else:
-            self.container_combobox.set_active(0)
+            self.container_combobox.set_active(1)
 
     def __setup_settings_sidebar_frame_rate_widgets_settings(self, general_settings):
         if general_settings.frame_rate is not None:
