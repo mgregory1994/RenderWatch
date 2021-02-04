@@ -19,15 +19,15 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
 class H264Nvenc:
-    preset_ffmpeg_args_list = ('auto', 'slow', 'medium', 'fast', 'hp', 'hq', 'bd', 'll', 'llhq', 'llhp', 'lossless',
-                               'losslesshp')
-    preset_human_readable_list = ('auto', 'slow', 'medium', 'fast', 'HP', 'HQ', 'low latency', 'low latency HQ',
-                                  'low latency HP', 'lossless', 'lossless HP')
+    preset_ffmpeg_args_list = ('auto', 'slow', 'medium', 'fast', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7')
     profile_ffmpeg_args_list = ('auto', 'baseline', 'main', 'high', 'high444p')
     level_ffmpeg_args_list = ('auto', '1', '1b', '1.1', '1.2', '1.3', '2', '2.1', '2.2', '3', '3.1', '3.2', '4', '4.1',
                               '4.2', '5', '5.1',)
-    rate_control_ffmpeg_args_list = ('auto', 'constqp', 'vbr', 'cbr', 'cbr_ld_hq', 'cbr_hq', 'vbr_hq')
-    rate_control_human_readable_list = ('auto', 'constant qp', 'vbr', 'cbr', 'cbr low-delay', 'cbr HQ', 'vbr HQ')
+    tune_ffmpeg_args_list = ('auto', 'hq', 'll', 'ull', 'lossless')
+    tune_human_readable_list = ('auto', 'high quality', 'low latency', 'ultra-low latency', 'lossless')
+    rate_control_ffmpeg_args_list = ('auto', 'constqp', 'vbr', 'cbr')
+    multi_pass_ffmpeg_args_list = ('0', '1', '2')
+    multi_pass_human_readable_list = ('disabled', 'quarter-res', 'full-res')
     coder_ffmpeg_args_list = ('auto', 'cabac', 'cavlc', 'ac', 'vlc')
     bref_mode_ffmpeg_args_list = ('auto', 'disabled', 'each', 'middle')
 
@@ -39,11 +39,13 @@ class H264Nvenc:
             '-profile:v': None,
             '-preset': None,
             '-level': None,
+            '-tune': None,
             '-cbr': None,
-            '-2pass': None
+            '-multipass': None
         }
         self.advanced_enabled = False
         self.qp_custom_enabled = False
+        self.dual_pass_enabled = False
         self.__ffmpeg_advanced_args = {
             '-init_qpP': None,
             '-init_qpB': None,
@@ -186,20 +188,52 @@ class H264Nvenc:
             self.ffmpeg_args['-level'] = None
 
     @property
-    def dual_pass(self):
-        dual_pass_value = self.ffmpeg_args['-2pass']
+    def tune(self):
+        try:
+            tune_value = self.ffmpeg_args['-tune']
 
-        if dual_pass_value is None or dual_pass_value != '1':
-            return False
-
-        return True
-
-    @dual_pass.setter
-    def dual_pass(self, dual_pass_enabled):
-        if dual_pass_enabled is None or not dual_pass_enabled:
-            self.ffmpeg_args['-2pass'] = None
+            if tune_value is None:
+                tune_index = 0
+            else:
+                tune_index = self.tune_ffmpeg_args_list.index(tune_value)
+        except ValueError:
+            return 0
         else:
-            self.ffmpeg_args['-2pass'] = '1'
+            return tune_index
+
+    @tune.setter
+    def tune(self, tune_index):
+        try:
+            if tune_index is None or tune_index < 1:
+                self.ffmpeg_args['-tune'] = None
+            else:
+                self.ffmpeg_args['-tune'] = self.tune_ffmpeg_args_list[tune_index]
+        except IndexError:
+            self.ffmpeg_args['-tune'] = None
+
+    @property
+    def multi_pass(self):
+        try:
+            multi_pass_value = self.ffmpeg_args['-multipass']
+
+            if multi_pass_value is None:
+                multi_pass_index = 0
+            else:
+                multi_pass_index = self.multi_pass_ffmpeg_args_list.index(multi_pass_value)
+        except ValueError:
+            return 0
+        else:
+            return multi_pass_index
+
+    @multi_pass.setter
+    def multi_pass(self, multi_pass_index):
+        try:
+            if multi_pass_index is None or multi_pass_index < 1:
+                self.ffmpeg_args['-multipass'] = None
+            else:
+                self.ffmpeg_args['-multipass'] = self.multi_pass_ffmpeg_args_list[multi_pass_index]
+        except IndexError:
+            self.ffmpeg_args['-multipass'] = None
 
     @property
     def cbr(self):

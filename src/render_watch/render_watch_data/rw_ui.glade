@@ -6645,6 +6645,53 @@ Recommended: Don't set unless you need to ensure compatibility with a certain de
                                                   </packing>
                                                 </child>
                                                 <child>
+                                                  <object class="GtkBox" id="nvenc_tune_box">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <child type="center">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">Tune:</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkComboBoxText" id="nvenc_tune_combobox">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <signal name="changed" handler="on_nvenc_tune_combobox_changed" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="pack-type">end</property>
+                                                        <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
                                                   <object class="GtkSeparator">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
@@ -6654,7 +6701,7 @@ Recommended: Don't set unless you need to ensure compatibility with a certain de
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">3</property>
+                                                    <property name="position">4</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -6712,7 +6759,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">4</property>
+                                                    <property name="position">5</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -6829,6 +6876,54 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                             <property name="position">1</property>
                                                           </packing>
                                                         </child>
+                                                        <child>
+                                                          <object class="GtkBox" id="nvenc_multi_pass_box">
+                                                            <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
+                                                            <property name="can-focus">False</property>
+                                                            <child type="center">
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkLabel">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <property name="label" translatable="yes">Multi-Pass:</property>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">0</property>
+                                                            </packing>
+                                                            </child>
+                                                            <child>
+                                                            <object class="GtkComboBoxText" id="nvenc_multi_pass_combobox">
+                                                            <property name="visible">True</property>
+                                                            <property name="can-focus">False</property>
+                                                            <signal name="changed" handler="on_nvenc_multi_pass_combobox_changed" swapped="no"/>
+                                                            </object>
+                                                            <packing>
+                                                            <property name="expand">True</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="pack-type">end</property>
+                                                            <property name="position">1</property>
+                                                            </packing>
+                                                            </child>
+                                                          </object>
+                                                          <packing>
+                                                            <property name="expand">False</property>
+                                                            <property name="fill">True</property>
+                                                            <property name="position">2</property>
+                                                          </packing>
+                                                        </child>
                                                       </object>
                                                       <packing>
                                                         <property name="name">page1</property>
@@ -6840,7 +6935,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">5</property>
+                                                    <property name="position">6</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -6853,7 +6948,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">6</property>
+                                                    <property name="position">7</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -6892,7 +6987,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">7</property>
+                                                    <property name="position">8</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -7745,7 +7840,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">8</property>
+                                                    <property name="position">9</property>
                                                   </packing>
                                                 </child>
                                               </object>

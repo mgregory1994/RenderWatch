@@ -33,6 +33,7 @@ class NvencHandlers:
         self.nvenc_preset_combobox = gtk_builder.get_object('nvenc_preset_combobox')
         self.nvenc_profile_combobox = gtk_builder.get_object('nvenc_profile_combobox')
         self.nvenc_level_combobox = gtk_builder.get_object('nvenc_level_combobox')
+        self.nvenc_tune_combobox = gtk_builder.get_object('nvenc_tune_combobox')
         self.nvenc_qp_radiobutton = gtk_builder.get_object('nvenc_qp_radiobutton')
         self.nvenc_bitrate_radiobutton = gtk_builder.get_object('nvenc_bitrate_radiobutton')
         self.nvenc_rate_type_stack = gtk_builder.get_object('nvenc_rate_type_stack')
@@ -43,8 +44,9 @@ class NvencHandlers:
         self.nvenc_bitrate_radiobutton = gtk_builder.get_object('nvenc_bitrate_radiobutton')
         self.nvenc_average_radiobutton = gtk_builder.get_object('nvenc_average_radiobutton')
         self.nvenc_2pass_radiobutton = gtk_builder.get_object('nvenc_2pass_radiobutton')
+        self.nvenc_multi_pass_box = gtk_builder.get_object('nvenc_multi_pass_box')
+        self.nvenc_multi_pass_combobox = gtk_builder.get_object('nvenc_multi_pass_combobox')
         self.nvenc_constant_radiobutton = gtk_builder.get_object('nvenc_constant_radiobutton')
-        self.nvenc_2pass_radiobutton = gtk_builder.get_object('nvenc_2pass_radiobutton')
         self.nvenc_advanced_settings_switch = gtk_builder.get_object('nvenc_advanced_settings_switch')
         self.nvenc_advanced_settings_revealer = gtk_builder.get_object('nvenc_advanced_settings_revealer')
         self.nvenc_qp_auto_radiobutton = gtk_builder.get_object('nvenc_qp_auto_radiobutton')
@@ -81,9 +83,11 @@ class NvencHandlers:
         self.nvenc_preset_combobox.set_active(0)
         self.nvenc_profile_combobox.set_active(0)
         self.nvenc_level_combobox.set_active(0)
+        self.nvenc_tune_combobox.set_active(0)
         self.nvenc_qp_radiobutton.set_active(True)
         self.nvenc_bitrate_spinbutton.set_value(2500)
         self.nvenc_average_radiobutton.set_active(True)
+        self.nvenc_multi_pass_combobox.set_active(0)
         self.__reset_advanced_settings_widgets()
 
         self.__is_widgets_setting_up = False
@@ -128,6 +132,7 @@ class NvencHandlers:
             self.nvenc_preset_combobox.set_active(video_settings.preset)
             self.nvenc_profile_combobox.set_active(video_settings.profile)
             self.nvenc_level_combobox.set_active(video_settings.level)
+            self.nvenc_tune_combobox.set_active(video_settings.tune)
             self.__setup_nvenc_advanced_settings_widgets_settings(video_settings)
 
             self.__is_widgets_setting_up = False
@@ -142,9 +147,10 @@ class NvencHandlers:
             self.nvenc_bitrate_radiobutton.set_active(True)
             self.nvenc_bitrate_spinbutton.set_value(video_settings.bitrate)
 
-        self.nvenc_2pass_radiobutton.set_active(video_settings.dual_pass)
+        self.nvenc_2pass_radiobutton.set_active(video_settings.dual_pass_enabled)
         self.nvenc_constant_radiobutton.set_active(video_settings.cbr)
-        self.nvenc_average_radiobutton.set_active(not (video_settings.cbr or video_settings.dual_pass))
+        self.nvenc_average_radiobutton.set_active(not (video_settings.cbr or video_settings.dual_pass_enabled))
+        self.nvenc_multi_pass_combobox.set_active(video_settings.multi_pass)
 
     def __setup_nvenc_advanced_settings_widgets_settings(self, video_settings):
         self.nvenc_advanced_settings_switch.set_active(video_settings.advanced_enabled)
@@ -195,6 +201,7 @@ class NvencHandlers:
         video_settings.preset = self.nvenc_preset_combobox.get_active()
         video_settings.profile = self.nvenc_profile_combobox.get_active()
         video_settings.level = self.nvenc_level_combobox.get_active()
+        video_settings.tune = self.nvenc_tune_combobox.get_active()
 
         self.__set_rate_control_settings_from_nvenc_widgets(video_settings)
         self.__set_advanced_settings_from_nvenc_widgets(video_settings)
@@ -206,8 +213,9 @@ class NvencHandlers:
             video_settings.qp = self.nvenc_qp_scale.get_value()
         else:
             video_settings.bitrate = self.nvenc_bitrate_spinbutton.get_value_as_int()
-            video_settings.dual_pass = self.nvenc_2pass_radiobutton.get_active()
+            video_settings.dual_pass_enabled = self.nvenc_2pass_radiobutton.get_active()
             video_settings.cbr = self.nvenc_constant_radiobutton.get_active()
+            video_settings.multi_pass = self.nvenc_multi_pass_combobox.get_active()
 
     def __set_advanced_settings_from_nvenc_widgets(self, video_settings):
         if self.nvenc_advanced_settings_switch.get_active():
@@ -254,11 +262,13 @@ class NvencHandlers:
         self.nvenc_coder_box.set_sensitive(True)
         self.nvenc_badapt_checkbox.set_sensitive(True)
         self.nvenc_tier_box.set_sensitive(False)
-        self.__rebuild_combobox(self.nvenc_preset_combobox, H264Nvenc.preset_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_preset_combobox, H264Nvenc.preset_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.profile_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.profile_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_level_combobox, H264Nvenc.level_ffmpeg_args_list)
-        self.__rebuild_combobox(self.nvenc_rate_control_combobox, H264Nvenc.rate_control_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_tune_combobox, H264Nvenc.tune_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_multi_pass_combobox, H264Nvenc.multi_pass_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_rate_control_combobox, H264Nvenc.rate_control_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_bref_mode_combobox, H264Nvenc.bref_mode_ffmpeg_args_list)
 
         self.__is_widgets_setting_up = False
@@ -270,11 +280,13 @@ class NvencHandlers:
         self.nvenc_coder_box.set_sensitive(False)
         self.nvenc_badapt_checkbox.set_sensitive(False)
         self.nvenc_tier_box.set_sensitive(True)
-        self.__rebuild_combobox(self.nvenc_preset_combobox, HevcNvenc.preset_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_preset_combobox, HevcNvenc.preset_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.profile_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.profile_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_level_combobox, HevcNvenc.level_ffmpeg_args_list)
-        self.__rebuild_combobox(self.nvenc_rate_control_combobox, HevcNvenc.rate_control_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_tune_combobox, HevcNvenc.tune_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_multi_pass_combobox, HevcNvenc.multi_pass_human_readable_list)
+        self.__rebuild_combobox(self.nvenc_rate_control_combobox, HevcNvenc.rate_control_ffmpeg_args_list)
         self.__rebuild_combobox(self.nvenc_bref_mode_combobox, HevcNvenc.bref_mode_ffmpeg_args_list)
 
         self.__is_widgets_setting_up = False
@@ -362,7 +374,8 @@ class NvencHandlers:
 
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.dual_pass = None
+            ffmpeg.video_settings.dual_pass_enabled = False
+            ffmpeg.video_settings.multi_pass = None
             ffmpeg.video_settings.cbr = None
 
             row.setup_labels()
@@ -373,9 +386,9 @@ class NvencHandlers:
         if advanced_enabled and not self.__is_rc_valid_for_vbr():
 
             if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('vbr_hq')
+                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('vbr')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('vbr_hq')
+                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('vbr')
 
             self.nvenc_rate_control_combobox.set_active(rc_index)
 
@@ -405,7 +418,8 @@ class NvencHandlers:
 
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.dual_pass = None
+            ffmpeg.video_settings.dual_pass_enabled = False
+            ffmpeg.video_settings.multi_pass = None
             ffmpeg.video_settings.cbr = True
 
             row.setup_labels()
@@ -416,9 +430,9 @@ class NvencHandlers:
         if advanced_enabled and not self.__is_rc_valid_for_cbr():
 
             if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('cbr_hq')
+                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('cbr')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('cbr_hq')
+                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('cbr')
 
             self.nvenc_rate_control_combobox.set_active(rc_index)
 
@@ -436,7 +450,11 @@ class NvencHandlers:
         return False
 
     def on_nvenc_2pass_radiobutton_toggled(self, dual_pass_radiobutton):
+        self.nvenc_multi_pass_box.set_sensitive(dual_pass_radiobutton.get_active())
+
         if not dual_pass_radiobutton.get_active():
+            self.nvenc_multi_pass_combobox.set_active(0)
+
             return
 
         if self.__is_widgets_setting_up:
@@ -445,11 +463,12 @@ class NvencHandlers:
         advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
 
         self.__setup_rc_widgets_from_2pass_bitrate(advanced_enabled)
+        self.on_nvenc_multi_pass_combobox_changed(self.nvenc_multi_pass_combobox)
 
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.dual_pass = True
             ffmpeg.video_settings.cbr = None
+            ffmpeg.video_settings.dual_pass_enabled = True
 
             row.setup_labels()
 
@@ -459,11 +478,25 @@ class NvencHandlers:
         if advanced_enabled and not self.__is_rc_valid_for_vbr():
 
             if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('vbr_hq')
+                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('vbr')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('vbr_hq')
+                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('vbr')
 
             self.nvenc_rate_control_combobox.set_active(rc_index)
+
+    def on_nvenc_multi_pass_combobox_changed(self, multi_pass_combobox):
+        if self.__is_widgets_setting_up:
+            return
+
+        multi_pass_index = multi_pass_combobox.get_active()
+
+        for row in self.__get_selected_inputs_rows():
+            ffmpeg = row.ffmpeg
+            ffmpeg.video_settings.multi_pass = multi_pass_index
+
+            row.setup_labels()
+
+        self.inputs_page_handlers.update_preview_page()
 
     def on_nvenc_preset_combobox_changed(self, preset_combobox):
         if self.__is_widgets_setting_up:
@@ -502,6 +535,20 @@ class NvencHandlers:
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.level = level_index
+
+            row.setup_labels()
+
+        self.inputs_page_handlers.update_preview_page()
+
+    def on_nvenc_tune_combobox_changed(self, tune_combobox):
+        if self.__is_widgets_setting_up:
+            return
+
+        tune_index = tune_combobox.get_active()
+
+        for row in self.__get_selected_inputs_rows():
+            ffmpeg = row.ffmpeg
+            ffmpeg.video_settings.tune = tune_index
 
             row.setup_labels()
 
