@@ -203,10 +203,10 @@ class HevcNvenc:
     def cbr(self):
         cbr_value = self.ffmpeg_args['-cbr']
 
-        if cbr_value is not None or cbr_value != '1':
-            return True
+        if cbr_value is None or cbr_value != '1':
+            return False
 
-        return False
+        return True
 
     @cbr.setter
     def cbr(self, cbr_enabled):
