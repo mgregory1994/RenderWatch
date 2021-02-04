@@ -31,7 +31,7 @@ class ActivePageHandlers:
         self.stop_all_processing_button = gtk_builder.get_object('stop_all_proc_button')
         self.pause_all_processing_button = gtk_builder.get_object('pause_all_proc_button')
         self.resume_all_processing_button = gtk_builder.get_object('resume_all_proc_button')
-        self.live_thumbnails_button = gtk_builder.get_object('live_thumbnails_button')
+        self.live_thumbnails_switch = gtk_builder.get_object('live_thumbnails_switch')
 
         self.active_page_listbox.set_header_func(self.__active_list_update_header_func, None)
 
@@ -95,12 +95,12 @@ class ActivePageHandlers:
 
         return response
 
-    def on_live_thumbnails_button_toggled(self, live_thumbnails_checkbox):
+    def on_live_thumbnails_switch_state_set(self, live_thumbnails_switch, user_data):
         for row in self.get_active_page_listbox_rows():
-            row.live_thumbnail = live_thumbnails_checkbox.get_active()
+            row.live_thumbnail = live_thumbnails_switch.get_active()
 
     def on_active_list_add(self, active_page_listbox, active_page_listbox_row):
-        active_page_listbox_row.live_thumbnail = self.live_thumbnails_button.get_active()
+        active_page_listbox_row.live_thumbnail = self.live_thumbnails_switch.get_active()
 
         self.__set_sensitive_for_active_page_preferences_widgets(True)
 

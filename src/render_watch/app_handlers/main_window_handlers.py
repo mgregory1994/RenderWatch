@@ -302,20 +302,16 @@ class MainWindowHandlers:
         self.preferences_dialog.run()
         self.preferences_dialog.hide()
 
-    def on_apply_to_all_button_toggled(self, apply_to_all_checkbox):
+    def on_apply_to_all_switch_state_set(self, apply_to_all_switch, user_data):
         inputs_page_listbox_row = self.inputs_page_handlers.get_selected_row()
 
-        if apply_to_all_checkbox.get_active():
+        if apply_to_all_switch.get_active():
 
             if inputs_page_listbox_row is not None:
                 self.ffmpeg_template = inputs_page_listbox_row.ffmpeg.get_copy()
-
-                #threading.Thread(target=self.__set_settings_for_settings_sidebar_handlers,
-                                 #args=(self.ffmpeg_template,)).start()
             else:
                 self.ffmpeg_template = Settings()
 
-            #threading.Thread(target=self.__apply_settings_to_all, args=(self.ffmpeg_template,)).start()
             threading.Thread(target=self.__set_settings_and_apply_to_all, args=()).start()
             self.input_settings_stack.set_sensitive(True)
         else:

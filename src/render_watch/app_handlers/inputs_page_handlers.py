@@ -46,9 +46,8 @@ class InputsPageHandlers:
         self.inputs_page_stack = gtk_builder.get_object('inputs_stack')
         self.start_all_button = gtk_builder.get_object('start_all_button')
         self.remove_all_inputs_button = gtk_builder.get_object('remove_all_button')
-        self.apply_to_all_button = gtk_builder.get_object('apply_to_all_button')
+        self.apply_to_all_switch = gtk_builder.get_object('apply_to_all_switch')
         self.auto_crop_button = gtk_builder.get_object('auto_crop_button')
-        self.apply_to_all_button = gtk_builder.get_object('apply_to_all_button')
         self.importing_inputs_filepath_label = gtk_builder.get_object('inputs_filepath_label')
         self.importing_inputs_progressbar = gtk_builder.get_object('inputs_progressbar')
         self.importing_inputs_box = gtk_builder.get_object('inputs_proc_box')
@@ -123,7 +122,7 @@ class InputsPageHandlers:
         self.remove_all_inputs_button.set_sensitive(settings_enabled)
 
     def setup_inputs_settings_widgets(self):
-        is_apply_all_selected = self.apply_to_all_button.get_active()
+        is_apply_all_selected = self.apply_to_all_switch.get_active()
         inputs_settings_enabled = is_apply_all_selected or self.get_selected_row()
 
         self.input_settings_stack.set_sensitive(inputs_settings_enabled)
@@ -140,7 +139,7 @@ class InputsPageHandlers:
     def get_selected_rows(self):
         selected_row = self.inputs_page_listbox.get_selected_row()
 
-        if self.apply_to_all_button.get_active() or selected_row is None:
+        if self.apply_to_all_switch.get_active() or selected_row is None:
             rows = self.inputs_page_listbox.get_children()
         else:
             rows = [selected_row]
@@ -154,7 +153,7 @@ class InputsPageHandlers:
         self.importing_inputs_progressbar.set_fraction(progress_fraction)
 
     def is_apply_all_selected(self):
-        return self.apply_to_all_button.get_active()
+        return self.apply_to_all_switch.get_active()
 
     def is_auto_crop_selected(self):
         return self.auto_crop_button.get_active()
@@ -216,7 +215,7 @@ class InputsPageHandlers:
         else:
             self.settings_sidebar_handlers.set_extra_settings_state(False)
 
-            if self.apply_to_all_button.get_active():
+            if self.apply_to_all_switch.get_active():
                 return
 
             self.input_settings_stack.set_sensitive(False)
