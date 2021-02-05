@@ -44,6 +44,3 @@ as an issue first.
 
 ## License
 Render Watch is licensed under [GPLV3](https://www.gnu.org/licenses/gpl-3.0.en.html)
-
-Render Watch uses third party libraries that are distributed under their own
-terms [APACHE 2.0](http://www.apache.org/licenses/LICENSE-2.0)
