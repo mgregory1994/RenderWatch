@@ -6011,6 +6011,92 @@ Recommended: Good or auto</property>
                                                   </packing>
                                                 </child>
                                                 <child>
+                                                  <object class="GtkBox" id="vp9_speed_box">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <child type="center">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">Speed:</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkComboBoxText" id="vp9_speed_combobox">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="tooltip-text" translatable="yes">The lower the number, the better the quality but the slower the encode
+
+Values 1-2: Causes a decent speed boost while maintaining good quality
+
+Values 4-5: Disables rate distortion optimization but results in a faster encode
+
+Recommended: Auto or slowest you can tolerate</property>
+                                                        <signal name="changed" handler="on_vp9_speed_combobox_changed" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="pack-type">end</property>
+                                                        <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">1</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkCheckButton" id="vp9_row_multithreading_checkbox">
+                                                    <property name="label" translatable="yes">Row Multithreading</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">True</property>
+                                                    <property name="receives-default">False</property>
+                                                    <property name="tooltip-text" translatable="yes">Allows the encoder to utilize more CPU threads. For inputs with large frame sizes, you can expect more CPU utilization and a more drastic speed improvement
+
+Recommended: Use only if encoder does not fully utilize CPU without this option</property>
+                                                    <property name="halign">start</property>
+                                                    <property name="draw-indicator">True</property>
+                                                    <signal name="toggled" handler="on_vp9_row_multithreading_checkbox_toggled" swapped="no"/>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">2</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkSeparator">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="margin-top">5</property>
+                                                    <property name="margin-bottom">5</property>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">3</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
                                                   <object class="GtkBox" id="vp9_rate_control_box">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
@@ -6384,92 +6470,6 @@ The first pass will analyze the input and the second pass will encode the input 
                                                         <property name="position">1</property>
                                                       </packing>
                                                     </child>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">1</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkSeparator">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <property name="margin-top">5</property>
-                                                    <property name="margin-bottom">5</property>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">2</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkBox" id="vp9_speed_box">
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">False</property>
-                                                    <child type="center">
-                                                      <object class="GtkLabel">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">2</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkLabel">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="label" translatable="yes">Speed:</property>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">False</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="position">0</property>
-                                                      </packing>
-                                                    </child>
-                                                    <child>
-                                                      <object class="GtkComboBoxText" id="vp9_speed_combobox">
-                                                        <property name="visible">True</property>
-                                                        <property name="can-focus">False</property>
-                                                        <property name="tooltip-text" translatable="yes">The lower the number, the better the quality but the slower the encode
-
-Values 1-2: Causes a decent speed boost while maintaining good quality
-
-Values 4-5: Disables rate distortion optimization but results in a faster encode
-
-Recommended: Auto or slowest you can tolerate</property>
-                                                        <signal name="changed" handler="on_vp9_speed_combobox_changed" swapped="no"/>
-                                                      </object>
-                                                      <packing>
-                                                        <property name="expand">True</property>
-                                                        <property name="fill">True</property>
-                                                        <property name="pack-type">end</property>
-                                                        <property name="position">1</property>
-                                                      </packing>
-                                                    </child>
-                                                  </object>
-                                                  <packing>
-                                                    <property name="expand">False</property>
-                                                    <property name="fill">True</property>
-                                                    <property name="position">3</property>
-                                                  </packing>
-                                                </child>
-                                                <child>
-                                                  <object class="GtkCheckButton" id="vp9_row_multithreading_checkbox">
-                                                    <property name="label" translatable="yes">Row Multithreading</property>
-                                                    <property name="visible">True</property>
-                                                    <property name="can-focus">True</property>
-                                                    <property name="receives-default">False</property>
-                                                    <property name="tooltip-text" translatable="yes">Allows the encoder to utilize more CPU threads. For inputs with large frame sizes, you can expect more CPU utilization and a more drastic speed improvement
-
-Recommended: Use only if encoder does not fully utilize CPU without this option</property>
-                                                    <property name="halign">start</property>
-                                                    <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_vp9_row_multithreading_checkbox_toggled" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
