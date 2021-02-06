@@ -1,7 +1,6 @@
 # Render Watch
 <p align="center">
   <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/RenderWatch.png" alt="Render Watch Icon"/>
-  <em>"Caption Test"</em>
 </p>
 
 Render Watch is an open source professional video transcoder for Linux.
