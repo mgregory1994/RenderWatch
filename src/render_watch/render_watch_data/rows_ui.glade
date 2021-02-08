@@ -1562,7 +1562,7 @@
                                   <object class="GtkBox">
                                     <property name="visible">True</property>
                                     <property name="can-focus">False</property>
-                                    <property name="spacing">11</property>
+                                    <property name="spacing">10</property>
                                     <child>
                                       <object class="GtkLabel">
                                         <property name="visible">True</property>
@@ -1578,6 +1578,7 @@
                                     </child>
                                     <child>
                                       <object class="GtkComboBoxText" id="video_stream_combobox">
+                                        <property name="width-request">250</property>
                                         <property name="visible">True</property>
                                         <property name="can-focus">False</property>
                                         <property name="tooltip-text" translatable="yes">Select video stream to use from input</property>
