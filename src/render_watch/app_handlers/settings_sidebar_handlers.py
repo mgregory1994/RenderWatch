@@ -304,7 +304,7 @@ class SettingsSidebarHandlers:
             general_settings.frame_rate = GeneralSettings.frame_rate_ffmpeg_args_list[self.fps_combobox.get_active()]
 
     def __set_video_codec_settings_from_settings_sidebar_widgets(self, ffmpeg):
-        video_codec_text = GeneralSettings.video_codec_mp4_nvenc_ui_list[self.video_codec_combobox.get_active()]
+        video_codec_text = self.video_codec_combobox.get_active_text()
 
         if video_codec_text == 'H264':
             self.x264_handlers.get_settings(ffmpeg)
@@ -318,11 +318,11 @@ class SettingsSidebarHandlers:
             ffmpeg.video_settings = None
 
     def __set_audio_codec_settings_from_settings_sidebar_widgets(self, ffmpeg):
-        audio_codec_text = GeneralSettings.audio_codec_mp4_ui_list[self.audio_codec_combobox.get_active()]
+        audio_codec_text = self.audio_codec_combobox.get_active_text()
 
         if audio_codec_text == 'aac':
             self.aac_handlers.get_settings(ffmpeg)
-        elif audio_codec_text == 'libopus':
+        elif audio_codec_text == 'opus':
             self.opus_handlers.get_settings(ffmpeg)
         else:
             ffmpeg.audio_settings = None

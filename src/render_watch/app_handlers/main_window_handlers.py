@@ -247,6 +247,7 @@ class MainWindowHandlers:
         else:
             ffmpeg.audio_settings = None
 
+        ffmpeg.output_container = str(self.ffmpeg_template.output_container)
         ffmpeg.general_settings.ffmpeg_args = self.ffmpeg_template.general_settings.ffmpeg_args.copy()
 
         if ffmpeg.is_video_settings_2_pass():
