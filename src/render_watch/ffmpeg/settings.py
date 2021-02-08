@@ -86,16 +86,28 @@ class Settings:
 
     @input_file.setter
     def input_file(self, input_file):
-        file_name = input_file.split('/')[-1].split('.')[0]
+        self.__input_file_path = input_file
+        self.filename = self.__parse_input_file_name(input_file)
+        self.input_container = self.__parse_input_file_extension(input_file)
+
+    @staticmethod
+    def __parse_input_file_name(input_file):
+        file_name_splits = input_file.split('/')[-1].split('.')[:-1]
+        file_name = ''
+
+        for name_split in file_name_splits:
+            file_name += name_split
+
+        return file_name
+
+    @staticmethod
+    def __parse_input_file_extension(input_file):
+        file_container = 'N/A'
 
         try:
-            file_container = input_file.split('/')[-1].split('.')[1]
-        except IndexError:
-            file_container = 'N/A'
-
-        self.__input_file_path = input_file
-        self.filename = file_name
-        self.input_container = file_container
+            file_container = input_file.split('/')[-1].split('.')[-1]
+        finally:
+            return file_container
 
     @input_file.setter
     def input_folder(self, input_dir):
