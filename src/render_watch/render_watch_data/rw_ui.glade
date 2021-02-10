@@ -4484,6 +4484,7 @@ Average: The encoder will try to make the output's average bitrate equal the bit
                                                             <child>
                                                             <object class="GtkSpinButton" id="x265_vbv_maxrate_spinbutton">
                                                             <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="input-purpose">digits</property>
                                                             <property name="adjustment">x265_vbv_maxrate_adjustment</property>
@@ -4534,6 +4535,7 @@ Average: The encoder will try to make the output's average bitrate equal the bit
                                                             <child>
                                                             <object class="GtkSpinButton" id="x265_vbv_bufsize_spinbutton">
                                                             <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="input-purpose">digits</property>
                                                             <property name="adjustment">x265_vbv_bufsize_adjustment</property>
