@@ -723,6 +723,7 @@
             <property name="transition-type">crossfade</property>
             <child>
               <object class="GtkButton" id="active_row_pause_button">
+                <property name="width-request">48</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -745,6 +746,7 @@
             </child>
             <child>
               <object class="GtkButton" id="active_row_play_button">
+                <property name="width-request">48</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -1760,6 +1762,7 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="inputs_row_start_button">
+                    <property name="width-request">48</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="receives-default">True</property>
