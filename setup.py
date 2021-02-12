@@ -8,7 +8,7 @@ setup(
     author='Michael Gregory',
     author_email='michaelgregory@csus.edu',
     description='A professional video transcoder for Linux.',
-    python_requires='>=3.8',
+    python_requires='~=3.8',
     package_dir={'': 'src'},
     packages=[
         'render_watch', 'render_watch/app_formatting', 'render_watch/app_handlers', 'render_watch/encoding',
