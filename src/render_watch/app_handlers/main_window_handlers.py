@@ -24,9 +24,8 @@ import os
 
 from render_watch.app_handlers.inputs_row import InputsRow
 from render_watch.ffmpeg.settings import Settings
-from render_watch.encoding import directory_helper
 from render_watch.encoding import preview
-from render_watch.encoding import encoder_helper
+from render_watch.helpers import encoder_helper, directory_helper
 from render_watch.app_formatting.alias import AliasGenerator
 from render_watch.startup import Gtk, GLib
 

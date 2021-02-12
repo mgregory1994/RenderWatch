@@ -20,7 +20,7 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 
 from render_watch.startup.preferences import Preferences
-from render_watch.encoding import directory_helper
+from render_watch.helpers import directory_helper
 from render_watch.startup import Gtk
 
 

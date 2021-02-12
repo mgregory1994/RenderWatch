@@ -23,6 +23,7 @@ import logging
 
 from render_watch.ffmpeg.general_settings import GeneralSettings
 from render_watch.ffmpeg.picture_settings import PictureSettings
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 
 
 class Settings:
@@ -289,7 +290,7 @@ class Settings:
             ffmpeg_args.append(self.trim_settings.ffmpeg_args['-ss'])
 
     def __apply_nvdec_args(self, ffmpeg_args):
-        if self.is_video_settings_nvenc():
+        if self.is_video_settings_nvenc() and NvidiaHelper.is_nvdec_supported():
             ffmpeg_args.extend(self.nvdec_args)
 
             if self.picture_settings.crop is None:
@@ -359,7 +360,7 @@ class Settings:
     def __generate_picture_settings_args(self):
         args = []
 
-        if self.is_video_settings_nvenc() and self.picture_settings.crop is None:
+        if self.is_video_settings_nvenc() and NvidiaHelper.is_npp_supported() and self.picture_settings.crop is None:
             args.extend(self.picture_settings.get_scale_nvenc_args())
         else:
 

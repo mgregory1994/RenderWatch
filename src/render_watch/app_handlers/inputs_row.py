@@ -23,7 +23,7 @@ import os
 
 from render_watch.ffmpeg import general_settings
 from render_watch.encoding import preview
-from render_watch.encoding import encoder_helper
+from render_watch.helpers import encoder_helper
 from render_watch.app_formatting import format_converter
 from render_watch.app_handlers.active_row import ActiveRow
 from render_watch.app_handlers.chunk_row import ChunkRow

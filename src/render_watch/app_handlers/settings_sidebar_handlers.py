@@ -35,7 +35,7 @@ from render_watch.app_handlers.nvenc_handlers import NvencHandlers
 from render_watch.app_handlers.vp9_handlers import VP9Handlers
 from render_watch.app_handlers.aac_handlers import AacHandlers
 from render_watch.app_handlers.opus_handlers import OpusHandlers
-from render_watch.startup.app_requirements import AppRequirements
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.startup import GLib
 
 
@@ -407,7 +407,7 @@ class SettingsSidebarHandlers:
         self.__is_widgets_setting_up = False
 
     def __rebuild_mp4_video_codec_combobox(self):
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_mp4_nvenc_ui_list)
         else:
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_mp4_ui_list)
@@ -434,7 +434,7 @@ class SettingsSidebarHandlers:
         self.__is_audio_codec_combobox_being_rebuilt = False
 
     def __setup_mp4_video_codec_widgets(self, video_codec_text):
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
 
             if video_codec_text in GeneralSettings.video_codec_mp4_nvenc_ui_list:
                 self.video_codec_combobox.set_active(
@@ -488,7 +488,7 @@ class SettingsSidebarHandlers:
         self.__is_widgets_setting_up = False
 
     def __rebuild_mkv_video_codec_combobox(self):
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_mkv_nvenc_ui_list)
         else:
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_mkv_ui_list)
@@ -497,7 +497,7 @@ class SettingsSidebarHandlers:
         self.__rebuild_audio_codec_combobox(GeneralSettings.audio_codec_mkv_ui_list)
 
     def __setup_mkv_video_codec_widgets(self, video_codec_text):
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
 
             if video_codec_text in GeneralSettings.video_codec_mkv_nvenc_ui_list:
                 self.video_codec_combobox.set_active(
@@ -551,7 +551,7 @@ class SettingsSidebarHandlers:
         self.__is_widgets_setting_up = False
 
     def __rebuild_ts_video_codec_combobox(self):
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_ts_nvenc_ui_list)
         else:
             self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_ts_ui_list)
@@ -560,7 +560,7 @@ class SettingsSidebarHandlers:
         self.__rebuild_audio_codec_combobox(GeneralSettings.audio_codec_ts_ui_list)
 
     def __setup_ts_video_codec_widgets(self, video_codec_text):
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
 
             if video_codec_text in GeneralSettings.video_codec_ts_nvenc_ui_list:
                 self.video_codec_combobox.set_active(

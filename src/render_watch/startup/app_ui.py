@@ -29,7 +29,7 @@ from render_watch.ffmpeg.aac import Aac
 from render_watch.ffmpeg.opus import Opus
 from render_watch.app_handlers.handlers_manager import HandlersManager
 from render_watch.startup.preferences import Preferences
-from render_watch.startup.app_requirements import AppRequirements
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.startup import Gtk
 
 
@@ -172,7 +172,7 @@ class AppUI:
     def __setup_general_settings_video_codec_widgets(self):
         video_codec_combobox = self.gtk_builder.get_object("video_codec_combobox")
 
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
             video_codec_list = GeneralSettings.video_codec_mp4_nvenc_ui_list
         else:
             video_codec_list = GeneralSettings.video_codec_mp4_ui_list

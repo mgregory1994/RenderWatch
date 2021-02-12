@@ -29,9 +29,8 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from render_watch.app_formatting import format_converter
 from render_watch.app_formatting.alias import AliasGenerator
-from render_watch.startup.app_requirements import AppRequirements
-from render_watch.encoding import directory_helper
-from render_watch.encoding import encoder_helper
+from render_watch.helpers import encoder_helper, directory_helper
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.encoding import preview
 from render_watch.encoding.watch_folder import WatchFolder
 from render_watch.startup import GLib
@@ -40,7 +39,7 @@ from render_watch.startup import GLib
 class Encoder:
     def __init__(self, preferences):
         self.preferences = preferences
-        self.nvenc_max_workers = AppRequirements.nvenc_max_workers
+        self.nvenc_max_workers = NvidiaHelper.nvenc_max_workers
         self.watch_folder = WatchFolder()
         self.parallel_tasks_queue = queue.Queue()
         self.parallel_nvenc_tasks_queue = queue.Queue()
@@ -64,7 +63,7 @@ class Encoder:
         self.watch_folder_tasks_startup_thread.start()
         self.parallel_tasks_startup_thread.start()
 
-        if AppRequirements.is_nvenc_supported():
+        if NvidiaHelper.is_nvenc_supported():
             self.parallel_nvenc_tasks_startup_thread.start()
         else:
             logging.info('--- NVENC ENCODING THREAD DISABLED ---')
@@ -204,7 +203,7 @@ class Encoder:
 
     @staticmethod
     def __wait_until_nvenc_available(active_row):
-        while not AppRequirements.is_nvenc_available() and not active_row.stopped:
+        while not NvidiaHelper.is_nvenc_available() and not active_row.stopped:
             time.sleep(5)
 
     def __start_parallel_nvenc_task_process(self, active_row):

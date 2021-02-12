@@ -22,8 +22,7 @@ import logging
 
 from render_watch.ffmpeg.trim_settings import TrimSettings
 from render_watch.ffmpeg.settings import Settings
-from render_watch.startup.app_requirements import AppRequirements
-
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 
 def get_chunks(ffmpeg, preferences):
     number_of_chunks = __get_number_of_chunks_from_ffmpeg(ffmpeg, preferences)
@@ -36,7 +35,7 @@ def get_chunks(ffmpeg, preferences):
 
 def __get_number_of_chunks_from_ffmpeg(ffmpeg, preferences):
     if ffmpeg.is_video_settings_nvenc():
-        return AppRequirements.nvenc_max_workers
+        return NvidiaHelper.nvenc_max_workers
 
     return preferences.parallel_tasks
 

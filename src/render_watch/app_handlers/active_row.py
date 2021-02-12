@@ -23,7 +23,7 @@ import time
 import logging
 
 from render_watch.encoding import preview
-from render_watch.encoding import encoder_helper
+from render_watch.helpers import encoder_helper
 from render_watch.app_formatting import format_converter
 from render_watch.startup import Gtk, GLib
 

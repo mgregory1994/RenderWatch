@@ -26,6 +26,7 @@ from datetime import datetime
 from render_watch.startup.app_ui import AppUI
 from render_watch.startup.preferences import Preferences
 from render_watch.startup.app_requirements import AppRequirements
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 
 application_preferences = None
 encoder = None
@@ -42,7 +43,7 @@ def __load_preferences():
 
 
 def __set_nvenc_max_workers():
-    AppRequirements.setup_nvenc_max_workers(application_preferences)
+    NvidiaHelper.setup_nvenc_max_workers(application_preferences)
 
 
 def __setup_encoder():
