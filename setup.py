@@ -1,8 +1,6 @@
-import platform
+#!/usr/bin/env python3
 from setuptools import setup
 
-
-print(platform.python_version())
 
 setup(
     name='Render Watch',
