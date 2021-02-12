@@ -1,4 +1,8 @@
+import platform
 from setuptools import setup
+
+
+print(platform.python_version())
 
 setup(
     name='Render Watch',
