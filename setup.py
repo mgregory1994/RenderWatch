@@ -8,7 +8,7 @@ setup(
     url='https://github.com/mgregory1994/RenderWatch',
     license='GPLV3',
     author='Michael Gregory',
-    author_email='michaelgregory@csus.edu',
+    author_email='michaelgregoryn@gmail.com',
     description='A professional video transcoder for Linux.',
     python_requires='~=3.8',
     package_dir={'': 'src'},
