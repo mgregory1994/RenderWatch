@@ -13,15 +13,11 @@ of your videos.
 
 <p align="center">
   <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/screenshots/rw_import.png"
-  width="1280"
-  height="939"
   alt="Render Watch Import" />
 </p>
 
 <p align="center">
   <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/screenshots/rw_encode.png"
-  width="1280"
-  height="939"
   alt="Render Watch Encoding" />
 </p>
 
