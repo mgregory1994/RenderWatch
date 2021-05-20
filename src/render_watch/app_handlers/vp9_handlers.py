@@ -212,16 +212,19 @@ class VP9Handlers:
         self.inputs_page_handlers.update_preview_page()
 
     def on_vp9_crf_radiobutton_toggled(self, crf_radiobutton):
-        if self.__is_widgets_setting_up or not crf_radiobutton.get_active():
+        if not crf_radiobutton.get_active():
             return
-
-        crf_value = self.vp9_crf_scale.get_value()
 
         self.vp9_crf_scale.set_sensitive(True)
         self.vp9_bitrate_spinbutton.set_sensitive(False)
         self.vp9_max_bitrate_spinbutton.set_sensitive(False)
         self.vp9_min_bitrate_spinbutton.set_sensitive(False)
         self.vp9_bitrate_type_buttonsbox.set_sensitive(False)
+
+        if self.__is_widgets_setting_up:
+            return
+
+        crf_value = self.vp9_crf_scale.get_value()
 
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
@@ -235,12 +238,16 @@ class VP9Handlers:
         self.inputs_page_handlers.update_preview_page()
 
     def on_vp9_bitrate_radiobutton_toggled(self, bitrate_radiobutton):
-        if self.__is_widgets_setting_up or not bitrate_radiobutton.get_active():
+        if not bitrate_radiobutton.get_active():
             return
 
         self.vp9_crf_scale.set_sensitive(False)
         self.vp9_bitrate_spinbutton.set_sensitive(True)
         self.vp9_bitrate_type_buttonsbox.set_sensitive(True)
+
+        if self.__is_widgets_setting_up:
+            return
+
         self.on_vp9_average_radiobutton_toggled(self.vp9_average_radiobutton)
         self.on_vp9_vbr_radiobutton_toggled(self.vp9_vbr_radiobutton)
         self.on_vp9_constant_radiobutton_toggled(self.vp9_constant_radiobutton)
@@ -326,15 +333,18 @@ class VP9Handlers:
         self.vp9_max_bitrate_spinbutton.set_value(bitrate_value)
 
     def on_vp9_constrained_radiobutton_toggled(self, constrained_radiobutton):
-        if self.__is_widgets_setting_up or not constrained_radiobutton.get_active():
+        if not constrained_radiobutton.get_active():
             return
-
-        crf_value = self.vp9_crf_scale.get_value()
 
         self.vp9_crf_scale.set_sensitive(True)
         self.vp9_bitrate_spinbutton.set_sensitive(True)
         self.vp9_average_radiobutton.set_active(True)
         self.vp9_bitrate_type_buttonsbox.set_sensitive(False)
+
+        if self.__is_widgets_setting_up:
+            return
+
+        crf_value = self.vp9_crf_scale.get_value()
 
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
