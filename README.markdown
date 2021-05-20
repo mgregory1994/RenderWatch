@@ -11,16 +11,6 @@ etc. Render Watch can also be used as a video compression tool so that you
 can make a lossy version of your video projects or make compressed backups 
 of your videos.
 
-<p align="center">
-  <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/screenshots/rw_import.png"
-  alt="Render Watch Import" />
-</p>
-
-<p align="center">
-  <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/screenshots/rw_encode.png"
-  alt="Render Watch Encoding" />
-</p>
-
 ## Compatibility
 Render Watch is compatible with Debian and Ubuntu based distros.
 
@@ -64,6 +54,17 @@ The log file can then be found in
 ```bash
 ~/.config/"Render Watch"/
 ```
+
+## Screenshots
+<p align="center">
+  <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/screenshots/rw_import.png"
+  alt="Render Watch Import" />
+</p>
+
+<p align="center">
+  <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/screenshots/rw_encode.png"
+  alt="Render Watch Encoding" />
+</p>
 
 ## Contributing
 Pull requests and issue reports are welcome.
