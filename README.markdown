@@ -74,3 +74,7 @@ as an issue first.
 
 ## License
 Render Watch is licensed under [GPLV3](https://www.gnu.org/licenses/gpl-3.0.en.html)
+
+--Screenshots with Big Buck Bunny--
+
+(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org
