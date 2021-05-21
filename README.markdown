@@ -20,7 +20,7 @@ Other distros require manual installation (see below).
 #### Debian or Ubuntu based distros:
 1. [Download](https://github.com/mgregory1994/RenderWatch/releases/tag/v0.1.0-beta) the .deb file
 2. Install by double-clicking the .deb file or by using apt
-    ```bash
+    ```console
     # apt install ./<name of file>.deb
     ```
    
@@ -30,33 +30,33 @@ Other distros require manual installation (see below).
     * [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html)
     * pip
 2. Clone repository
-    ```bash
+    ```console
     $ git clone https://github.com/mgregory1994/RenderWatch.git
     ```
 3. Manually install Render Watch
-    ```bash
+    ```console
     $ cd RenderWatch
     # python setup.py install
     ```
 4. Copy .desktop file and program icons
-    ```bash
+    ```console
     $ cp data/render-watch.desktop ~/.local/share/applications
     $ cp -r data/icons/. ~/.icons
     ```
 
 ## Uninstall
 #### Debian or Ubuntu based distros:
-```bash
+```console
 # apt remove render-watch
 ```
 
 #### Other distros:
 1. Remove .desktop file
-    ```bash
+    ```console
     $ rm ~/.local/share/applications/render-watch.desktop
     ```
 2. Remove Render Watch using pip
-    ```bash
+    ```console
     # pip uninstall render-watch
     ```
 
@@ -65,17 +65,17 @@ Once you have installed Render Watch, you can find it among your installed
 applications.
 
 You can also run Render Watch from the command line
-```bash
+```console
 $ render-watch
 ```
 
 You can also run Render Watch in debug mode
-```bash
+```console
 $ render-watch-debug
 ```
 
 The log file can then be found in
-```bash
+```console
 ~/.config/"Render Watch"/
 ```
 
