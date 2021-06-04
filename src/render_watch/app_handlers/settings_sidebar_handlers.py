@@ -28,38 +28,58 @@ from render_watch.ffmpeg.h264_nvenc import H264Nvenc
 from render_watch.ffmpeg.hevc_nvenc import HevcNvenc
 from render_watch.ffmpeg.aac import Aac
 from render_watch.ffmpeg.opus import Opus
-from render_watch.encoding import preview
 from render_watch.app_handlers.x264_handlers import X264Handlers
 from render_watch.app_handlers.x265_handlers import X265Handlers
 from render_watch.app_handlers.nvenc_handlers import NvencHandlers
 from render_watch.app_handlers.vp9_handlers import VP9Handlers
 from render_watch.app_handlers.aac_handlers import AacHandlers
 from render_watch.app_handlers.opus_handlers import OpusHandlers
+from render_watch.signals.settings_sidebar.audio_codec_signal import AudioCodecSignal
+from render_watch.signals.settings_sidebar.benchmark_start_signal import BenchmarkStartSignal
+from render_watch.signals.settings_sidebar.benchmark_stop_signal import BenchmarkStopSignal
+from render_watch.signals.settings_sidebar.container_signal import ContainerSignal
+from render_watch.signals.settings_sidebar.crop_signal import CropSignal
+from render_watch.signals.settings_sidebar.framerate_signal import FramerateSignal
+from render_watch.signals.settings_sidebar.preview_signal import PreviewSignal
+from render_watch.signals.settings_sidebar.streaming_signal import StreamingSignal
+from render_watch.signals.settings_sidebar.trim_signal import TrimSignal
+from render_watch.signals.settings_sidebar.video_codec_signal import VideoCodecSignal
 from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.startup import GLib
 
 
 class SettingsSidebarHandlers:
-    def __init__(self, gtk_builder, preferences):
+    def __init__(self, gtk_builder, crop_page_handler, trim_page_handlers, preview_page_handlers, inputs_page_handlers,
+                 preferences):
         self.gtk_builder = gtk_builder
-        self.inputs_page_handlers = None
-        self.crop_page_handlers = None
-        self.preview_page_handlers = None
-        self.trim_page_handlers = None
-        self.x264_handlers = X264Handlers(gtk_builder, preferences)
-        self.x265_handlers = X265Handlers(gtk_builder, preferences)
-        self.nvenc_handlers = NvencHandlers(gtk_builder)
-        self.vp9_handlers = VP9Handlers(gtk_builder, preferences)
-        self.aac_handlers = AacHandlers(gtk_builder)
-        self.opus_handlers = OpusHandlers(gtk_builder)
-        self.handlers_list = (self.x264_handlers, self.x265_handlers, self.nvenc_handlers, self.vp9_handlers,
-                              self.aac_handlers, self.opus_handlers)
-        self.__is_widgets_setting_up = False
-        self.__is_video_codec_combobox_being_rebuilt = False
-        self.__is_audio_codec_combobox_being_rebuilt = False
+        self.inputs_page_handlers = inputs_page_handlers
+        self.is_widgets_setting_up = False
+        self.is_video_codec_transitioning = False
+        self.is_audio_codec_transitioning = False
         self.benchmark_thread = None
         self.stop_benchmark_thread = False
-        self.__benchmark_thread_lock = threading.Lock()
+        self.benchmark_thread_lock = threading.Lock()
+        self.x264_handlers = X264Handlers(gtk_builder, inputs_page_handlers, preferences)
+        self.x265_handlers = X265Handlers(gtk_builder, inputs_page_handlers, preferences)
+        self.nvenc_handlers = NvencHandlers(gtk_builder, inputs_page_handlers)
+        self.vp9_handlers = VP9Handlers(gtk_builder, inputs_page_handlers, preferences)
+        self.aac_handlers = AacHandlers(gtk_builder, inputs_page_handlers)
+        self.opus_handlers = OpusHandlers(gtk_builder, inputs_page_handlers)
+        self.audio_codec_signal = AudioCodecSignal(self, inputs_page_handlers)
+        self.benchmark_start_signal = BenchmarkStartSignal(self, inputs_page_handlers, preferences)
+        self.benchmark_stop_signal = BenchmarkStopSignal(self, inputs_page_handlers)
+        self.container_signal = ContainerSignal(self, inputs_page_handlers)
+        self.crop_signal = CropSignal(crop_page_handler, inputs_page_handlers)
+        self.framerate_signal = FramerateSignal(self, inputs_page_handlers)
+        self.preview_signal = PreviewSignal(preview_page_handlers, inputs_page_handlers)
+        self.streaming_signal = StreamingSignal(self, inputs_page_handlers)
+        self.trim_signal = TrimSignal(trim_page_handlers, inputs_page_handlers)
+        self.video_codec_signal = VideoCodecSignal(self, inputs_page_handlers)
+        self.handlers_list = (self.x264_handlers, self.x265_handlers, self.nvenc_handlers, self.vp9_handlers,
+                              self.aac_handlers, self.opus_handlers, self.audio_codec_signal, self.video_codec_signal,
+                              self.streaming_signal, self.framerate_signal, self.benchmark_start_signal,
+                              self.benchmark_stop_signal, self.container_signal, self.crop_signal, self.trim_signal,
+                              self.preview_signal)
         self.container_combobox = gtk_builder.get_object("container_combobox")
         self.streaming_checkbox = gtk_builder.get_object("streaming_checkbox")
         self.video_codec_combobox = gtk_builder.get_object("video_codec_combobox")
@@ -99,24 +119,53 @@ class SettingsSidebarHandlers:
             if hasattr(handler, signal_name):
                 return getattr(handler, signal_name)
 
-    def reset_settings(self):
-        self.__is_widgets_setting_up = True
+        raise AttributeError
 
-        self.container_combobox.set_active(0)
-        self.fps_combobox.set_active(0)
-        self.video_codec_combobox.set_active(0)
-        self.audio_codec_combobox.set_active(0)
-        self.streaming_checkbox.set_active(False)
-        self.framerate_auto_button.set_active(True)
-        self.x265_handlers.reset_settings()
-        self.x264_handlers.reset_settings()
-        self.nvenc_handlers.reset_settings()
-        self.vp9_handlers.reset_settings()
-        self.aac_handlers.reset_settings()
-        self.opus_handlers.reset_settings()
-        self.__set_benchmark_state()
+    def get_settings(self, ffmpeg):
+        self.__set_general_settings_from_settings_sidebar_widgets(ffmpeg)
+        self.__set_video_codec_settings_from_settings_sidebar_widgets(ffmpeg)
+        self.__set_audio_codec_settings_from_settings_sidebar_widgets(ffmpeg)
 
-        self.__is_widgets_setting_up = False
+    def __set_general_settings_from_settings_sidebar_widgets(self, ffmpeg):
+        general_settings = GeneralSettings()
+        general_settings.fast_start = self.streaming_checkbox.get_active()
+
+        self.__set_output_container_settings_from_settings_sidebar_widgets(ffmpeg)
+        self.__set_frame_rate_settings_from_settings_sidebar_widgets(general_settings)
+
+        ffmpeg.general_settings = general_settings
+
+    def __set_output_container_settings_from_settings_sidebar_widgets(self, ffmpeg):
+        if self.container_combobox.get_active() != 0:
+            ffmpeg.output_container = GeneralSettings.video_file_containers_list[self.container_combobox.get_active()]
+
+    def __set_frame_rate_settings_from_settings_sidebar_widgets(self, general_settings):
+        if self.framerate_custom_button.get_active():
+            general_settings.frame_rate = GeneralSettings.frame_rate_ffmpeg_args_list[self.fps_combobox.get_active()]
+
+    def __set_video_codec_settings_from_settings_sidebar_widgets(self, ffmpeg):
+        video_codec_text = self.video_codec_combobox.get_active_text()
+
+        if video_codec_text == 'H264':
+            self.x264_handlers.get_settings(ffmpeg)
+        elif video_codec_text == 'H265':
+            self.x265_handlers.get_settings(ffmpeg)
+        elif 'NVENC' in video_codec_text:
+            self.nvenc_handlers.get_settings(ffmpeg)
+        elif video_codec_text == 'VP9':
+            self.vp9_handlers.get_settings(ffmpeg)
+        else:
+            ffmpeg.video_settings = None
+
+    def __set_audio_codec_settings_from_settings_sidebar_widgets(self, ffmpeg):
+        audio_codec_text = self.audio_codec_combobox.get_active_text()
+
+        if audio_codec_text == 'aac':
+            self.aac_handlers.get_settings(ffmpeg)
+        elif audio_codec_text == 'opus':
+            self.opus_handlers.get_settings(ffmpeg)
+        else:
+            ffmpeg.audio_settings = None
 
     def set_settings(self, ffmpeg_param=None):
         if ffmpeg_param is None:
@@ -131,7 +180,7 @@ class SettingsSidebarHandlers:
         self.__set_settings_for_vp9_handlers(ffmpeg_param)
         self.__set_settings_for_aac_handlers(ffmpeg_param)
         self.__set_settings_for_opus_handlers(ffmpeg_param)
-        self.__set_benchmark_state()
+        self.set_benchmark_state()
 
     def __set_settings_for_x264_handlers(self, ffmpeg=None):
         if ffmpeg is None:
@@ -181,7 +230,7 @@ class SettingsSidebarHandlers:
 
         threading.Thread(target=GLib.idle_add, args=args).start()
 
-    def __set_benchmark_state(self):
+    def set_benchmark_state(self):
         inputs_row = self.inputs_page_handlers.get_selected_row()
 
         if inputs_row is not None:
@@ -195,6 +244,25 @@ class SettingsSidebarHandlers:
             self.set_benchmark_ready_state()
         else:
             self.__set_benchmark_not_available_state()
+
+    def reset_settings(self):
+        self.is_widgets_setting_up = True
+
+        self.container_combobox.set_active(0)
+        self.fps_combobox.set_active(0)
+        self.video_codec_combobox.set_active(0)
+        self.audio_codec_combobox.set_active(0)
+        self.streaming_checkbox.set_active(False)
+        self.framerate_auto_button.set_active(True)
+        self.x265_handlers.reset_settings()
+        self.x264_handlers.reset_settings()
+        self.nvenc_handlers.reset_settings()
+        self.vp9_handlers.reset_settings()
+        self.aac_handlers.reset_settings()
+        self.opus_handlers.reset_settings()
+        self.set_benchmark_state()
+
+        self.is_widgets_setting_up = False
 
     def set_benchmark_ready_state(self):
         self.benchmark_stack.set_visible_child(self.benchmark_values_grid)
@@ -217,7 +285,7 @@ class SettingsSidebarHandlers:
         general_settings = ffmpeg.general_settings
         output_container = ffmpeg.output_container
         is_output_container_set = ffmpeg.is_output_container_set()
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.__setup_settings_sidebar_output_container_widgets_settings(output_container, is_output_container_set)
         self.streaming_checkbox.set_active(general_settings.fast_start)
@@ -225,7 +293,7 @@ class SettingsSidebarHandlers:
         self.__setup_settings_sidebar_video_codec_widgets_settings(video_settings)
         self.__setup_settings_sidebar_audio_codec_widgets_settings(audio_settings)
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
     def __setup_settings_sidebar_output_container_widgets_settings(self, output_container, is_output_container_set):
         if is_output_container_set:
@@ -281,51 +349,17 @@ class SettingsSidebarHandlers:
             else:
                 self.on_audio_codec_combobox_changed(self.audio_codec_combobox)
 
-    def get_settings(self, ffmpeg):
-        self.__set_general_settings_from_settings_sidebar_widgets(ffmpeg)
-        self.__set_video_codec_settings_from_settings_sidebar_widgets(ffmpeg)
-        self.__set_audio_codec_settings_from_settings_sidebar_widgets(ffmpeg)
+    def get_video_codec_value(self):
+        return self.video_codec_combobox.get_active_text()
 
-    def __set_general_settings_from_settings_sidebar_widgets(self, ffmpeg):
-        general_settings = GeneralSettings()
-        general_settings.fast_start = self.streaming_checkbox.get_active()
+    def get_audio_codec_value(self):
+        return self.audio_codec_combobox.get_active_text()
 
-        self.__set_output_container_settings_from_settings_sidebar_widgets(ffmpeg)
-        self.__set_frame_rate_settings_from_settings_sidebar_widgets(general_settings)
+    def get_framerate_value(self):
+        return self.fps_combobox.get_active()
 
-        ffmpeg.general_settings = general_settings
-
-    def __set_output_container_settings_from_settings_sidebar_widgets(self, ffmpeg):
-        if self.container_combobox.get_active() != 0:
-            ffmpeg.output_container = GeneralSettings.video_file_containers_list[self.container_combobox.get_active()]
-
-    def __set_frame_rate_settings_from_settings_sidebar_widgets(self, general_settings):
-        if self.framerate_custom_button.get_active():
-            general_settings.frame_rate = GeneralSettings.frame_rate_ffmpeg_args_list[self.fps_combobox.get_active()]
-
-    def __set_video_codec_settings_from_settings_sidebar_widgets(self, ffmpeg):
-        video_codec_text = self.video_codec_combobox.get_active_text()
-
-        if video_codec_text == 'H264':
-            self.x264_handlers.get_settings(ffmpeg)
-        elif video_codec_text == 'H265':
-            self.x265_handlers.get_settings(ffmpeg)
-        elif 'NVENC' in video_codec_text:
-            self.nvenc_handlers.get_settings(ffmpeg)
-        elif video_codec_text == 'VP9':
-            self.vp9_handlers.get_settings(ffmpeg)
-        else:
-            ffmpeg.video_settings = None
-
-    def __set_audio_codec_settings_from_settings_sidebar_widgets(self, ffmpeg):
-        audio_codec_text = self.audio_codec_combobox.get_active_text()
-
-        if audio_codec_text == 'aac':
-            self.aac_handlers.get_settings(ffmpeg)
-        elif audio_codec_text == 'opus':
-            self.opus_handlers.get_settings(ffmpeg)
-        else:
-            ffmpeg.audio_settings = None
+    def is_benchmark_short_radiobutton_active(self):
+        return self.benchmark_short_radiobutton.get_active()
 
     def set_extra_settings_state(self, state):
         self.crop_button.set_sensitive(state)
@@ -358,53 +392,23 @@ class SettingsSidebarHandlers:
     def set_benchmark_done_state(self):
         self.benchmark_bottom_button_stack.set_visible_child(self.benchmark_start_button)
 
-    def is_benchmark_short_radiobutton_active(self):
-        return self.benchmark_short_radiobutton.get_active()
+    def set_mp4_state(self):
+        video_codec_text = self.get_video_codec_value()
+        audio_codec_text = self.get_audio_codec_value()
 
-    def on_container_combobox_changed(self, container_combobox):
-        container_text = GeneralSettings.video_file_containers_list[container_combobox.get_active()]
-        video_codec_text = self.video_codec_combobox.get_active_text()
-        audio_codec_text = self.audio_codec_combobox.get_active_text()
-
-        if container_text == '.mp4':
-            self.__set_mp4_state(video_codec_text, audio_codec_text)
-        elif container_text == '.mkv':
-            self.__set_mkv_state(video_codec_text, audio_codec_text)
-        elif container_text == '.ts':
-            self.__set_ts_state(video_codec_text, audio_codec_text)
-        elif container_text == '.webm':
-            self.__setup_webm_state(video_codec_text, audio_codec_text)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-
-            if container_text == 'copy':
-                ffmpeg.output_container = None
-            else:
-                ffmpeg.output_container = container_text
-
-            row.setup_labels()
-
-    def __get_selected_inputs_rows(self):
-        return self.inputs_page_handlers.get_selected_rows()
-
-    def __set_mp4_state(self, video_codec_text, audio_codec_text):
         self.streaming_checkbox.set_sensitive(True)
         self.__rebuild_mp4_video_codec_combobox()
         self.__rebuild_mp4_audio_codec_combobox()
 
-        if self.__is_widgets_setting_up:
+        if self.is_widgets_setting_up:
             return
 
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.__setup_mp4_video_codec_widgets(video_codec_text)
         self.__setup_mp4_audio_codec_widgets(audio_codec_text)
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
     def __rebuild_mp4_video_codec_combobox(self):
         if NvidiaHelper.is_nvenc_supported():
@@ -415,11 +419,11 @@ class SettingsSidebarHandlers:
     def __rebuild_video_codec_combobox(self, video_codec_combobox_list):
         from render_watch.startup.app_ui import AppUI  # Can't do a global import because app_ui imports this class too
 
-        self.__is_video_codec_combobox_being_rebuilt = True
+        self.is_video_codec_transitioning = True
 
         AppUI.rebuild_combobox(self.video_codec_combobox, video_codec_combobox_list)
 
-        self.__is_video_codec_combobox_being_rebuilt = False
+        self.is_video_codec_transitioning = False
 
     def __rebuild_mp4_audio_codec_combobox(self):
         self.__rebuild_audio_codec_combobox(GeneralSettings.audio_codec_mp4_ui_list)
@@ -427,11 +431,11 @@ class SettingsSidebarHandlers:
     def __rebuild_audio_codec_combobox(self, audio_codec_combobox_list):
         from render_watch.startup.app_ui import AppUI  # Can't do a global import because app_ui imports this class too
 
-        self.__is_audio_codec_combobox_being_rebuilt = True
+        self.is_audio_codec_transitioning = True
 
         AppUI.rebuild_combobox(self.audio_codec_combobox, audio_codec_combobox_list)
 
-        self.__is_audio_codec_combobox_being_rebuilt = False
+        self.is_audio_codec_transitioning = False
 
     def __setup_mp4_video_codec_widgets(self, video_codec_text):
         if NvidiaHelper.is_nvenc_supported():
@@ -440,52 +444,55 @@ class SettingsSidebarHandlers:
                 self.video_codec_combobox.set_active(
                     GeneralSettings.video_codec_mp4_nvenc_ui_list.index(video_codec_text))
             else:
-                self.__is_widgets_setting_up = False
+                self.is_widgets_setting_up = False
 
                 self.video_codec_combobox.set_active(0)
                 self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-                self.__is_widgets_setting_up = True
+                self.is_widgets_setting_up = True
         else:
 
             if video_codec_text in GeneralSettings.video_codec_mp4_ui_list:
                 self.video_codec_combobox.set_active(
                     GeneralSettings.video_codec_mp4_ui_list.index(video_codec_text))
             else:
-                self.__is_widgets_setting_up = False
+                self.is_widgets_setting_up = False
 
                 self.video_codec_combobox.set_active(0)
                 self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-                self.__is_widgets_setting_up = True
+                self.is_widgets_setting_up = True
 
     def __setup_mp4_audio_codec_widgets(self, audio_codec_text):
         if audio_codec_text in GeneralSettings.audio_codec_mp4_ui_list:
             self.audio_codec_combobox.set_active(
                 GeneralSettings.audio_codec_mp4_ui_list.index(audio_codec_text))
         else:
-            self.__is_widgets_setting_up = False
+            self.is_widgets_setting_up = False
 
             self.audio_codec_combobox.set_active(0)
             self.on_audio_codec_combobox_changed(self.audio_codec_combobox)
 
-            self.__is_widgets_setting_up = True
+            self.is_widgets_setting_up = True
 
-    def __set_mkv_state(self, video_codec_text, audio_codec_text):
+    def set_mkv_state(self):
+        video_codec_text = self.get_video_codec_value()
+        audio_codec_text = self.get_audio_codec_value()
+
         self.streaming_checkbox.set_sensitive(False)
         self.streaming_checkbox.set_active(False)
         self.__rebuild_mkv_video_codec_combobox()
         self.__rebuild_mkv_audio_codec_combobox()
 
-        if self.__is_widgets_setting_up:
+        if self.is_widgets_setting_up:
             return
 
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.__setup_mkv_video_codec_widgets(video_codec_text)
         self.__setup_mkv_audio_codec_widgets(audio_codec_text)
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
     def __rebuild_mkv_video_codec_combobox(self):
         if NvidiaHelper.is_nvenc_supported():
@@ -503,52 +510,55 @@ class SettingsSidebarHandlers:
                 self.video_codec_combobox.set_active(
                     GeneralSettings.video_codec_mkv_nvenc_ui_list.index(video_codec_text))
             else:
-                self.__is_widgets_setting_up = False
+                self.is_widgets_setting_up = False
 
                 self.video_codec_combobox.set_active(0)
                 self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-                self.__is_widgets_setting_up = True
+                self.is_widgets_setting_up = True
         else:
 
             if video_codec_text in GeneralSettings.video_codec_mkv_ui_list:
                 self.video_codec_combobox.set_active(
                     GeneralSettings.video_codec_mkv_ui_list.index(video_codec_text))
             else:
-                self.__is_widgets_setting_up = False
+                self.is_widgets_setting_up = False
 
                 self.video_codec_combobox.set_active(0)
                 self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-                self.__is_widgets_setting_up = True
+                self.is_widgets_setting_up = True
 
     def __setup_mkv_audio_codec_widgets(self, audio_codec_text):
         if audio_codec_text in GeneralSettings.audio_codec_mkv_ui_list:
             self.audio_codec_combobox.set_active(
                 GeneralSettings.audio_codec_mkv_ui_list.index(audio_codec_text))
         else:
-            self.__is_widgets_setting_up = False
+            self.is_widgets_setting_up = False
 
             self.audio_codec_combobox.set_active(0)
             self.on_audio_codec_combobox_changed(self.audio_codec_combobox)
 
-            self.__is_widgets_setting_up = True
+            self.is_widgets_setting_up = True
 
-    def __set_ts_state(self, video_codec_text, audio_codec_text):
+    def set_ts_state(self):
+        video_codec_text = self.get_video_codec_value()
+        audio_codec_text = self.get_audio_codec_value()
+
         self.streaming_checkbox.set_sensitive(False)
         self.streaming_checkbox.set_active(False)
         self.__rebuild_ts_video_codec_combobox()
         self.__rebuild_ts_audio_codec_combobox()
 
-        if self.__is_widgets_setting_up:
+        if self.is_widgets_setting_up:
             return
 
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.__setup_ts_video_codec_widgets(video_codec_text)
         self.__setup_ts_audio_codec_widgets(audio_codec_text)
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
     def __rebuild_ts_video_codec_combobox(self):
         if NvidiaHelper.is_nvenc_supported():
@@ -566,52 +576,55 @@ class SettingsSidebarHandlers:
                 self.video_codec_combobox.set_active(
                     GeneralSettings.video_codec_ts_nvenc_ui_list.index(video_codec_text))
             else:
-                self.__is_widgets_setting_up = False
+                self.is_widgets_setting_up = False
 
                 self.video_codec_combobox.set_active(0)
                 self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-                self.__is_widgets_setting_up = True
+                self.is_widgets_setting_up = True
         else:
 
             if video_codec_text in GeneralSettings.video_codec_ts_ui_list:
                 self.video_codec_combobox.set_active(
                     GeneralSettings.video_codec_ts_ui_list.index(video_codec_text))
             else:
-                self.__is_widgets_setting_up = False
+                self.is_widgets_setting_up = False
 
                 self.video_codec_combobox.set_active(0)
                 self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-                self.__is_widgets_setting_up = True
+                self.is_widgets_setting_up = True
 
     def __setup_ts_audio_codec_widgets(self, audio_codec_text):
         if audio_codec_text in GeneralSettings.audio_codec_ts_ui_list:
             self.audio_codec_combobox.set_active(
                 GeneralSettings.audio_codec_ts_ui_list.index(audio_codec_text))
         else:
-            self.__is_widgets_setting_up = False
+            self.is_widgets_setting_up = False
 
             self.audio_codec_combobox.set_active(0)
             self.on_audio_codec_combobox_changed(self.audio_codec_combobox)
 
-            self.__is_widgets_setting_up = True
+            self.is_widgets_setting_up = True
 
-    def __setup_webm_state(self, video_codec_text, audio_codec_text):
+    def set_webm_state(self):
+        video_codec_text = self.get_video_codec_value()
+        audio_codec_text = self.get_audio_codec_value()
+
         self.streaming_checkbox.set_sensitive(False)
         self.streaming_checkbox.set_active(False)
         self.__rebuild_webm_video_codec_combobox()
         self.__rebuild_webm_audio_codec_combobox()
 
-        if self.__is_widgets_setting_up:
+        if self.is_widgets_setting_up:
             return
 
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.__setup_webm_video_codec_widgets(video_codec_text)
         self.__setup_webm_audio_codec_widgets(audio_codec_text)
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
     def __rebuild_webm_video_codec_combobox(self):
         self.__rebuild_video_codec_combobox(GeneralSettings.video_codec_webm_ui_list)
@@ -624,46 +637,31 @@ class SettingsSidebarHandlers:
             self.video_codec_combobox.set_active(
                 GeneralSettings.video_codec_webm_ui_list.index(video_codec_text))
         else:
-            self.__is_widgets_setting_up = False
+            self.is_widgets_setting_up = False
 
             self.video_codec_combobox.set_active(0)
             self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
-            self.__is_widgets_setting_up = True
+            self.is_widgets_setting_up = True
 
     def __setup_webm_audio_codec_widgets(self, audio_codec_text):
         if audio_codec_text in GeneralSettings.audio_codec_webm_ui_list:
             self.audio_codec_combobox.set_active(
                 GeneralSettings.audio_codec_webm_ui_list.index(audio_codec_text))
         else:
-            self.__is_widgets_setting_up = False
+            self.is_widgets_setting_up = False
 
             self.audio_codec_combobox.set_active(0)
             self.on_audio_codec_combobox_changed(self.audio_codec_combobox)
 
-            self.__is_widgets_setting_up = True
+            self.is_widgets_setting_up = True
 
-    def on_video_codec_combobox_changed(self, video_codec_combobox):
-        video_codec_text = video_codec_combobox.get_active_text()
+    def set_framerate_state(self, enabled):
+        self.fps_box.set_sensitive(enabled)
 
-        if video_codec_text is None or self.__is_video_codec_combobox_being_rebuilt:
-            return
+    def update_video_settings(self):
+        video_codec_text = self.get_video_codec_value()
 
-        video_settings = self.__setup_video_settings(video_codec_text)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings = video_settings
-
-            row.setup_labels()
-
-        self.__set_benchmark_state()
-        self.inputs_page_handlers.update_preview_page()
-
-    def __setup_video_settings(self, video_codec_text):
         if video_codec_text == "H264":
             video_settings = X264()
 
@@ -679,7 +677,7 @@ class SettingsSidebarHandlers:
             self.__reset_settings_for_nvenc_handlers()
             self.__reset_settings_for_vp9_handlers()
         elif 'NVENC' in video_codec_text:
-            if not self.__is_widgets_setting_up:
+            if not self.is_widgets_setting_up:
                 if video_codec_text == 'NVENC H264':
                     video_settings = H264Nvenc()
 
@@ -727,24 +725,9 @@ class SettingsSidebarHandlers:
     def __reset_settings_for_vp9_handlers(self):
         threading.Thread(target=GLib.idle_add, args=(self.vp9_handlers.reset_settings,)).start()
 
-    def on_audio_codec_combobox_changed(self, audio_codec_combobox):
-        audio_text = audio_codec_combobox.get_active_text()
+    def update_audio_settings(self):
+        audio_text = self.get_audio_codec_value()
 
-        if audio_text is None or self.__is_audio_codec_combobox_being_rebuilt:
-            return
-
-        audio_settings = self.__setup_audio_settings(audio_text)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.audio_settings = audio_settings
-
-            row.setup_labels()
-
-    def __setup_audio_settings(self, audio_text):
         if audio_text == "aac":
             audio_settings = Aac()
 
@@ -770,107 +753,9 @@ class SettingsSidebarHandlers:
     def __reset_settings_for_opus_handlers(self):
         threading.Thread(target=GLib.idle_add, args=(self.opus_handlers.reset_settings,)).start()
 
-    def on_framerate_auto_radiobutton_clicked(self, frame_rate_auto_radiobutton):
-        if not frame_rate_auto_radiobutton.get_active():
-            return
-
-        self.fps_box.set_sensitive(False)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.general_settings.frame_rate = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_framerate_custom_radiobutton_clicked(self, frame_rate_custom_radiobutton):
-        if not frame_rate_custom_radiobutton.get_active():
-            return
-
-        self.fps_box.set_sensitive(True)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        frame_rate_index = self.fps_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.general_settings.frame_rate = frame_rate_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_fps_combobox_changed(self, frame_rate_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        frame_rate_index = frame_rate_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.general_settings.frame_rate = frame_rate_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_streaming_checkbox_toggled(self, streaming_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.general_settings.fast_start = streaming_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_benchmark_start_button_clicked(self, benchmark_start_button):
-        ffmpeg = self.inputs_page_handlers.get_selected_row().ffmpeg
-
-        if ffmpeg is None:
-            return
-
-        threading.Thread(target=self.__start_benchmark_thread, args=(ffmpeg,), daemon=True).start()
-
-    def __start_benchmark_thread(self, ffmpeg):
-        self.__stop_benchmark_thread()
-
-        with self.__benchmark_thread_lock:
-            self.benchmark_thread = threading.Thread(target=preview.start_benchmark,
-                                                     args=(ffmpeg, self, lambda: self.stop_benchmark_thread,
-                                                           self.preferences))
-
-            self.benchmark_thread.start()
-
-    def on_benchmark_stop_button_clicked(self, benchmark_stop_button):
-        threading.Thread(target=self.__stop_benchmark_thread, args=(), daemon=True).start()
-
-    def __stop_benchmark_thread(self):
-        with self.__benchmark_thread_lock:
+    def stop_benchmark_thread(self):
+        with self.benchmark_thread_lock:
             if self.benchmark_thread is not None and self.benchmark_thread.is_alive():
                 self.stop_benchmark_thread = True
                 self.benchmark_thread.join()
                 self.stop_benchmark_thread = False
-
-    def on_crop_button_clicked(self, crop_button):
-        if not self.inputs_page_handlers.is_crop_state():
-            self.inputs_page_handlers.set_crop_state()
-            self.crop_page_handlers.setup_crop_page()
-
-    def on_trim_button_clicked(self, trim_button):
-        if not self.inputs_page_handlers.is_trim_state():
-            self.inputs_page_handlers.set_trim_state()
-            self.trim_page_handlers.setup_trim_page()
-
-    def on_preview_button_clicked(self, preview_button):
-        if not self.inputs_page_handlers.is_preview_state():
-            self.inputs_page_handlers.set_preview_state()
-            self.preview_page_handlers.setup_preview_page()

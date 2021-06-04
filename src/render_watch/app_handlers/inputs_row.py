@@ -27,6 +27,12 @@ from render_watch.helpers import encoder_helper
 from render_watch.app_formatting import format_converter
 from render_watch.app_handlers.active_row import ActiveRow
 from render_watch.app_handlers.chunk_row import ChunkRow
+from render_watch.signals.inputs_row.audio_stream_signal import AudioStreamSignal
+from render_watch.signals.inputs_row.folder_recursive_signal import FolderRecursiveSignal
+from render_watch.signals.inputs_row.folder_watch_signal import FolderWatchSignal
+from render_watch.signals.inputs_row.remove_signal import RemoveSignal
+from render_watch.signals.inputs_row.start_signal import StartSignal
+from render_watch.signals.inputs_row.video_stream_signal import VideoStreamSignal
 from render_watch.startup import Gtk, GLib
 
 
@@ -40,6 +46,14 @@ class InputsRow(Gtk.ListBoxRow):
         self.active_page_handlers = active_page_handlers
         self.encoder = encoder
         self.main_window_handlers = main_window_handlers
+        self.audio_stream_signal = AudioStreamSignal(self)
+        self.folder_recursive_signal = FolderRecursiveSignal(self)
+        self.folder_watch_signal = FolderWatchSignal(self)
+        self.remove_signal = RemoveSignal(self, inputs_page_handlers)
+        self.start_signal = StartSignal(self)
+        self.video_stream_signal = VideoStreamSignal(self)
+        self.signals_list = (self.audio_stream_signal, self.folder_recursive_signal, self.folder_watch_signal,
+                             self.remove_signal, self.start_signal, self.video_stream_signal)
         self.gtk_builder = Gtk.Builder()
         this_file_directory_file_path = os.path.dirname(os.path.abspath(__file__))
         rows_ui_file_path = os.path.join(this_file_directory_file_path, '../render_watch_data/rows_ui.glade')
@@ -95,6 +109,13 @@ class InputsRow(Gtk.ListBoxRow):
         self.inputs_folder_recursive_radiobutton.connect('toggled', self.on_inputs_folder_recursive_radiobutton_toggled)
         self.inputs_folder_watch_radiobutton.connect('toggled', self.on_inputs_folder_watch_radiobutton_toggled)
 
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
+
+        raise AttributeError
+
     def __setup_row_state(self):
         if not self.ffmpeg.folder_state:
             threading.Thread(target=self.setup_preview_thumbnail, args=()).start()
@@ -109,6 +130,35 @@ class InputsRow(Gtk.ListBoxRow):
         output_file = preview.get_crop_preview_file(self.ffmpeg, self.preferences, 96)
 
         GLib.idle_add(self.preview_thumbnail.set_from_file, output_file)
+
+    def __setup_streams(self):
+        if self.ffmpeg.folder_state:
+            return
+
+        self.__setup_video_stream_combobox()
+        self.__setup_audio_stream_combobox()
+
+    def __setup_video_stream_combobox(self):
+        self.video_stream_combobox.remove_all()
+
+        for index, items in enumerate(self.ffmpeg.input_file_info['video_streams'].items()):
+            self.video_stream_combobox.append_text('[' + str(index) + ']' + items[1])
+            self.video_stream_combobox.set_entry_text_column(0)
+            self.video_stream_combobox.set_active(0)
+
+            if index == 0:
+                self.ffmpeg.video_stream_index = items[0]
+
+    def __setup_audio_stream_combobox(self):
+        self.audio_stream_combobox.remove_all()
+
+        for index, items in enumerate(self.ffmpeg.input_file_info['audio_streams'].items()):
+            self.audio_stream_combobox.append_text('[' + str(index) + ']' + items[1])
+            self.audio_stream_combobox.set_entry_text_column(0)
+            self.audio_stream_combobox.set_active(0)
+
+            if index == 0:
+                self.ffmpeg.audio_stream_index = items[0]
 
     def setup_labels(self):
         self.file_name_label.set_text(self.ffmpeg.filename)
@@ -165,14 +215,15 @@ class InputsRow(Gtk.ListBoxRow):
             self.info_input_duration_label.set_text('Duration: N/A')
             self.info_input_resolution_label.set_text('Resolution: N/A')
         else:
+            duration_timecode = format_converter.get_timecode_from_seconds(self.ffmpeg.duration_origin)
+
             self.info_input_vcodec_label.set_text('Video Codec: ' + self.ffmpeg.codec_video_origin)
             self.info_input_acodec_label.set_text('Audio Codec: ' + self.ffmpeg.codec_audio_origin)
             self.info_input_container_label.set_text('Container: ' + self.ffmpeg.input_container)
             self.info_input_framerate_label.set_text('Frame Rate: ' + str(self.ffmpeg.framerate_origin))
             self.info_input_channels_label.set_text('Channels: ' + self.ffmpeg.audio_channels_origin)
             self.info_input_filesize_label.set_text('File Size: ' + self.ffmpeg.file_size)
-            self.info_input_duration_label.set_text('Duration: ' +
-                                                    format_converter.get_timecode_from_seconds(self.ffmpeg.duration_origin))
+            self.info_input_duration_label.set_text('Duration: ' + duration_timecode)
             self.info_input_resolution_label.set_text('Resolution: ' + self.ffmpeg.resolution_origin)
 
     def __setup_info_popover_ffmpeg_params(self):
@@ -236,42 +287,7 @@ class InputsRow(Gtk.ListBoxRow):
 
                 self.duration_label.set_text(timecode)
 
-    def __setup_streams(self):
-        if self.ffmpeg.folder_state:
-            return
-
-        self.__setup_video_stream_combobox()
-        self.__setup_audio_stream_combobox()
-
-    def __setup_video_stream_combobox(self):
-        self.video_stream_combobox.remove_all()
-
-        for index, items in enumerate(self.ffmpeg.input_file_info['video_streams'].items()):
-            self.video_stream_combobox.append_text('[' + str(index) + ']' + items[1])
-            self.video_stream_combobox.set_entry_text_column(0)
-            self.video_stream_combobox.set_active(0)
-
-            if index == 0:
-                self.ffmpeg.video_stream_index = items[0]
-
-    def __setup_audio_stream_combobox(self):
-        self.audio_stream_combobox.remove_all()
-
-        for index, items in enumerate(self.ffmpeg.input_file_info['audio_streams'].items()):
-            self.audio_stream_combobox.append_text('[' + str(index) + ']' + items[1])
-            self.audio_stream_combobox.set_entry_text_column(0)
-            self.audio_stream_combobox.set_active(0)
-
-            if index == 0:
-                self.ffmpeg.audio_stream_index = items[0]
-
-    def on_remove_button_clicked(self, remove_button):
-        self.inputs_page_handlers.remove_inputs_page_listbox_row(self)
-
-    def on_start_button_clicked(self, start_button):
-        threading.Thread(target=self.__process_input_for_active_row, args=()).start()
-
-    def __process_input_for_active_row(self):
+    def process_row_input(self):
         self.__fix_same_name_occurrences()
         GLib.idle_add(self.__create_and_add_active_listbox_row)
 
@@ -288,7 +304,7 @@ class InputsRow(Gtk.ListBoxRow):
             else:
                 output_file_path_found = False
 
-                for active_listbox_row in self.active_page_handlers.get_active_page_listbox_rows():
+                for active_listbox_row in self.active_page_handlers.get_rows():
                     row_file_name = active_listbox_row.ffmpeg.filename
                     row_output_directory = active_listbox_row.ffmpeg.output_directory
                     row_output_container = active_listbox_row.ffmpeg.output_container
@@ -324,8 +340,8 @@ class InputsRow(Gtk.ListBoxRow):
                                             preview_thumbnail_file_path, self.active_page_handlers.active_page_listbox,
                                             self.preferences)
 
-        self.active_page_handlers.add_active_page_listbox_row(active_page_listbox_row)
-        self.inputs_page_handlers.remove_inputs_page_listbox_row(self)
+        self.active_page_handlers.add_row(active_page_listbox_row)
+        self.inputs_page_handlers.remove_row(self)
         threading.Thread(target=self.__add_active_row_to_encoder, args=(active_page_listbox_row,)).start()
 
     def __add_active_row_to_encoder(self, active_page_listbox_row):
@@ -350,24 +366,5 @@ class InputsRow(Gtk.ListBoxRow):
 
                 self.encoder.add_active_listbox_row(chunk_row)
 
-    def on_video_stream_combobox_changed(self, video_stream_combobox):
-        combobox_index = video_stream_combobox.get_active()
-        video_streams = list(self.ffmpeg.input_file_info['video_streams'].items())
-        video_stream_index = (video_streams[combobox_index])[0]
-
-        self.ffmpeg.video_stream_index = video_stream_index
-        self.setup_labels()
-
-    def on_audio_stream_combobox_changed(self, audio_stream_combobox):
-        combobox_index = audio_stream_combobox.get_active()
-        audio_streams = list(self.ffmpeg.input_file_info['audio_streams'].items())
-        audio_stream_index = (audio_streams[combobox_index])[0]
-
-        self.ffmpeg.audio_stream_index = audio_stream_index
-        self.setup_labels()
-
-    def on_inputs_folder_recursive_radiobutton_toggled(self, folder_recursive_radiobutton):
-        self.ffmpeg.recursive_folder = folder_recursive_radiobutton.get_active()
-
-    def on_inputs_folder_watch_radiobutton_toggled(self, folder_watch_radiobutton):
-        self.ffmpeg.watch_folder = folder_watch_radiobutton.get_active()
+    def signal_start_button(self):
+        self.start_signal.on_start_button_clicked(self.start_button)

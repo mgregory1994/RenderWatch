@@ -18,19 +18,33 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
+from render_watch.signals.completed_page.add_task_signal import AddTaskSignal
+from render_watch.signals.completed_page.remove_task_signal import RemoveTaskSignal
+from render_watch.signals.completed_page.clear_all_tasks_signal import ClearAllTasksSignal
 from render_watch.startup import Gtk
 
 
 class CompletedPageHandlers:
-    def __init__(self, gtk_builder):
-        self.main_window_handlers = None
+    def __init__(self, gtk_builder, main_window_handlers):
+        self.add_task_signal = AddTaskSignal(self)
+        self.remove_task_signal = RemoveTaskSignal(self)
+        self.clear_all_tasks_signal = ClearAllTasksSignal(self, main_window_handlers)
+        self.signals_list = (self.add_task_signal, self.remove_task_signal, self.clear_all_tasks_signal)
         self.completed_page_listbox = gtk_builder.get_object('completed_list')
         self.clear_all_completed_button = gtk_builder.get_object("clear_all_completed_button")
 
-        self.completed_page_listbox.set_header_func(self.__completed_list_update_header_func, None)
+        self.completed_page_listbox.set_header_func(self.__completed_list_update_header, None)
 
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
+
+        raise AttributeError
+
+    # Unused parameters needed for this function
     @staticmethod
-    def __completed_list_update_header_func(completed_page_listbox_row, previous_completed_page_listbox_row, data):
+    def __completed_list_update_header(completed_page_listbox_row, previous_completed_page_listbox_row, data):
         if previous_completed_page_listbox_row is None:
             completed_page_listbox_row.set_header(None)
         else:
@@ -45,29 +59,22 @@ class CompletedPageHandlers:
     def get_rows(self):
         return self.completed_page_listbox.get_children()
 
+    def get_list_children(self):
+        return self.completed_page_listbox.get_children()
+
+    def set_clear_all_state(self, enabled):
+        self.clear_all_completed_button.set_sensitive(enabled)
+
+    def add_row(self, completed_page_listbox_row):
+        self.completed_page_listbox.add(completed_page_listbox_row)
+        self.completed_page_listbox.show_all()
+
+    def remove_row(self, completed_row):
+        self.completed_page_listbox.remove(completed_row)
+
     def remove_duplicate_row(self, completed_page_listbox_row):
         for listbox_row in self.get_rows():
             if listbox_row.file_path_link.get_uri() == completed_page_listbox_row.file_path_link.get_uri():
                 listbox_row.on_remove_button_clicked(None)
 
                 break
-
-    def add_completed_page_listbox_row(self, completed_page_listbox_row):
-        self.completed_page_listbox.add(completed_page_listbox_row)
-        self.completed_page_listbox.show_all()
-
-    def on_completed_list_add(self, completed_page_listbox, row):
-        self.clear_all_completed_button.set_sensitive(True)
-
-    def on_completed_list_remove(self, completed_page_listbox, completed_page_listbox_row):
-        if not completed_page_listbox.get_children():
-            self.clear_all_completed_button.set_sensitive(False)
-
-        completed_page_listbox_row.destroy()
-
-    def on_clear_all_completed_button_clicked(self, clear_all_completed_button):
-        for row in self.completed_page_listbox.get_children():
-            row.on_remove_button_clicked(None)
-
-        clear_all_completed_button.set_sensitive(False)
-        self.main_window_handlers.popdown_app_preferences_popover()

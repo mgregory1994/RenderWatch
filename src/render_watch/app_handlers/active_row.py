@@ -25,12 +25,15 @@ import logging
 from render_watch.encoding import preview
 from render_watch.helpers import encoder_helper
 from render_watch.app_formatting import format_converter
+from render_watch.signals.active_row.pause_signal import PauseSignal
+from render_watch.signals.active_row.start_signal import StartSignal
+from render_watch.signals.active_row.stop_signal import StopSignal
 from render_watch.startup import Gtk, GLib
 
 
 class ActiveRow(Gtk.ListBoxRow):
-    def __init__(self, ffmpeg, input_information_popover, gtk_builder, preview_thumbnail_file_path, active_page_listbox,
-                 preferences, live_thumbnail_enabled=True):
+    def __init__(self, ffmpeg, input_information_popover, gtk_builder, preview_thumbnail_file_path,
+                 active_page_handlers, preferences, live_thumbnail_enabled=True):
         Gtk.ListBoxRow.__init__(self)
 
         self.__ffmpeg = ffmpeg
@@ -41,7 +44,7 @@ class ActiveRow(Gtk.ListBoxRow):
         self.watch_folder = None
         self.input_information_popover = input_information_popover
         self.preview_thumbnail_file_path = preview_thumbnail_file_path
-        self.active_page_listbox = active_page_listbox
+        self.active_page_handlers = active_page_handlers
         self.paused = False
         self.stopped = False
         self.started = False
@@ -64,6 +67,9 @@ class ActiveRow(Gtk.ListBoxRow):
         self.name_changer_timer_thread = threading.Thread(target=self.__start_name_changer_timer, args=(), daemon=True)
         self.task_threading_event = threading.Event()
         self.__thread_lock = threading.Lock()
+        self.pause_signal = PauseSignal(self)
+        self.start_signal = StartSignal(self)
+        self.stop_signal = StopSignal(self)
         self.gtk_builder = gtk_builder
         self.__listbox_row_widget_container = gtk_builder.get_object('active_row_container')
         self.active_row_filename_stack = gtk_builder.get_object('active_row_filename_stack')
@@ -86,9 +92,23 @@ class ActiveRow(Gtk.ListBoxRow):
 
         self.__setup_listbox_row()
         self.add(self.__listbox_row_widget_container)
-        self.pause_button.connect('clicked', self.on_pause_button_clicked)
-        self.start_button.connect('clicked', self.on_start_button_clicked)
-        self.stop_button.connect('clicked', self.on_stop_button_clicked)
+        self.pause_button.connect('clicked', self.pause_signal.on_pause_button_clicked)
+        self.start_button.connect('clicked', self.start_signal.on_start_button_clicked)
+        self.stop_button.connect('clicked', self.stop_signal.on_stop_button_clicked)
+
+    def __setup_listbox_row(self):
+        self.filename_label.set_text(self.ffmpeg.filename)
+        self.info_button.set_popover(self.input_information_popover)
+
+        if not self.ffmpeg.folder_state:
+            self.thumbnail.set_from_file(self.preview_thumbnail_file_path)
+        else:
+            self.__folder_path = self.ffmpeg.input_file
+
+            self.thumbnail.set_from_icon_name('folder-symbolic', 96)
+
+        self.__update_labels()
+        self.task_threading_event.set()
 
     def __update_labels(self):
         with self.__thread_lock:
@@ -155,6 +175,18 @@ class ActiveRow(Gtk.ListBoxRow):
             if self.idle:
                 GLib.idle_add(self.preview_thumbnail.set_from_icon_name, 'folder-symbolic', 96)
 
+    def add_chunk_row(self, chunk_row):
+        self.chunk_row_list.append(chunk_row)
+        self.active_row_chunks_listbox.add(chunk_row)
+        self.active_row_chunks_listbox.show_all()
+        self.active_row_chunks_revealer.set_reveal_child(True)
+
+    def add_audio_chunk_row(self, audio_chunk_row):
+        self.audio_chunk_row = audio_chunk_row
+
+        self.active_row_chunks_listbox.add(audio_chunk_row)
+        self.active_row_chunks_listbox.show_all()
+
     def set_start_state(self):
         self.idle = False
         self.started = True
@@ -200,8 +232,8 @@ class ActiveRow(Gtk.ListBoxRow):
         GLib.idle_add(self.__popdown_popovers)
         self.__wait_for_info_threads()
 
-        if not self.stopped:  # Needed because on_stop_button_clicked already removes this from active_listbox
-            GLib.idle_add(self.active_page_listbox.remove, self)
+        if not self.stopped:  # Needed because stop button already removes this from active page listbox
+            GLib.idle_add(self.active_page_handlers.remove_row, self)
 
     def __popdown_popovers(self):
         self.input_information_popover.popdown()
@@ -352,6 +384,25 @@ class ActiveRow(Gtk.ListBoxRow):
 
             update_row_thumbnail_thread.start()
 
+    def set_encoding_state(self):
+        self.control_stack.set_visible_child(self.pause_button)
+        self.stop_button.set_sensitive(True)
+
+    def set_paused_state(self):
+        self.control_stack.set_visible_child(self.start_button)
+        self.stop_button.set_sensitive(False)
+
+    def stop_and_remove_row(self):
+        self.stopped = True
+
+        if self.watch_folder is not None:
+            self.watch_folder.stop_and_remove_instance(self.__folder_path)
+
+        GLib.idle_add(self.start_signal.on_start_button_clicked, None)
+        GLib.idle_add(self.__popdown_popovers)
+        self.__wait_for_info_threads()
+        GLib.idle_add(self.active_page_handlers.remove_row, self)
+
     @staticmethod
     def __wait_for_update_row_thumbnail_thread(update_row_thumbnail_thread):
         if update_row_thumbnail_thread.is_alive():
@@ -448,57 +499,3 @@ class ActiveRow(Gtk.ListBoxRow):
     @property
     def file_name(self):
         return self.filename_label.get_text()
-
-    def add_chunk_row(self, chunk_row):
-        self.chunk_row_list.append(chunk_row)
-        self.active_row_chunks_listbox.add(chunk_row)
-        self.active_row_chunks_listbox.show_all()
-        self.active_row_chunks_revealer.set_reveal_child(True)
-
-    def add_audio_chunk_row(self, audio_chunk_row):
-        self.audio_chunk_row = audio_chunk_row
-
-        self.active_row_chunks_listbox.add(audio_chunk_row)
-        self.active_row_chunks_listbox.show_all()
-
-    def __setup_listbox_row(self):
-        self.filename_label.set_text(self.ffmpeg.filename)
-        self.info_button.set_popover(self.input_information_popover)
-
-        if not self.ffmpeg.folder_state:
-            self.thumbnail.set_from_file(self.preview_thumbnail_file_path)
-        else:
-            self.__folder_path = self.ffmpeg.input_file
-
-            self.thumbnail.set_from_icon_name('folder-symbolic', 96)
-
-        self.__update_labels()
-        self.task_threading_event.set()
-
-    def on_pause_button_clicked(self, puase_button):
-        self.paused = True
-
-        self.task_threading_event.clear()
-        self.control_stack.set_visible_child(self.start_button)
-        self.stop_button.set_sensitive(False)
-
-    def on_start_button_clicked(self, start_button):
-        self.paused = False
-
-        self.task_threading_event.set()
-        self.control_stack.set_visible_child(self.pause_button)
-        self.stop_button.set_sensitive(True)
-
-    def on_stop_button_clicked(self, stop_button):
-        threading.Thread(target=self.__stop_and_remove_active_listbox_row, args=()).start()
-
-    def __stop_and_remove_active_listbox_row(self):
-        self.stopped = True
-
-        if self.watch_folder is not None:
-            self.watch_folder.stop_and_remove_instance(self.__folder_path)
-
-        GLib.idle_add(self.on_start_button_clicked, None)
-        GLib.idle_add(self.__popdown_popovers)
-        self.__wait_for_info_threads()
-        GLib.idle_add(self.active_page_listbox.remove, self)

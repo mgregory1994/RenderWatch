@@ -18,27 +18,46 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-import threading
-import copy
-import os
-
-from render_watch.app_handlers.inputs_row import InputsRow
 from render_watch.ffmpeg.settings import Settings
-from render_watch.encoding import preview
-from render_watch.helpers import encoder_helper, directory_helper
-from render_watch.app_formatting.alias import AliasGenerator
-from render_watch.startup import Gtk, GLib
+from render_watch.app_handlers.completed_page_handlers import CompletedPageHandlers
+from render_watch.app_handlers.active_page_handlers import ActivePageHandlers
+from render_watch.app_handlers.inputs_page_handlers import InputsPageHandlers
+from render_watch.signals.main_window.about_signal import AboutSignal
+from render_watch.signals.main_window.add_input_signal import AddInputSignal
+from render_watch.signals.main_window.apply_settings_all_signal import ApplySettingsAllSignal
+from render_watch.signals.main_window.auto_crop_signal import AutoCropSignal
+from render_watch.signals.main_window.output_chooser_signal import OutputChooserSignal
+from render_watch.signals.main_window.page_switch_signal import PageSwitchSignal
+from render_watch.signals.main_window.parallel_tasks_signal import ParallelTasksSignal
+from render_watch.signals.main_window.preferences_signal import PreferencesSignal
+from render_watch.signals.main_window.settings_sidebar_signal import SettingsSidebarSignal
 
 
 class MainWindowHandlers:
     def __init__(self, gtk_builder, encoder, preferences):
-        self.ffmpeg_template = None
         self.encoder = encoder
         self.preferences = preferences
-        self.inputs_page_handlers = None
-        self.settings_sidebar_handlers = None
-        self.active_page_handlers = None
-        self.completed_page_handlers = None
+        self.completed_page_handlers = CompletedPageHandlers(gtk_builder, self)
+        self.active_page_handlers = ActivePageHandlers(gtk_builder, self.completed_page_handlers, self, preferences)
+        self.inputs_page_handlers = InputsPageHandlers(gtk_builder, self.active_page_handlers, self, preferences)
+        self.settings_sidebar_handlers = self.inputs_page_handlers.settings_sidebar_handlers
+        self.ffmpeg_template = None
+        self.about_signal = AboutSignal(self)
+        self.add_input_signal = AddInputSignal(self, self.inputs_page_handlers, self.active_page_handlers,
+                                               self.settings_sidebar_handlers, self.encoder, self.preferences)
+        self.apply_settings_all_signal = ApplySettingsAllSignal(self, self.inputs_page_handlers,
+                                                                self.settings_sidebar_handlers, self.preferences)
+        self.auto_crop_signal = AutoCropSignal(self.inputs_page_handlers)
+        self.output_chooser_signal = OutputChooserSignal(self, self.inputs_page_handlers, self.preferences)
+        self.page_switch_signal = PageSwitchSignal(self, self.inputs_page_handlers)
+        self.parallel_tasks_signal = ParallelTasksSignal(self, self.encoder)
+        self.preferences_signal = PreferencesSignal(self)
+        self.settings_sidebar_signal = SettingsSidebarSignal(self)
+        self.signals_list = (self.about_signal, self.add_input_signal, self.apply_settings_all_signal,
+                             self.auto_crop_signal, self.output_chooser_signal, self.page_switch_signal,
+                             self.parallel_tasks_signal, self.preferences_signal, self.settings_sidebar_signal,
+                             self.completed_page_handlers, self.active_page_handlers, self.inputs_page_handlers,
+                             self.settings_sidebar_handlers)
         self.pages_stack = gtk_builder.get_object('page_stack')
         self.active_page_scroller = gtk_builder.get_object("active_scroller")
         self.app_preferences_popover = gtk_builder.get_object('prefs_popover')
@@ -61,338 +80,108 @@ class MainWindowHandlers:
         self.parallel_tasks_chunks_radiobutton = gtk_builder.get_object('chunks_radio_button')
         self.main_window = gtk_builder.get_object('main_window')
 
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
+
+        raise AttributeError
+
+    def get_add_type_combobox_index(self):
+        return self.add_combobox.get_active()
+
+    def get_output_chooser_dir(self):
+        return self.output_file_chooser_button.get_filename()
+
     def is_chunk_processing_selected(self):
         parallel_tasks_enabled = self.parallel_tasks_radiobutton.get_active()
         parallel_tasks_chunks_enabled = self.parallel_tasks_chunks_radiobutton.get_active()
 
         return parallel_tasks_enabled and parallel_tasks_chunks_enabled
 
-    def switch_to_active_page(self):
-        self.pages_stack.set_visible_child(self.active_page_scroller)
+    def is_file_inputs_enabled(self):
+        return self.add_combobox.get_active() == 0
 
-    def get_add_type_combobox_index(self):
-        return self.add_combobox.get_active()
+    def is_folder_inputs_enabled(self):
+        return self.add_combobox.get_active() == 1
 
-    def popdown_app_preferences_popover(self):
-        self.app_preferences_popover.popdown()
-
-    def on_about_button_clicked(self, about_button):
-        self.app_preferences_popover.popdown()
-        self.about_dialog.run()
-        self.about_dialog.hide()
-
-    def on_show_settings_button_clicked(self, show_settings_button):
-        self.show_settings_sidebar(True)
-
-    def on_hide_settings_button_clicked(self, hide_settings_button):
-        self.show_settings_sidebar(False)
-
-    def show_settings_sidebar(self, is_show_enabled):
-        if is_show_enabled:
-            self.input_settings_stack.set_visible_child(self.hide_input_settings_button)
-        else:
-            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
-
-        self.input_settings_revealer.set_reveal_child(is_show_enabled)
-
-    def on_add_button_clicked(self, add_button, inputs=None):
-        file_inputs_enabled = self.add_combobox.get_active() == 0
-
-        if inputs is None:
-
-            if file_inputs_enabled:
-                file_chooser_response, inputs = self.__create_and_show_file_chooser()
-            else:
-                file_chooser_response, inputs = self.__create_and_show_folder_chooser()
-        else:
-            file_chooser_response = Gtk.ResponseType.OK
-
-        threading.Thread(target=self.__setup_and_process_inputs_state,
-                         args=(inputs, file_chooser_response, file_inputs_enabled), daemon=True).start()
-
-    def __create_and_show_file_chooser(self):
-        file_chooser = Gtk.FileChooserDialog('Choose a file', self.main_window, Gtk.FileChooserAction.OPEN,
-                                             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN,
-                                              Gtk.ResponseType.OK))
-
-        file_chooser.set_select_multiple(True)
-
-        response = file_chooser.run()
-        files = file_chooser.get_filenames()
-
-        file_chooser.destroy()
-
-        return response, files
-
-    def __create_and_show_folder_chooser(self):
-        file_chooser = Gtk.FileChooserDialog('Choose a folder', self.main_window, Gtk.FileChooserAction.SELECT_FOLDER,
-                                             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN,
-                                              Gtk.ResponseType.OK))
-
-        file_chooser.set_select_multiple(True)
-
-        response = file_chooser.run()
-        folders = file_chooser.get_filenames()
-
-        file_chooser.destroy()
-
-        return response, folders
-
-    def __setup_and_process_inputs_state(self, inputs, file_chooser_response, file_inputs_enabled):
-        if file_inputs_enabled:
-            inputs = [value for value in inputs if encoder_helper.is_input_valid(value)]
-        else:
-            inputs = [value for value in inputs if os.path.isdir(value)]
-
-        output_dir = self.output_file_chooser_button.get_filename()
-
-        if file_chooser_response == Gtk.ResponseType.OK and inputs:
-            GLib.idle_add(self.__set_processing_inputs_state, False, inputs[0])
-            threading.Thread(target=self.__process_inputs, args=(inputs, output_dir, file_inputs_enabled),
-                             daemon=True).start()
-
-    def __set_processing_inputs_state(self, is_state_disabled, first_input_file_path):
-        if not is_state_disabled:
+    def set_processing_inputs_state(self, enabled, first_input_file_path):
+        if enabled:
             self.inputs_page_handlers.set_processing_inputs_state(first_input_file_path)
-            self.add_button.set_sensitive(is_state_disabled)
-            self.add_combobox.set_sensitive(is_state_disabled)
-            self.input_settings_stack.set_sensitive(is_state_disabled)
-            self.output_file_chooser_button.set_sensitive(is_state_disabled)
-            self.app_preferences_menubutton.set_sensitive(is_state_disabled)
+            self.add_button.set_sensitive(not enabled)
+            self.add_combobox.set_sensitive(not enabled)
+            self.input_settings_stack.set_sensitive(not enabled)
+            self.output_file_chooser_button.set_sensitive(not enabled)
+            self.app_preferences_menubutton.set_sensitive(not enabled)
         else:
             self.inputs_page_handlers.setup_inputs_settings_widgets()
-            self.inputs_page_handlers.setup_add_remove_all_settings_widgets()
-            self.add_button.set_sensitive(is_state_disabled)
-            self.add_combobox.set_sensitive(is_state_disabled)
-            self.output_file_chooser_button.set_sensitive(is_state_disabled)
-            self.app_preferences_menubutton.set_sensitive(is_state_disabled)
+            self.inputs_page_handlers.setup_page_options()
+            self.add_button.set_sensitive(not enabled)
+            self.add_combobox.set_sensitive(not enabled)
+            self.output_file_chooser_button.set_sensitive(not enabled)
+            self.app_preferences_menubutton.set_sensitive(not enabled)
             self.inputs_page_handlers.set_inputs_state()
 
-    def __process_inputs(self, inputs, output_dir, file_inputs_enabled):
-        self.__setup_ffmpeg_template_for_settings_sidebar_handlers()
-
-        length_of_input_files = len(inputs)
-
-        for index, file_path in enumerate(inputs):
-            self.__setup_importing_files_widgets_for_inputs_page_handlers(file_path, index, length_of_input_files)
-
-            ffmpeg = Settings()
-
-            self.__setup_input_file_path_settings(ffmpeg, file_path, output_dir, file_inputs_enabled)
-
-            if self.__check_input_exists(ffmpeg):
-                GLib.idle_add(self.__show_input_exists_dialog, ffmpeg)
-
-                continue
-
-            if self.inputs_page_handlers.is_apply_all_selected():
-                self.__apply_ffmpeg_template_settings(ffmpeg)
-
-            if not preview.set_info(ffmpeg):
-                continue
-
-            self.__setup_input_picture_settings(ffmpeg, file_inputs_enabled)
-
-            GLib.idle_add(self.__create_and_add_new_inputs_row, ffmpeg)
-
-        GLib.idle_add(self.__set_processing_inputs_state, True, None)
-
-    def __setup_ffmpeg_template_for_settings_sidebar_handlers(self):
-        if self.inputs_page_handlers.is_apply_all_selected():
-            self.settings_sidebar_handlers.get_settings(self.ffmpeg_template)
-
-    def __setup_importing_files_widgets_for_inputs_page_handlers(self, file_path, index, length_of_input_files):
-        GLib.idle_add(self.inputs_page_handlers.set_text_for_importing_inputs_file_path_label, file_path)
-        GLib.idle_add(self.inputs_page_handlers.set_fraction_for_importing_inputs_progress_bar,
-                      (index / length_of_input_files))
-
-    @staticmethod
-    def __setup_input_file_path_settings(ffmpeg, file_path, output_dir, file_inputs_enabled):
-        if file_inputs_enabled:
-            ffmpeg.input_file = file_path
-            ffmpeg.temp_file_name = AliasGenerator.generate_alias_from_name(ffmpeg.filename)
-            ffmpeg.output_directory = output_dir + '/'
-        else:
-            ffmpeg.input_folder = file_path
-            ffmpeg.output_directory = output_dir + '/'
-
-    def __check_input_exists(self, ffmpeg):
-        for listbox_row in self.inputs_page_handlers.get_rows():
-            if ffmpeg.input_file == listbox_row.ffmpeg.input_file:
-                return True
-
-        return False
-
-    def __show_input_exists_dialog(self, ffmpeg):
-        message_dialog = Gtk.MessageDialog(
-            self.main_window,
-            Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.WARNING,
-            Gtk.ButtonsType.OK,
-            'File \"' + ffmpeg.input_file + '\" is already imported'
-        )
-
-        message_dialog.run()
-        message_dialog.destroy()
-
-    def __apply_ffmpeg_template_settings(self, ffmpeg):
-        if self.ffmpeg_template.video_settings is not None:
-            ffmpeg.video_settings = copy.deepcopy(self.ffmpeg_template.video_settings)
-        else:
-            ffmpeg.video_settings = None
-
-        if self.ffmpeg_template.audio_settings is not None:
-            ffmpeg.audio_settings = copy.deepcopy(self.ffmpeg_template.audio_settings)
-        else:
-            ffmpeg.audio_settings = None
-
-        ffmpeg.output_container = str(self.ffmpeg_template.output_container)
-        ffmpeg.general_settings.ffmpeg_args = self.ffmpeg_template.general_settings.ffmpeg_args.copy()
-
-        if ffmpeg.is_video_settings_2_pass():
-            ffmpeg.video_settings.stats = self.preferences.temp_directory + '/' + ffmpeg.temp_file_name + '.log'
-
-    def __setup_input_picture_settings(self, ffmpeg, file_inputs_enabled):
-        if self.inputs_page_handlers.is_auto_crop_selected():
-
-            if file_inputs_enabled:
-                ffmpeg.picture_settings.auto_crop = preview.process_auto_crop(ffmpeg)
-            else:
-                ffmpeg.folder_auto_crop = True
-
-    def __create_and_add_new_inputs_row(self, ffmpeg):
-        inputs_page_listbox_row = InputsRow(ffmpeg, self.inputs_page_handlers, self.active_page_handlers, self,
-                                            self.encoder, self.preferences)
-
-        self.inputs_page_handlers.add_inputs_page_listbox_row(inputs_page_listbox_row)
-
-    def on_page_stack_visible_child_notify(self, page_stack, string):
-        self.show_settings_sidebar(False)
-
-        if page_stack.get_visible_child() == self.inputs_page_handlers.inputs_page_box:
-            self.__set_inputs_page_state()
-        elif page_stack.get_visible_child() == self.active_page_scroller:
-            self.__set_active_page_state()
-        else:
-            self.__set_completed_page_state()
-
-    def __set_inputs_page_state(self):
+    def set_inputs_page_state(self):
         self.app_preferences_stack.set_visible_child(self.app_preferences_inputs_page_box)
         self.output_file_chooser_button.set_sensitive(True)
         self.add_button.set_sensitive(True)
         self.add_combobox.set_sensitive(True)
         self.inputs_page_handlers.setup_inputs_settings_widgets()
 
-    def __set_active_page_state(self):
+    def set_active_page_state(self):
         self.app_preferences_stack.set_visible_child(self.app_preferences_active_page_box)
         self.input_settings_stack.set_sensitive(False)
         self.output_file_chooser_button.set_sensitive(False)
         self.add_button.set_sensitive(False)
         self.add_combobox.set_sensitive(False)
 
-    def __set_completed_page_state(self):
+    def set_completed_page_state(self):
         self.app_preferences_stack.set_visible_child(self.completed_page_handlers.clear_all_completed_button)
         self.input_settings_stack.set_sensitive(False)
         self.output_file_chooser_button.set_sensitive(False)
         self.add_button.set_sensitive(False)
         self.add_combobox.set_sensitive(False)
 
-    def on_prefs_button_clicked(self, prefs_button):
+    def set_input_selected_state(self, enabled):
+        if enabled:
+            self.input_settings_stack.set_sensitive(True)
+        else:
+            self.input_settings_stack.set_sensitive(False)
+            self.input_settings_revealer.set_reveal_child(False)
+            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
+
+    def set_parallel_tasks_state(self, enabled):
+        self.parallel_tasks_type_buttonbox.set_sensitive(enabled)
+
+    def update_ffmpeg_template(self):
+        inputs_row = self.inputs_page_handlers.get_selected_row()
+
+        if inputs_row is not None:
+            self.ffmpeg_template = inputs_row.ffmpeg.get_copy()
+        else:
+            self.ffmpeg_template = Settings()
+
+    def switch_to_active_page(self):
+        self.pages_stack.set_visible_child(self.active_page_scroller)
+
+    def show_about_dialog(self):
+        self.app_preferences_popover.popdown()
+        self.about_dialog.run()
+        self.about_dialog.hide()
+
+    def show_preferences_dialog(self):
         self.app_preferences_popover.popdown()
         self.preferences_dialog.run()
         self.preferences_dialog.hide()
 
-    def on_apply_to_all_switch_state_set(self, apply_to_all_switch, user_data):
-        inputs_page_listbox_row = self.inputs_page_handlers.get_selected_row()
-
-        if apply_to_all_switch.get_active():
-
-            if inputs_page_listbox_row is not None:
-                self.ffmpeg_template = inputs_page_listbox_row.ffmpeg.get_copy()
-            else:
-                self.ffmpeg_template = Settings()
-
-            threading.Thread(target=self.__set_settings_and_apply_to_all, args=()).start()
-            self.input_settings_stack.set_sensitive(True)
+    def show_settings_sidebar(self, enabled):
+        if enabled:
+            self.input_settings_stack.set_visible_child(self.hide_input_settings_button)
         else:
+            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
 
-            if inputs_page_listbox_row is None:
-                self.input_settings_stack.set_sensitive(False)
-                self.input_settings_revealer.set_reveal_child(False)
-                self.input_settings_stack.set_visible_child(self.show_input_settings_button)
+        self.input_settings_revealer.set_reveal_child(enabled)
 
-    def __set_settings_and_apply_to_all(self):
-        video_settings = self.ffmpeg_template.video_settings
-
-        if video_settings is None:
-            self.__reset_settings_for_settings_sidebar_handlers()
-        else:
-            self.__set_settings_for_settings_sidebar_handlers(self.ffmpeg_template)
-
-        self.__apply_settings_to_all(self.ffmpeg_template)
-
-    def __reset_settings_for_settings_sidebar_handlers(self):
-        GLib.idle_add(self.settings_sidebar_handlers.reset_settings)
-
-    def __set_settings_for_settings_sidebar_handlers(self, ffmpeg):
-        GLib.idle_add(self.settings_sidebar_handlers.set_settings, ffmpeg)
-
-    def __apply_settings_to_all(self, ffmpeg):
-        for row in self.inputs_page_handlers.get_rows():
-            row_ffmpeg = row.ffmpeg
-
-            if ffmpeg.video_settings is not None:
-                row_ffmpeg.video_settings = copy.deepcopy(ffmpeg.video_settings)
-            else:
-                row_ffmpeg.video_settings = None
-
-            if ffmpeg.audio_settings is not None:
-                row_ffmpeg.audio_settings = copy.deepcopy(ffmpeg.audio_settings)
-            else:
-                row.ffmpeg.audio_settings = None
-
-            row_ffmpeg.general_settings.ffmpeg_args = ffmpeg.general_settings.ffmpeg_args.copy()
-
-            if row_ffmpeg.is_video_settings_2_pass():
-                row_ffmpeg.video_settings.stats = self.preferences.temp_directory + '/' + row_ffmpeg.temp_file_name + '.log'
-
-            GLib.idle_add(row.setup_labels)
-
-    def on_auto_crop_button_toggled(self, auto_crop_checkbox):
-        for inputs_page_listbox_row in self.inputs_page_handlers.get_rows():
-            if inputs_page_listbox_row.ffmpeg.folder_state:
-                inputs_page_listbox_row.ffmpeg.folder_auto_crop = auto_crop_checkbox.get_active()
-
-    def on_dist_proc_button_toggled(self, parallel_tasks_radiobutton):
-        self.encoder.parallel_tasks_enabled = parallel_tasks_radiobutton.get_active()
-        self.parallel_tasks_type_buttonbox.set_sensitive(parallel_tasks_radiobutton.get_active())
-
-    def on_output_chooserbutton_file_set(self, file_chooser_button):
-        folder_path = file_chooser_button.get_filename()
-
-        if not directory_helper.is_directory_accessible(folder_path):
-            message_dialog = Gtk.MessageDialog(
-                self.main_window,
-                Gtk.DialogFlags.DESTROY_WITH_PARENT,
-                Gtk.MessageType.WARNING,
-                Gtk.ButtonsType.OK,
-                'Directory \"' + folder_path + '\" is not accessable'
-            )
-
-            message_dialog.format_secondary_text('Check permissions or select a different directory.')
-            message_dialog.run()
-            message_dialog.destroy()
-            file_chooser_button.set_filename(self.preferences.output_directory)
-
-            return
-
-        self.__setup_new_output_directory(folder_path)
-
-    def __setup_new_output_directory(self, folder_path):
-        self.preferences.output_directory = folder_path
-        output_dir = folder_path + '/'
-
-        for row in self.inputs_page_handlers.get_rows():
-            row.ffmpeg.output_directory = output_dir
-
-            row.setup_labels()
+    def popdown_app_preferences_popover(self):
+        self.app_preferences_popover.popdown()

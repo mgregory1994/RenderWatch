@@ -22,18 +22,20 @@ import threading
 
 from render_watch.encoding import preview
 from render_watch.app_formatting import format_converter
+from render_watch.signals.completed_row.remove_signal import RemoveSignal
 from render_watch.startup import Gtk, GLib
 
 
 class CompletedRow(Gtk.ListBoxRow):
-    def __init__(self, active_listbox_row, completed_page_listbox, preferences):
+    def __init__(self, active_listbox_row, completed_page_handlers, preferences):
         Gtk.ListBoxRow.__init__(self)
 
         self.input_information_popover = active_listbox_row.input_information_popover
         self.active_listbox_row = active_listbox_row
-        self.completed_page_listbox = completed_page_listbox
         self.preferences = preferences
         gtk_builder = active_listbox_row.gtk_builder
+        self.remove_signal = RemoveSignal(self, completed_page_handlers)
+        self.signals_list = (self.remove_signal,)
         self.__listbox_row_widget_container = gtk_builder.get_object('completed_row_container')
         self.filename_label = gtk_builder.get_object('completed_row_filename_label')
         self.info_button = gtk_builder.get_object('completed_row_info_button')
@@ -48,6 +50,13 @@ class CompletedRow(Gtk.ListBoxRow):
         self.__setup_listbox_row()
         self.add(self.__listbox_row_widget_container)
         self.remove_button.connect('clicked', self.on_remove_button_clicked)
+
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
+
+        raise AttributeError
 
     def __setup_listbox_row(self):
         ffmpeg = self.active_listbox_row.ffmpeg
@@ -86,6 +95,3 @@ class CompletedRow(Gtk.ListBoxRow):
         thumbnail_file_path = preview.get_crop_preview_file(ffmpeg, self.preferences, 96)
 
         GLib.idle_add(self.preview_thumbnail.set_from_file, thumbnail_file_path)
-
-    def on_remove_button_clicked(self, remove_button):
-        self.completed_page_listbox.remove(self)

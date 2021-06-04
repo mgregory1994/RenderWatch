@@ -18,25 +18,37 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-import threading
-import time
-import os
-
-from urllib.parse import unquote, urlparse
-from render_watch.startup import Gtk, GLib, Gdk
-from render_watch.helpers import directory_helper
-
-TARGET_TYPE_URI_LIST = 80
+from render_watch.app_handlers.preview_page_handlers import PreviewPageHandlers
+from render_watch.app_handlers.crop_page_handlers import CropPageHandlers
+from render_watch.app_handlers.trim_page_handlers import TrimPageHandlers
+from render_watch.app_handlers.settings_sidebar_handlers import SettingsSidebarHandlers
+from render_watch.signals.inputs_page.drag_and_drop_signal import DragAndDropSignal
+from render_watch.signals.inputs_page.page_return_signal import PageReturnSignal
+from render_watch.signals.inputs_page.remove_all_signal import RemoveAllSignal
+from render_watch.signals.inputs_page.remove_signal import RemoveSignal
+from render_watch.signals.inputs_page.select_row_signal import SelectRowSignal
+from render_watch.signals.inputs_page.start_all_signal import StartAllSignal
+from render_watch.startup import Gtk, Gdk
 
 
 class InputsPageHandlers:
-    def __init__(self, gtk_builder):
-        self.settings_sidebar_handlers = None
-        self.main_window_handlers = None
-        self.active_page_handlers = None
-        self.trim_page_handlers = None
-        self.crop_page_handlers = None
-        self.preview_page_handlers = None
+    def __init__(self, gtk_builder, active_page_handlers, main_window_handlers, preferences):
+        preview_page_handlers = PreviewPageHandlers(gtk_builder, self, preferences)
+        crop_page_handlers = CropPageHandlers(gtk_builder, self, preferences)
+        trim_page_handlers = TrimPageHandlers(gtk_builder, self, preferences)
+
+        self.settings_sidebar_handlers = SettingsSidebarHandlers(gtk_builder, crop_page_handlers, trim_page_handlers,
+                                                                 preview_page_handlers, self, preferences)
+        self.preview_page_handlers = preview_page_handlers
+        self.drag_and_drop_signal = DragAndDropSignal(main_window_handlers)
+        self.page_return_signal = PageReturnSignal(self, trim_page_handlers, crop_page_handlers, preview_page_handlers)
+        self.remove_all_signal = RemoveAllSignal(self, main_window_handlers)
+        self.remove_signal = RemoveSignal(self, active_page_handlers, main_window_handlers)
+        self.select_row_signal = SelectRowSignal(self, self.settings_sidebar_handlers, main_window_handlers)
+        self.start_all_signal = StartAllSignal(self, main_window_handlers)
+        self.signals_list = (self.drag_and_drop_signal, self.page_return_signal, self.remove_all_signal,
+                             self.remove_signal, self.select_row_signal, self.start_all_signal, preview_page_handlers,
+                             crop_page_handlers, trim_page_handlers, self.settings_sidebar_handlers)
         self.inputs_page_box = gtk_builder.get_object("inputs_box")
         self.inputs_page_listbox = gtk_builder.get_object('inputs_list')
         self.remove_all_inputs_button = gtk_builder.get_object('remove_all_button')
@@ -62,6 +74,13 @@ class InputsPageHandlers:
         self.inputs_page_listbox.drag_dest_set(Gtk.DestDefaults.MOTION | Gtk.DestDefaults.HIGHLIGHT |
                                                Gtk.DestDefaults.DROP, [Gtk.TargetEntry.new("text/uri-list", 0, 80)],
                                                Gdk.DragAction.COPY)
+
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
+
+        raise AttributeError
 
     @staticmethod
     def __inputs_list_update_header_func(inputs_page_listbox_row, previous_inputs_page_listbox_row, data):
@@ -110,12 +129,12 @@ class InputsPageHandlers:
         return False
 
     def is_preview_state(self):
-        if self.inputs_page_stack.get_visible_child() == self.extra_settings_box:
-            return self.extra_settings_stack.get_visible_child() == self.preview_page_box
+        main_page = self.inputs_page_stack.get_visible_child()
+        extra_page = self.extra_settings_stack.get_visible_child()
 
-        return False
+        return main_page is self.extra_settings_box and extra_page is self.preview_page_box
 
-    def setup_add_remove_all_settings_widgets(self):
+    def setup_page_options(self):
         settings_enabled = self.inputs_page_listbox.get_children() is not None
 
         self.start_all_button.set_sensitive(settings_enabled)
@@ -146,10 +165,10 @@ class InputsPageHandlers:
 
         return rows
 
-    def set_text_for_importing_inputs_file_path_label(self, importing_inputs_file_path_text):
+    def set_importing_file_path_text(self, importing_inputs_file_path_text):
         self.importing_inputs_filepath_label.set_text(importing_inputs_file_path_text)
 
-    def set_fraction_for_importing_inputs_progress_bar(self, progress_fraction):
+    def set_importing_progress_fraction(self, progress_fraction):
         self.importing_inputs_progressbar.set_fraction(progress_fraction)
 
     def is_apply_all_selected(self):
@@ -158,110 +177,25 @@ class InputsPageHandlers:
     def is_auto_crop_selected(self):
         return self.auto_crop_button.get_active()
 
-    def add_inputs_page_listbox_row(self, inputs_page_listbox_row):
+    def add_row(self, inputs_page_listbox_row):
         self.inputs_page_listbox.add(inputs_page_listbox_row)
         self.start_all_button.set_sensitive(True)
         self.remove_all_inputs_button.set_sensitive(True)
 
-    def remove_inputs_page_listbox_row(self, inputs_page_listbox_row):
+    def remove_row(self, inputs_page_listbox_row):
         self.inputs_page_listbox.remove(inputs_page_listbox_row)
 
+    def remove_all_rows(self):
+        for row in self.get_rows():
+            self.remove_row(row)
+
+    def set_input_settings_state(self, enabled):
+        self.input_settings_stack.set_sensitive(enabled)
+
+    def set_remove_all_state(self):
+        self.remove_all_inputs_button.set_sensitive(False)
+        self.start_all_button.set_sensitive(False)
+
     def update_preview_page(self):
-        if self.preview_state:
+        if self.is_preview_state:
             self.preview_page_handlers.update_preview()
-
-    @property
-    def preview_state(self):
-        main_page = self.inputs_page_stack.get_visible_child()
-        extra_page = self.extra_settings_stack.get_visible_child()
-
-        return main_page is self.extra_settings_box and extra_page is self.preview_page_box
-
-    def on_remove_all_button_clicked(self, remove_all_button):
-        message_dialog = Gtk.MessageDialog(
-            self.main_window_handlers.main_window,
-            Gtk.DialogFlags.DESTROY_WITH_PARENT,
-            Gtk.MessageType.WARNING,
-            Gtk.ButtonsType.YES_NO,
-            'Remove all inputs?'
-        )
-
-        message_dialog.format_secondary_text('This will remove all of your imports along with any settings applied')
-
-        response = message_dialog.run()
-
-        if response == Gtk.ResponseType.YES:
-            for row in self.inputs_page_listbox.get_children():
-                self.inputs_page_listbox.remove(row)
-
-        message_dialog.destroy()
-        self.main_window_handlers.popdown_app_preferences_popover()
-
-    def on_start_all_button_clicked(self, start_all_button):
-        self.main_window_handlers.popdown_app_preferences_popover()
-        threading.Thread(target=self.__start_all, args=()).start()
-
-    def __start_all(self):
-        time.sleep(.2)
-
-        for row in self.inputs_page_listbox.get_children():
-            row.on_start_button_clicked(None)
-
-    def on_inputs_list_row_selected(self, inputs_page_listbox, inputs_page_listbox_row):
-        if inputs_page_listbox_row is not None:
-            self.input_settings_stack.set_sensitive(True)
-            self.settings_sidebar_handlers.set_extra_settings_state(not inputs_page_listbox_row.ffmpeg.folder_state)
-            threading.Thread(target=self.__set_settings_for_settings_sidebar_handlers, args=()).start()
-        else:
-            self.settings_sidebar_handlers.set_extra_settings_state(False)
-
-            if self.apply_to_all_switch.get_active():
-                return
-
-            self.input_settings_stack.set_sensitive(False)
-            self.main_window_handlers.show_settings_sidebar(False)
-
-    def __set_settings_for_settings_sidebar_handlers(self):
-        GLib.idle_add(self.settings_sidebar_handlers.set_settings)
-
-    def on_inputs_list_remove(self, inputs_page_listbox, inputs_page_listbox_row):
-        if not self.inputs_page_listbox.get_children():
-            self.remove_all_inputs_button.set_sensitive(False)
-            self.start_all_button.set_sensitive(False)
-
-            if self.active_page_handlers.active_page_listbox.get_children():
-                self.main_window_handlers.switch_to_active_page()
-
-    def on_inputs_list_drag_data_received(self, inputs_page_listbox, drag_context, x, y, data, target_type,
-                                          timestamp):
-        if target_type == TARGET_TYPE_URI_LIST:
-            inputs = []
-            inputs_uri = data.get_data().decode()
-            inputs_uri_list = inputs_uri.split()
-
-            for file_path_uri in inputs_uri_list:
-                input_path = unquote(urlparse(file_path_uri).path)
-
-                if self.main_window_handlers.get_add_type_combobox_index() == 0:
-
-                    if os.path.isfile(input_path):
-                        inputs.append(input_path)
-                    else:
-                        inputs.extend(directory_helper.get_files_in_directory(input_path, recursive=True))
-                else:
-                    if os.path.isdir(input_path):
-                        inputs.append(input_path)
-
-            if inputs:
-                self.main_window_handlers.on_add_button_clicked(self.main_window_handlers.add_button, inputs=inputs)
-
-    def on_return_to_inputs_button_clicked(self, return_to_inputs_button):
-        self.set_inputs_state()
-        self.trim_page_handlers.reset_trim_page()
-        self.crop_page_handlers.reset_crop_page()
-        self.preview_page_handlers.reset_preview_page()
-        threading.Thread(target=self.__update_selected_row, args=()).start()
-
-    def __update_selected_row(self):
-        GLib.idle_add(self.inputs_page_listbox.get_selected_row().setup_labels)
-        self.inputs_page_listbox.get_selected_row().setup_preview_thumbnail()

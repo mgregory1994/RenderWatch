@@ -23,14 +23,18 @@ import queue
 
 from render_watch.encoding import preview
 from render_watch.app_formatting import format_converter
+from render_watch.signals.preview.preview_duration_signal import PreviewDurationSignal
+from render_watch.signals.preview.preview_live_signal import PreviewLiveSignal
+from render_watch.signals.preview.preview_size_signal import PreviewSizeSignal
+from render_watch.signals.preview.preview_time_signal import PreviewTimeSignal
 from render_watch.startup import GLib, GdkPixbuf
 
 
 class PreviewPageHandlers:
-    def __init__(self, gtk_builder, preferences):
+    def __init__(self, gtk_builder, inputs_page_handlers, preferences):
+        self.inputs_page_handlers = inputs_page_handlers
         self.preferences = preferences
         self.ffmpeg = None
-        self.inputs_page_handlers = None
         self.preview_thumbnail_thread = None
         self.resize_thumbnail_thread = None
         self.stop_preview_thread = False
@@ -40,6 +44,12 @@ class PreviewPageHandlers:
         self.image_scaled_buffer = None
         self.__preview_thread = None
         self.__preview_queue = queue.Queue()
+        self.preview_duration_signal = PreviewDurationSignal(self)
+        self.preview_live_signal = PreviewLiveSignal(self)
+        self.preview_size_signal = PreviewSizeSignal(self)
+        self.preview_time_signal = PreviewTimeSignal(self)
+        self.signals_list = (self.preview_duration_signal, self.preview_live_signal, self.preview_size_signal,
+                             self.preview_time_signal)
         self.preview_preview = gtk_builder.get_object('preview_preview')
         self.preview_time_label = gtk_builder.get_object('preview_time_label')
         self.preview_time_scale = gtk_builder.get_object('preview_time_scale')
@@ -58,6 +68,13 @@ class PreviewPageHandlers:
         self.preview_preview_viewport = gtk_builder.get_object('preview_preview_viewport')
         self.preview_settings_box = gtk_builder.get_object('preview_settings_box')
         self.preview_wrong_codec = gtk_builder.get_object('preview_wrong_codec')
+
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
+
+        raise AttributeError
 
     def setup_preview_page(self):
         if not self.__setup_ffmpeg():
@@ -126,9 +143,9 @@ class PreviewPageHandlers:
         widget_width = self.preview_preview_viewport.get_allocated_width()
         widget_height = self.preview_preview_viewport.get_allocated_height()
 
-        GLib.idle_add(self.__set_thumbnail_resize, widget_width, widget_height)
+        GLib.idle_add(self.set_thumbnail_size, widget_width, widget_height)
 
-    def __set_thumbnail_resize(self, widget_width, widget_height):
+    def set_thumbnail_size(self, widget_width, widget_height):
         if self.image_buffer is None:
             return
 
@@ -153,13 +170,6 @@ class PreviewPageHandlers:
         GLib.idle_add(self.preview_stack.set_visible_child, self.preview_preview)
         GLib.idle_add(self.preview_preview.set_opacity, 1)
 
-    def update_preview(self):
-        if self.ffmpeg.video_settings is None:
-            self.__set_not_available_state(True)
-        else:
-            self.__set_not_available_state(False)
-            self.on_preview_scale_released(None, None)
-
     def reset_preview_page(self):
         self.preview_preview.set_from_icon_name('camera-video-symbolic', 192)
         self.preview_preview.set_opacity(0.5)
@@ -168,37 +178,81 @@ class PreviewPageHandlers:
         self.preview_still_radio_button.set_active(True)
         self.preview_progressbar.set_fraction(0.0)
 
-    def set_preview_progress_bar_fraction(self, progress_bar_fraction_value):
+    def get_current_time_value(self):
+        return self.preview_time_scale.get_value()
+
+    def get_preview_duration(self):
+        if self.preview_5s_radio_button.get_active():
+            preview_duration = 5
+        elif self.preview_10s_radio_button.get_active():
+            preview_duration = 10
+        elif self.preview_20s_radio_button.get_active():
+            preview_duration = 20
+        elif self.preview_30s_radio_button.get_active():
+            preview_duration = 30
+        else:
+            preview_duration = None
+
+        return preview_duration
+
+    def get_preview_viewport_width(self):
+        return self.preview_preview_viewport_width
+
+    def get_preview_viewport_height(self):
+        return self.preview_preview_viewport_height
+
+    def set_progress_fraction(self, progress_bar_fraction_value):
         self.preview_progressbar.set_fraction(progress_bar_fraction_value)
 
-    def on_preview_time_scale_value_changed(self, preview_time_scale):
-        current_time_in_seconds = round(preview_time_scale.get_value(), 1)
-        input_duration_in_seconds = self.ffmpeg.input_file_info['duration']
-        difference_in_time = input_duration_in_seconds - current_time_in_seconds
-        current_timecode = format_converter.get_timecode_from_seconds(current_time_in_seconds)
-        duration_timecode = format_converter.get_timecode_from_seconds(input_duration_in_seconds)
+    def set_time_label_text(self, time_text):
+        self.preview_time_label.set_text(time_text)
 
-        self.preview_time_label.set_text(current_timecode + ' / ' + duration_timecode)
-        self.preview_preview.set_opacity(0.5)
-        self.__setup_preview_duration_radiobuttons(difference_in_time)
+    def set_preview_opacity(self, opacity_fraction):
+        self.preview_preview.set_opacity(opacity_fraction)
 
-    def __setup_preview_duration_radiobuttons(self, difference_in_time):
-        if difference_in_time < 5:
+    def set_preview_viewport_width(self, width):
+        self.preview_preview_viewport_width = width
+
+    def set_preview_viewport_height(self, height):
+        self.preview_preview_viewport_height = height
+
+    def set_preview_duration_state(self):
+        self.preview_stack.set_visible_child(self.preview_progress_box)
+        self.preview_time_box.set_sensitive(False)
+        self.preview_type_buttons_box.set_sensitive(False)
+
+    def set_preview_live_state(self):
+        self.preview_stack.set_visible_child(self.preview_preview)
+        self.preview_time_box.set_sensitive(True)
+        self.preview_type_buttons_box.set_sensitive(True)
+
+    def queue_add_time(self, time):
+        self.__preview_queue.put(time)
+
+    def update_preview(self):
+        if self.ffmpeg.video_settings is None:
+            self.__set_not_available_state(True)
+        else:
+            self.__set_not_available_state(False)
+            self.preview_time_signal.on_preview_scale_released(None, None)
+
+    def update_duration_radiobuttons(self, end_time_difference):
+        if end_time_difference < 5:
             self.preview_5s_radio_button.set_sensitive(False)
             self.preview_10s_radio_button.set_sensitive(False)
             self.preview_20s_radio_button.set_sensitive(False)
             self.preview_30s_radio_button.set_sensitive(False)
-        elif difference_in_time < 10:
+        elif end_time_difference < 10:
             self.preview_5s_radio_button.set_sensitive(True)
             self.preview_10s_radio_button.set_sensitive(False)
             self.preview_20s_radio_button.set_sensitive(False)
             self.preview_30s_radio_button.set_sensitive(False)
-        elif difference_in_time < 20:
+        elif end_time_difference < 20:
             self.preview_5s_radio_button.set_sensitive(True)
             self.preview_10s_radio_button.set_sensitive(True)
             self.preview_20s_radio_button.set_sensitive(False)
             self.preview_30s_radio_button.set_sensitive(False)
-        elif difference_in_time < 30:
+        elif end_time_difference < 30:
             self.preview_5s_radio_button.set_sensitive(True)
             self.preview_10s_radio_button.set_sensitive(True)
             self.preview_20s_radio_button.set_sensitive(True)
@@ -209,79 +263,22 @@ class PreviewPageHandlers:
             self.preview_20s_radio_button.set_sensitive(True)
             self.preview_30s_radio_button.set_sensitive(True)
 
-    def on_preview_scale_released(self, event, data):
-        time = self.preview_time_scale.get_value()
-
-        self.preview_preview.set_opacity(0.5)
-        self.__preview_queue.put(time)
-        threading.Thread(target=self.__process_preview, args=()).start()
-
-    def __process_preview(self):
+    def process_preview(self):
         if self.__preview_thread is not None and self.__preview_thread.is_alive():
             self.__preview_thread.join()
 
         self.__run_set_preview_thumbnail_thread()
 
-    def on_preview_duration_toggled(self, preview_duration_radiobutton):
-        if not preview_duration_radiobutton.get_active():
-            return
-
-        self.__stop_preview_thumbnail_thread()
-
-        start_time = round(self.preview_time_scale.get_value(), 1)
-        preview_duration = self.__get_preview_duration_from_preview_duration_radiobutton(preview_duration_radiobutton)
-
-        self.__set_preview_duration_state()
-        self.__run_preview_thumbnail_thread(start_time, preview_duration)
-
-    def __stop_preview_thumbnail_thread(self):
+    def stop_preview_thumbnail_thread(self):
         if self.preview_thumbnail_thread is not None and self.preview_thumbnail_thread.is_alive():
             self.stop_preview_thread = True
             self.preview_thumbnail_thread.join()
             self.stop_preview_thread = False
 
-    def __get_preview_duration_from_preview_duration_radiobutton(self, preview_duration_radiobutton):
-        if preview_duration_radiobutton is self.preview_5s_radio_button:
-            preview_duration = 5
-        elif preview_duration_radiobutton is self.preview_10s_radio_button:
-            preview_duration = 10
-        elif preview_duration_radiobutton is self.preview_20s_radio_button:
-            preview_duration = 20
-        else:
-            preview_duration = 30
-
-        return preview_duration
-
-    def __set_preview_duration_state(self):
-        self.preview_stack.set_visible_child(self.preview_progress_box)
-        self.preview_time_box.set_sensitive(False)
-        self.preview_type_buttons_box.set_sensitive(False)
-
-    def __run_preview_thumbnail_thread(self, start_time, preview_duration):
+    def run_preview_thumbnail_thread(self, start_time, preview_duration):
         self.preview_thumbnail_thread = threading.Thread(target=preview.start_vid_preview,
                                                          args=(self.ffmpeg, start_time, preview_duration,
                                                                self, lambda: self.stop_preview_thread,
                                                                self.preferences),
                                                          daemon=True)
         self.preview_thumbnail_thread.start()
-
-    def on_preview_still_button_toggled(self, preview_still_radiobutton):
-        if not preview_still_radiobutton.get_active():
-            return
-
-        self.__set_preview_still_state()
-
-    def __set_preview_still_state(self):
-        self.preview_stack.set_visible_child(self.preview_preview)
-        self.preview_time_box.set_sensitive(True)
-        self.preview_type_buttons_box.set_sensitive(True)
-
-    def on_preview_preview_viewport_size_allocate(self, preview_preview_viewport, allocation):
-        widget_width = preview_preview_viewport.get_allocated_width()
-        widget_height = preview_preview_viewport.get_allocated_height()
-
-        if not self.preview_preview_viewport_width == widget_width \
-                or not self.preview_preview_viewport_height == widget_height:
-            self.__set_thumbnail_resize(widget_width, widget_height)
-            self.preview_preview_viewport_width = widget_width
-            self.preview_preview_viewport_height = widget_height

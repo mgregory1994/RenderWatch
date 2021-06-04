@@ -18,17 +18,78 @@ along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
-import threading
-
 from render_watch.ffmpeg.x264 import X264
+from render_watch.signals.x264.x264_8x8dct_signal import X2648x8DctSignal
+from render_watch.signals.x264.x264_advanced_settings_signal import X264AdvancedSettingsSignal
+from render_watch.signals.x264.x264_aq_signal import X264AqSignal
+from render_watch.signals.x264.x264_badapt_signal import X264BAdaptSignal
+from render_watch.signals.x264.x264_bframes_signal import X264BFramesSignal
+from render_watch.signals.x264.x264_bitrate_signal import X264BitrateSignal
+from render_watch.signals.x264.x264_bpyramid_signal import X264BPyramidSignal
+from render_watch.signals.x264.x264_crf_signal import X264CrfSignal
+from render_watch.signals.x264.x264_deblock_signal import X264DeblockSignal
+from render_watch.signals.x264.x264_direct_signal import X264DirectSignal
+from render_watch.signals.x264.x264_keyframe_signal import X264KeyframeSignal
+from render_watch.signals.x264.x264_level_signal import X264LevelSignal
+from render_watch.signals.x264.x264_me_signal import X264MeSignal
+from render_watch.signals.x264.x264_no_cabac_signal import X264NoCabacSignal
+from render_watch.signals.x264.x264_no_dct_decimate_signal import X264NoDctDecimateSignal
+from render_watch.signals.x264.x264_no_fast_pskip_signal import X264NoFastPSkipSignal
+from render_watch.signals.x264.x264_partitions_signal import X264PartitionsSignal
+from render_watch.signals.x264.x264_preset_signal import X264PresetSignal
+from render_watch.signals.x264.x264_profile_signal import X264ProfileSignal
+from render_watch.signals.x264.x264_psyrd_signal import X264PsyRDSignal
+from render_watch.signals.x264.x264_qp_signal import X264QpSignal
+from render_watch.signals.x264.x264_refs_signal import X264RefsSignal
+from render_watch.signals.x264.x264_trellis_signal import X264TrellisSignal
+from render_watch.signals.x264.x264_tune_signal import X264TuneSignal
+from render_watch.signals.x264.x264_vbv_signal import X264VbvSignal
+from render_watch.signals.x264.x264_weightb_signal import X264WeightBSignal
+from render_watch.signals.x264.x264_weightp_signal import X264WeightPSignal
 from render_watch.startup import GLib
 
 
 class X264Handlers:
-    def __init__(self, gtk_builder, preferences):
+    def __init__(self, gtk_builder, inputs_page_handlers, preferences):
+        self.inputs_page_handlers = inputs_page_handlers
         self.preferences = preferences
         self.__is_widgets_setting_up = False
-        self.inputs_page_handlers = None
+        self.x264_8x8dct_signal = X2648x8DctSignal(self, inputs_page_handlers)
+        self.x264_advanced_settings_signal = X264AdvancedSettingsSignal(self, inputs_page_handlers)
+        self.x264_aq_signal = X264AqSignal(self, inputs_page_handlers)
+        self.x264_badapt_signal = X264BAdaptSignal(self, inputs_page_handlers)
+        self.x264_bframes_signal = X264BFramesSignal(self, inputs_page_handlers)
+        self.x264_bitrate_signal = X264BitrateSignal(self, inputs_page_handlers, preferences)
+        self.x264_bpyramid_signal = X264BPyramidSignal(self, inputs_page_handlers)
+        self.x264_crf_signal = X264CrfSignal(self, inputs_page_handlers)
+        self.x264_deblock_signal = X264DeblockSignal(self, inputs_page_handlers)
+        self.x264_direct_signal = X264DirectSignal(self, inputs_page_handlers)
+        self.x264_keyframe_signal = X264KeyframeSignal(self, inputs_page_handlers)
+        self.x264_level_signal = X264LevelSignal(self, inputs_page_handlers)
+        self.x264_me_signal = X264MeSignal(self, inputs_page_handlers)
+        self.x264_no_cabac_signal = X264NoCabacSignal(self, inputs_page_handlers)
+        self.x264_no_dct_decimate_signal = X264NoDctDecimateSignal(self, inputs_page_handlers)
+        self.x264_no_fast_pskip_signal = X264NoFastPSkipSignal(self, inputs_page_handlers)
+        self.x264_partitions_signal = X264PartitionsSignal(self, inputs_page_handlers)
+        self.x264_preset_signal = X264PresetSignal(self, inputs_page_handlers)
+        self.x264_profile_signal = X264ProfileSignal(self, inputs_page_handlers)
+        self.x264_psyrd_signal = X264PsyRDSignal(self, inputs_page_handlers)
+        self.x264_qp_signal = X264QpSignal(self, inputs_page_handlers)
+        self.x264_refs_signal = X264RefsSignal(self, inputs_page_handlers)
+        self.x264_trellis_signal = X264TrellisSignal(self, inputs_page_handlers)
+        self.x264_tune_signal = X264TuneSignal(self, inputs_page_handlers)
+        self.x264_vbv_signal = X264VbvSignal(self, inputs_page_handlers)
+        self.x264_weightb_signal = X264WeightBSignal(self, inputs_page_handlers)
+        self.x264_weightp_signal = X264WeightPSignal(self, inputs_page_handlers)
+        self.signals_list = (self.x264_8x8dct_signal, self.x264_advanced_settings_signal, self.x264_aq_signal,
+                             self.x264_badapt_signal, self.x264_bframes_signal, self.x264_bitrate_signal,
+                             self.x264_bpyramid_signal, self.x264_crf_signal, self.x264_deblock_signal,
+                             self.x264_direct_signal, self.x264_keyframe_signal, self.x264_level_signal,
+                             self.x264_me_signal, self.x264_no_cabac_signal, self.x264_no_dct_decimate_signal,
+                             self.x264_no_fast_pskip_signal, self.x264_partitions_signal, self.x264_preset_signal,
+                             self.x264_profile_signal, self.x264_psyrd_signal, self.x264_qp_signal,
+                             self.x264_refs_signal, self.x264_trellis_signal, self.x264_tune_signal,
+                             self.x264_vbv_signal, self.x264_weightp_signal, self.x264_weightb_signal)
         self.x264_crf_radiobutton = gtk_builder.get_object("x264_crf_radiobutton")
         self.x264_qp_radiobutton = gtk_builder.get_object("x264_qp_radiobutton")
         self.x264_bitrate_radiobutton = gtk_builder.get_object("x264_bitrate_radiobutton")
@@ -81,56 +142,108 @@ class X264Handlers:
         self.x264_no_dct_decimate_checkbox = gtk_builder.get_object('x264_no_dct_decimate_checkbox')
         self.x264_no_cabac_checkbox = gtk_builder.get_object('x264_no_cabac_checkbox')
 
-    def reset_settings(self):
-        self.__is_widgets_setting_up = True
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
 
-        self.x264_profile_combobox.set_active(0)
-        self.x264_preset_combobox.set_active(0)
-        self.x264_level_combobox.set_active(0)
-        self.x264_tune_combobox.set_active(0)
-        self.x264_crf_radiobutton.set_active(True)
-        self.x264_crf_scale.set_value(20.0)
-        self.x264_bitrate_spinbutton.set_value(2500)
-        self.x264_average_radiobutton.set_active(True)
-        self.__reset_advanced_settings_widgets()
+        raise AttributeError
 
-        self.__is_widgets_setting_up = False
+    def get_settings(self, ffmpeg):
+        video_settings = X264()
+        video_settings.preset = self.x264_preset_combobox.get_active()
+        video_settings.profile = self.x264_profile_combobox.get_active()
+        video_settings.level = self.x264_level_combobox.get_active()
+        video_settings.tune = self.x264_tune_combobox.get_active()
 
-    def __reset_advanced_settings_widgets(self):
-        self.x264_advanced_settings_switch.set_active(False)
-        self.x264_vbv_max_rate_spinbutton.set_value(2500)
-        self.x264_vbv_bufsize_spinbutton.set_value(2500)
-        self.x264_aq_mode_combobox.set_active(0)
-        self.x264_aq_strength_spinbutton.set_value(1.0)
-        self.x264_ref_spinbutton.set_value(3)
-        self.x264_mixed_refs_checkbox.set_active(False)
-        self.x264_bframes_spinbutton.set_value(3)
-        self.x264_b_adapt_combobox.set_active(0)
-        self.x264_b_pyramid_combobox.set_active(0)
-        self.x264_weight_p_combobox.set_active(0)
-        self.x264_weight_b_checkbox.set_active(False)
-        self.x264_keyint_spinbutton.set_value(250)
-        self.x264_min_keyint_spinbutton.set_value(25)
-        self.x264_me_combobox.set_active(0)
-        self.x264_subme_combobox.set_active(0)
-        self.x264_me_range_spinbutton.set_value(16)
-        self.x264_partitions_auto_radiobutton.set_active(True)
-        self.x264_i4x4_checkbox.set_active(False)
-        self.x264_i8x8_checkbox.set_active(False)
-        self.x264_p4x4_checkbox.set_active(False)
-        self.x264_p8x8_checkbox.set_active(False)
-        self.x264_b8x8_checkbox.set_active(False)
-        self.x264_8x8dct_checkbox.set_active(False)
-        self.x264_psy_rd_spinbutton.set_value(1.0)
-        self.x264_psy_rd_trellis_spinbutton.set_value(0.0)
-        self.x264_trellis_combobox.set_active(0)
-        self.x264_direct_combobox.set_active(0)
-        self.x264_no_deblock_checkbox.set_active(False)
-        self.x264_deblock_alpha_spinbutton.set_value(0)
-        self.x264_deblock_beta_spinbutton.set_value(0)
-        self.x264_no_fast_pskip_checkbox.set_active(False)
-        self.x264_no_dct_decimate_checkbox.set_active(False)
-        self.x264_no_cabac_checkbox.set_active(False)
+        self.__set_rate_control_settings_from_x264_widgets(video_settings)
+        self.__set_advanced_settings_from_x264_widgets(video_settings)
+
+        ffmpeg.video_settings = video_settings
+
+    def __set_rate_control_settings_from_x264_widgets(self, video_settings):
+        if self.x264_crf_radiobutton.get_active():
+            video_settings.crf = self.x264_crf_scale.get_value()
+        elif self.x264_qp_radiobutton.get_active():
+            video_settings.qp = self.x264_crf_scale.get_value()
+        else:
+            video_settings.bitrate = self.x264_bitrate_spinbutton.get_value_as_int()
+
+            if self.x264_constant_radiobutton.get_active():
+                video_settings.constant_bitrate = True
+            else:
+
+                if self.x264_2pass_radiobutton.get_active():
+                    video_settings.encode_pass = 1
+
+                video_settings.vbv_maxrate = self.x264_vbv_max_rate_spinbutton.get_value_as_int()
+                video_settings.vbv_bufsize = self.x264_vbv_bufsize_spinbutton.get_value_as_int()
+
+    def __set_advanced_settings_from_x264_widgets(self, video_settings):
+        if self.x264_advanced_settings_switch.get_active():
+            video_settings.advanced_enabled = True
+            video_settings.aq_mode = self.x264_aq_mode_combobox.get_active()
+            video_settings.b_adapt = self.x264_b_adapt_combobox.get_active()
+            video_settings.b_pyramid = self.x264_b_pyramid_combobox.get_active()
+            video_settings.weightp = self.x264_weight_p_combobox.get_active()
+            video_settings.me = self.x264_subme_combobox.get_active()
+            video_settings.subme = self.x264_subme_combobox.get_active()
+            video_settings.trellis = self.x264_trellis_combobox.get_active()
+            video_settings.direct = self.x264_direct_combobox.get_active()
+            aq_strength_value = round(self.x264_aq_strength_spinbutton.get_value(), 1)
+            video_settings.aq_strength = aq_strength_value
+            video_settings.ref = self.x264_ref_spinbutton.get_value_as_int()
+            video_settings.mixed_refs = self.x264_mixed_refs_checkbox.get_active()
+            video_settings.bframes = self.x264_bframes_spinbutton.get_value_as_int()
+            video_settings.weightb = self.x264_weight_b_checkbox.get_active()
+            video_settings.keyint = self.x264_keyint_spinbutton.get_value_as_int()
+            video_settings.min_keyint = self.x264_min_keyint_spinbutton.get_value_as_int()
+            video_settings.me_range = self.x264_me_range_spinbutton.get_value_as_int()
+            video_settings.dct8x8 = self.x264_8x8dct_checkbox.get_active()
+            psy_rd_value = round(self.x264_psy_rd_spinbutton.get_value(), 1)
+            psy_rd_trellis_value = round(self.x264_psy_rd_trellis_spinbutton.get_value(), 2)
+            video_settings.psy_rd = (psy_rd_value, psy_rd_trellis_value)
+            video_settings.no_fast_pskip = self.x264_no_fast_pskip_checkbox.get_active()
+            video_settings.no_dct_decimate = self.x264_no_dct_decimate_checkbox.get_active()
+            video_settings.no_cabac = self.x264_no_cabac_checkbox.get_active()
+
+            self.__set_deblock_settings_from_x264_widgets(video_settings)
+            self.__set_partitions_settings_from_x264_widgets(video_settings)
+
+    def __set_deblock_settings_from_x264_widgets(self, video_settings):
+        if self.x264_no_deblock_checkbox.get_active():
+            video_settings.no_deblock = True
+            video_settings.deblock = None
+        else:
+            video_settings.no_deblock = False
+            video_settings.deblock = (self.x264_deblock_alpha_spinbutton.get_value_as_int(),
+                                      self.x264_deblock_beta_spinbutton.get_value_as_int())
+
+    def __set_partitions_settings_from_x264_widgets(self, video_settings):
+        if self.x264_partitions_custom_radiobutton.get_active():
+            partitions_settings = []
+
+            if self.x264_i4x4_checkbox.get_active():
+                partitions_settings.append('i4x4')
+
+            if self.x264_i8x8_checkbox.get_active():
+                partitions_settings.append('i8x8')
+
+            if self.x264_p4x4_checkbox.get_active():
+                partitions_settings.append('p4x4')
+
+            if self.x264_p8x8_checkbox.get_active():
+                partitions_settings.append('p8x8')
+
+            if self.x264_b8x8_checkbox.get_active():
+                partitions_settings.append('b8x8')
+
+            if not partitions_settings:
+                video_settings.partitions = 'none'
+            elif len(partitions_settings) == 5:
+                video_settings.partitions = 'all'
+            else:
+                video_settings.partitions = partitions_settings
 
     def set_settings(self, ffmpeg_param=None):
         if ffmpeg_param is not None:
@@ -255,638 +368,64 @@ class X264Handlers:
             self.x264_deblock_alpha_spinbutton.set_value(alpha_value)
             self.x264_deblock_beta_spinbutton.set_value(beta_value)
 
-    def get_settings(self, ffmpeg):
-        video_settings = X264()
-        video_settings.preset = self.x264_preset_combobox.get_active()
-        video_settings.profile = self.x264_profile_combobox.get_active()
-        video_settings.level = self.x264_level_combobox.get_active()
-        video_settings.tune = self.x264_tune_combobox.get_active()
-
-        self.__set_rate_control_settings_from_x264_widgets(video_settings)
-        self.__set_advanced_settings_from_x264_widgets(video_settings)
-
-        ffmpeg.video_settings = video_settings
-
-    def __set_rate_control_settings_from_x264_widgets(self, video_settings):
-        if self.x264_crf_radiobutton.get_active():
-            video_settings.crf = self.x264_crf_scale.get_value()
-        elif self.x264_qp_radiobutton.get_active():
-            video_settings.qp = self.x264_crf_scale.get_value()
-        else:
-            video_settings.bitrate = self.x264_bitrate_spinbutton.get_value_as_int()
-
-            if self.x264_constant_radiobutton.get_active():
-                video_settings.constant_bitrate = True
-            else:
-
-                if self.x264_2pass_radiobutton.get_active():
-                    video_settings.encode_pass = 1
-
-                video_settings.vbv_maxrate = self.x264_vbv_max_rate_spinbutton.get_value_as_int()
-                video_settings.vbv_bufsize = self.x264_vbv_bufsize_spinbutton.get_value_as_int()
-
-    def __set_advanced_settings_from_x264_widgets(self, video_settings):
-        if self.x264_advanced_settings_switch.get_active():
-            video_settings.advanced_enabled = True
-            video_settings.aq_mode = self.x264_aq_mode_combobox.get_active()
-            video_settings.b_adapt = self.x264_b_adapt_combobox.get_active()
-            video_settings.b_pyramid = self.x264_b_pyramid_combobox.get_active()
-            video_settings.weightp = self.x264_weight_p_combobox.get_active()
-            video_settings.me = self.x264_subme_combobox.get_active()
-            video_settings.subme = self.x264_subme_combobox.get_active()
-            video_settings.trellis = self.x264_trellis_combobox.get_active()
-            video_settings.direct = self.x264_direct_combobox.get_active()
-            aq_strength_value = round(self.x264_aq_strength_spinbutton.get_value(), 1)
-            video_settings.aq_strength = aq_strength_value
-            video_settings.ref = self.x264_ref_spinbutton.get_value_as_int()
-            video_settings.mixed_refs = self.x264_mixed_refs_checkbox.get_active()
-            video_settings.bframes = self.x264_bframes_spinbutton.get_value_as_int()
-            video_settings.weightb = self.x264_weight_b_checkbox.get_active()
-            video_settings.keyint = self.x264_keyint_spinbutton.get_value_as_int()
-            video_settings.min_keyint = self.x264_min_keyint_spinbutton.get_value_as_int()
-            video_settings.me_range = self.x264_me_range_spinbutton.get_value_as_int()
-            video_settings.dct8x8 = self.x264_8x8dct_checkbox.get_active()
-            psy_rd_value = round(self.x264_psy_rd_spinbutton.get_value(), 1)
-            psy_rd_trellis_value = round(self.x264_psy_rd_trellis_spinbutton.get_value(), 2)
-            video_settings.psy_rd = (psy_rd_value, psy_rd_trellis_value)
-            video_settings.no_fast_pskip = self.x264_no_fast_pskip_checkbox.get_active()
-            video_settings.no_dct_decimate = self.x264_no_dct_decimate_checkbox.get_active()
-            video_settings.no_cabac = self.x264_no_cabac_checkbox.get_active()
-
-            self.__set_deblock_settings_from_x264_widgets(video_settings)
-            self.__set_partitions_settings_from_x264_widgets(video_settings)
-
-    def __set_deblock_settings_from_x264_widgets(self, video_settings):
-        if self.x264_no_deblock_checkbox.get_active():
-            video_settings.no_deblock = True
-            video_settings.deblock = None
-        else:
-            video_settings.no_deblock = False
-            video_settings.deblock = (self.x264_deblock_alpha_spinbutton.get_value_as_int(),
-                                      self.x264_deblock_beta_spinbutton.get_value_as_int())
-
-    def __set_partitions_settings_from_x264_widgets(self, video_settings):
-        if self.x264_partitions_custom_radiobutton.get_active():
-            partitions_settings = []
-
-            if self.x264_i4x4_checkbox.get_active():
-                partitions_settings.append('i4x4')
-
-            if self.x264_i8x8_checkbox.get_active():
-                partitions_settings.append('i8x8')
-
-            if self.x264_p4x4_checkbox.get_active():
-                partitions_settings.append('p4x4')
-
-            if self.x264_p8x8_checkbox.get_active():
-                partitions_settings.append('p8x8')
-
-            if self.x264_b8x8_checkbox.get_active():
-                partitions_settings.append('b8x8')
-
-            if not partitions_settings:
-                video_settings.partitions = 'none'
-            elif len(partitions_settings) == 5:
-                video_settings.partitions = 'all'
-            else:
-                video_settings.partitions = partitions_settings
-
-    def __get_selected_inputs_rows(self):
-        return self.inputs_page_handlers.get_selected_rows()
-
-    def on_x264_crf_radiobutton_clicked(self, crf_radiobutton):
-        if not crf_radiobutton.get_active():
-            return
-
-        self.__set_crf_state()
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.crf = self.x264_crf_scale.get_value()
-            ffmpeg.video_settings.advanced_enabled = self.x264_advanced_settings_switch.get_active()
-            ffmpeg.video_settings.encode_pass = None
-            ffmpeg.video_settings.stats = None
-            ffmpeg.video_settings.constant_bitrate = None
-            ffmpeg.video_settings.vbv_maxrate = None
-            ffmpeg.video_settings.vbv_bufsize = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def __set_crf_state(self):
-        self.x264_rate_type_stack.set_visible_child(self.x264_crf_scale)
-        self.x264_vbv_max_rate_spinbutton.set_sensitive(False)
-        self.x264_vbv_bufsize_spinbutton.set_sensitive(False)
-
-    def on_x264_qp_radiobutton_clicked(self, qp_radiobutton):
-        if not qp_radiobutton.get_active():
-            return
-
-        self.__set_crf_state()
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.qp = self.x264_crf_scale.get_value()
-            ffmpeg.video_settings.advanced_enabled = self.x264_advanced_settings_switch.get_active()
-            ffmpeg.video_settings.encode_pass = None
-            ffmpeg.video_settings.stats = None
-            ffmpeg.video_settings.constant_bitrate = None
-            ffmpeg.video_settings.vbv_maxrate = None
-            ffmpeg.video_settings.vbv_bufsize = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_bitrate_radiobutton_clicked(self, bitrate_radiobutton):
-        if not bitrate_radiobutton.get_active():
-            return
-
-        self.x264_rate_type_stack.set_visible_child(self.x264_bitrate_box)
-        self.on_x264_average_radiobutton_toggled(self.x264_average_radiobutton)
-        self.on_x264_constant_radiobutton_toggled(self.x264_constant_radiobutton)
-        self.on_x264_2pass_radiobutton_toggled(self.x264_2pass_radiobutton)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.bitrate = self.x264_bitrate_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_average_radiobutton_toggled(self, average_radiobutton):
-        if not average_radiobutton.get_active():
-            return
-
-        self.x264_vbv_max_rate_spinbutton.set_sensitive(True)
-        self.x264_vbv_bufsize_spinbutton.set_sensitive(True)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        advanced_enabled = self.x264_advanced_settings_switch.get_active()
-        bitrate_value = self.x264_bitrate_spinbutton.get_value_as_int()
-
-        if advanced_enabled:
-            self.__update_vbr_widgets(bitrate_value)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.encode_pass = None
-            ffmpeg.video_settings.stats = None
-            ffmpeg.video_settings.constant_bitrate = None
-
-            if not advanced_enabled:
-                ffmpeg.video_settings.vbv_maxrate = None
-                ffmpeg.video_settings.vbv_bufsize = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def __update_vbr_widgets(self, bitrate_value):
-        if bitrate_value > self.x264_vbv_max_rate_spinbutton.get_value_as_int():
-            self.x264_vbv_max_rate_spinbutton.set_value(bitrate_value)
-        else:
-            self.on_x264_vbv_max_rate_spinbutton_value_changed(self.x264_vbv_max_rate_spinbutton)
-
-        self.on_x264_vbv_bufsize_spinbutton_value_changed(self.x264_vbv_bufsize_spinbutton)
-
-    def on_x264_constant_radiobutton_toggled(self, constant_radiobutton):
-        if not constant_radiobutton.get_active():
-            return
-
-        self.x264_vbv_max_rate_spinbutton.set_sensitive(False)
-        self.x264_vbv_bufsize_spinbutton.set_sensitive(False)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.encode_pass = None
-            ffmpeg.video_settings.stats = None
-            ffmpeg.video_settings.constant_bitrate = True
-            ffmpeg.video_settings.vbv_maxrate = None
-            ffmpeg.video_settings.vbv_bufsize = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_2pass_radiobutton_toggled(self, dual_pass_radiobutton):
-        if not dual_pass_radiobutton.get_active():
-            return
-
-        self.x264_vbv_max_rate_spinbutton.set_sensitive(True)
-        self.x264_vbv_bufsize_spinbutton.set_sensitive(True)
-
-        if self.__is_widgets_setting_up:
-            return
-
-        advanced_enabled = self.x264_advanced_settings_switch.get_active()
-        bitrate_value = self.x264_bitrate_spinbutton.get_value_as_int()
-
-        if advanced_enabled:
-            self.__update_vbr_widgets(bitrate_value)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.encode_pass = 1
-            ffmpeg.video_settings.stats = self.preferences.temp_directory + '/' + ffmpeg.temp_file_name + '.log'
-            ffmpeg.video_settings.constant_bitrate = None
-
-            if not advanced_enabled:
-                ffmpeg.video_settings.vbv_maxrate = None
-                ffmpeg.video_settings.vbv_bufsize = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_preset_combobox_changed(self, preset_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        preset_index = preset_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.preset = preset_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_profile_combobox_changed(self, profile_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        profile_index = profile_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.profile = profile_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_level_combobox_changed(self, level_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        level_index = level_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.level = level_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_tune_combobox_changed(self, tune_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        tune_index = tune_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.tune = tune_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_crf_scale_button_release_event(self, event, data):
-        if self.__is_widgets_setting_up:
-            return
-
-        quantizer_value = self.x264_crf_scale.get_value()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-
-            if self.x264_crf_radiobutton.get_active():
-                ffmpeg.video_settings.crf = quantizer_value
-            else:
-                ffmpeg.video_settings.qp = quantizer_value
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_bitrate_spinbutton_value_changed(self, bitrate_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        vbr_enabled = self.x264_average_radiobutton.get_active() or self.x264_2pass_radiobutton.get_active()
-        bitrate_value = bitrate_spinbutton.get_value_as_int()
-
-        if vbr_enabled:
-            self.__update_vbr_widgets(bitrate_value)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.bitrate = bitrate_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_advanced_settings_switch_state_set(self, advanced_settings_switch, user_data):
-        self.x264_advanced_settings_revealer.set_reveal_child(advanced_settings_switch.get_active())
-
-        if self.__is_widgets_setting_up:
-            return
-
-        threading.Thread(target=self.__update_settings, args=()).start()
-
-    def __update_settings(self):
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-
-            self.get_settings(ffmpeg)
-            GLib.idle_add(row.setup_labels)
-
-        GLib.idle_add(self.inputs_page_handlers.update_preview_page)
-
-    def on_x264_vbv_max_rate_spinbutton_value_changed(self, vbv_maxrate_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        advanced_enabled = self.x264_advanced_settings_switch.get_active()
-        bitrate_value = self.x264_bitrate_spinbutton.get_value_as_int()
-
-        if not advanced_enabled:
-            return
-
-        if self.__fix_vbv_maxrate_widgets(bitrate_value):
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.vbv_maxrate = vbv_maxrate_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def __fix_vbv_maxrate_widgets(self, bitrate_value):
-        if bitrate_value > self.x264_vbv_max_rate_spinbutton.get_value_as_int():
-            self.x264_vbv_max_rate_spinbutton.set_value(bitrate_value)
-
-            return True
-
-        return False
-
-    def on_x264_vbv_bufsize_spinbutton_value_changed(self, vbv_bufsize_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        advanced_enabled = self.x264_advanced_settings_switch.get_active()
-
-        if not advanced_enabled:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.vbv_bufsize = vbv_bufsize_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_aq_mode_combobox_changed(self, aq_mode_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        aq_mode_index = aq_mode_spinbutton.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.aq_mode = aq_mode_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_aq_strength_spinbutton_value_changed(self, aq_strength_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        aq_strength_value = round(aq_strength_spinbutton.get_value(), 1)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.aq_strength = aq_strength_value
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_reference_frames_spinbutton_value_changed(self, ref_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.ref = ref_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_mixed_refs_checkbox_toggled(self, mixed_refs_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.mixed_refs = mixed_refs_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_bframes_spinbutton_value_changed(self, bframes_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.bframes = bframes_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_badapt_combobox_changed(self, b_adapt_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        b_adapt_index = b_adapt_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.b_adapt = b_adapt_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_bpyramid_combobox_changed(self, b_pyramid_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        b_pyramid_index = b_pyramid_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.b_pyramid = b_pyramid_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_weight_p_combobox_changed(self, weight_p_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        weight_p_index = weight_p_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.weightp = weight_p_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_weight_b_checkbox_toggled(self, weight_b_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.weightb = weight_b_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_keyframe_interval_spinbutton_value_changed(self, keyint_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.keyint = keyint_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_min_keyframe_interval_spinbutton_value_changed(self, min_keyint_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.min_keyint = min_keyint_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_motion_estimation_combobox_changed(self, me_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        me_index = me_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.me = me_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_sub_motion_estimation_combobox_changed(self, subme_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        subme_index = subme_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.subme = subme_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_me_range_spinbutton_value_changed(self, me_range_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.me_range = me_range_spinbutton.get_value_as_int()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_partitions_auto_radiobutton_toggled(self, partitions_auto_radiobutton):
-        if not partitions_auto_radiobutton.get_active():
-            return
-
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.partitions = None
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_partitions_custom_radiobutton_toggled(self, partitions_custom_radiobutton):
-        self.x264_partitions_types_grid.set_sensitive(partitions_custom_radiobutton.get_active())
-
-        if not partitions_custom_radiobutton.get_active():
-            return
-
-        if self.__is_widgets_setting_up:
-            return
-
-        partitions_setting = self.__get_partitions_settings_from_x264_widgets()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.partitions = partitions_setting
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def __get_partitions_settings_from_x264_widgets(self):
+    def reset_settings(self):
+        self.__is_widgets_setting_up = True
+
+        self.x264_profile_combobox.set_active(0)
+        self.x264_preset_combobox.set_active(0)
+        self.x264_level_combobox.set_active(0)
+        self.x264_tune_combobox.set_active(0)
+        self.x264_crf_radiobutton.set_active(True)
+        self.x264_crf_scale.set_value(20.0)
+        self.x264_bitrate_spinbutton.set_value(2500)
+        self.x264_average_radiobutton.set_active(True)
+        self.__reset_advanced_settings_widgets()
+
+        self.__is_widgets_setting_up = False
+
+    def __reset_advanced_settings_widgets(self):
+        self.x264_advanced_settings_switch.set_active(False)
+        self.x264_vbv_max_rate_spinbutton.set_value(2500)
+        self.x264_vbv_bufsize_spinbutton.set_value(2500)
+        self.x264_aq_mode_combobox.set_active(0)
+        self.x264_aq_strength_spinbutton.set_value(1.0)
+        self.x264_ref_spinbutton.set_value(3)
+        self.x264_mixed_refs_checkbox.set_active(False)
+        self.x264_bframes_spinbutton.set_value(3)
+        self.x264_b_adapt_combobox.set_active(0)
+        self.x264_b_pyramid_combobox.set_active(0)
+        self.x264_weight_p_combobox.set_active(0)
+        self.x264_weight_b_checkbox.set_active(False)
+        self.x264_keyint_spinbutton.set_value(250)
+        self.x264_min_keyint_spinbutton.set_value(25)
+        self.x264_me_combobox.set_active(0)
+        self.x264_subme_combobox.set_active(0)
+        self.x264_me_range_spinbutton.set_value(16)
+        self.x264_partitions_auto_radiobutton.set_active(True)
+        self.x264_i4x4_checkbox.set_active(False)
+        self.x264_i8x8_checkbox.set_active(False)
+        self.x264_p4x4_checkbox.set_active(False)
+        self.x264_p8x8_checkbox.set_active(False)
+        self.x264_b8x8_checkbox.set_active(False)
+        self.x264_8x8dct_checkbox.set_active(False)
+        self.x264_psy_rd_spinbutton.set_value(1.0)
+        self.x264_psy_rd_trellis_spinbutton.set_value(0.0)
+        self.x264_trellis_combobox.set_active(0)
+        self.x264_direct_combobox.set_active(0)
+        self.x264_no_deblock_checkbox.set_active(False)
+        self.x264_deblock_alpha_spinbutton.set_value(0)
+        self.x264_deblock_beta_spinbutton.set_value(0)
+        self.x264_no_fast_pskip_checkbox.set_active(False)
+        self.x264_no_dct_decimate_checkbox.set_active(False)
+        self.x264_no_cabac_checkbox.set_active(False)
+
+    def get_crf_value(self):
+        return self.x264_crf_scale.get_value()
+
+    def get_bitrate_value(self):
+        return self.x264_bitrate_spinbutton.get_value_as_int()
+
+    def get_partitions_settings(self):
         partitions = []
         i4x4 = self.x264_i4x4_checkbox.get_active()
         i8x8 = self.x264_i8x8_checkbox.get_active()
@@ -917,111 +456,14 @@ class X264Handlers:
 
         return partitions
 
-    def on_x264_partitions_type_checkbox_toggled(self, partitions_type_checkbox):
-        if self.__is_widgets_setting_up:
-            return
+    def get_psy_rd_value(self):
+        return self.x264_psy_rd_spinbutton.get_value()
 
-        partitions_setting = self.__get_partitions_settings_from_x264_widgets()
+    def get_psy_rd_trellis_value(self):
+        return self.x264_psy_rd_trellis_spinbutton.get_value()
 
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.partitions = partitions_setting
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_8x8dct_checkbox_toggled(self, dct8x8_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.dct8x8 = dct8x8_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_psy_rd_spinbutton_value_changed(self, psy_rd_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        psy_rd_value = round(psy_rd_spinbutton.get_value(), 1)
-        psy_rd_trellis_value = round(self.x264_psy_rd_trellis_spinbutton.get_value(), 2)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.psy_rd = psy_rd_value, psy_rd_trellis_value
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_psy_rd_trellis_spinbutton_value_changed(self, psy_rd_trellis_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
-
-        psy_rd_value = round(self.x264_psy_rd_spinbutton.get_value(), 1)
-        psy_rd_trellis_value = round(psy_rd_trellis_spinbutton.get_value(), 2)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.psy_rd = psy_rd_value, psy_rd_trellis_value
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_trellis_combobox_changed(self, trellis_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        trellis_index = trellis_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.trellis = trellis_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_direct_combobox_changed(self, direct_combobox):
-        if self.__is_widgets_setting_up:
-            return
-
-        direct_index = direct_combobox.get_active()
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.direct = direct_index
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_no_deblock_checkbox_toggled(self, no_deblock_checkbox):
-        self.x264_deblock_alpha_spinbutton.set_sensitive(not no_deblock_checkbox.get_active())
-        self.x264_deblock_beta_spinbutton.set_sensitive(not no_deblock_checkbox.get_active())
-
-        if self.__is_widgets_setting_up:
-            return
-
-        no_deblock_enabled = no_deblock_checkbox.get_active()
-        deblock_settings = self.__get_deblock_settings_from_x264_widgets(no_deblock_enabled)
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_deblock = no_deblock_enabled
-            ffmpeg.video_settings.deblock = deblock_settings
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def __get_deblock_settings_from_x264_widgets(self, no_deblock_enabled):
-        if no_deblock_enabled:
+    def get_deblock_settings(self):
+        if self.x264_no_deblock_checkbox.get_active():
             return None
 
         alpha_value = self.x264_deblock_alpha_spinbutton.get_value_as_int()
@@ -1029,68 +471,71 @@ class X264Handlers:
 
         return alpha_value, beta_value
 
-    def on_x264_deblock_alpha_spinbutton_value_changed(self, deblock_alpha_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
+    def is_crf_enabled(self):
+        return self.x264_crf_radiobutton.get_active()
 
-        no_deblock_enabled = self.x264_no_deblock_checkbox.get_active()
-        deblock_settings = self.__get_deblock_settings_from_x264_widgets(no_deblock_enabled)
+    def is_vbr_enabled(self):
+        return self.x264_average_radiobutton.get_active() or self.x264_2pass_radiobutton.get_active()
 
+    def is_advanced_settings_enabled(self):
+        return self.x264_advanced_settings_switch.get_active()
+
+    def set_crf_state(self):
+        self.x264_rate_type_stack.set_visible_child(self.x264_crf_scale)
+        self.x264_vbv_max_rate_spinbutton.set_sensitive(False)
+        self.x264_vbv_bufsize_spinbutton.set_sensitive(False)
+
+    def set_bitrate_state(self):
+        self.x264_rate_type_stack.set_visible_child(self.x264_bitrate_box)
+
+    def set_vbr_state(self, enabled):
+        self.x264_vbv_max_rate_spinbutton.set_sensitive(enabled)
+        self.x264_vbv_bufsize_spinbutton.set_sensitive(enabled)
+
+    def set_advanced_settings_state(self, enabled):
+        self.x264_advanced_settings_revealer.set_reveal_child(enabled)
+
+    def set_partitions_custom_state(self, enabled):
+        self.x264_partitions_types_grid.set_sensitive(enabled)
+
+    def set_deblock_state(self, enabled):
+        self.x264_deblock_alpha_spinbutton.set_sensitive(enabled)
+        self.x264_deblock_beta_spinbutton.set_sensitive(enabled)
+
+    def update_vbr(self):
+        bitrate_value = self.get_bitrate_value()
+
+        if bitrate_value > self.x264_vbv_max_rate_spinbutton.get_value_as_int():
+            self.x264_vbv_max_rate_spinbutton.set_value(bitrate_value)
+        else:
+            self.on_x264_vbv_max_rate_spinbutton_value_changed(self.x264_vbv_max_rate_spinbutton)
+
+        self.on_x264_vbv_bufsize_spinbutton_value_changed(self.x264_vbv_bufsize_spinbutton)
+
+    def update_vbv_maxrate(self):
+        bitrate_value = self.get_bitrate_value()
+
+        if bitrate_value > self.x264_vbv_max_rate_spinbutton.get_value_as_int():
+            self.x264_vbv_max_rate_spinbutton.set_value(bitrate_value)
+
+            return True
+
+        return False
+
+    def update_settings(self):
         for row in self.__get_selected_inputs_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.deblock = deblock_settings
 
-            row.setup_labels()
+            self.get_settings(ffmpeg)
+            GLib.idle_add(row.setup_labels)
 
-        self.inputs_page_handlers.update_preview_page()
+        GLib.idle_add(self.inputs_page_handlers.update_preview_page)
 
-    def on_x264_deblock_beta_spinbutton_value_changed(self, deblock_beta_spinbutton):
-        if self.__is_widgets_setting_up:
-            return
+    def signal_average_radiobutton(self):
+        self.x264_bitrate_signal.on_x264_average_radiobutton_toggled(self.x264_average_radiobutton)
 
-        no_deblock_enabled = self.x264_no_deblock_checkbox.get_active()
-        deblock_settings = self.__get_deblock_settings_from_x264_widgets(no_deblock_enabled)
+    def signal_constant_radiobutton(self):
+        self.x264_bitrate_signal.on_x264_constant_radiobutton_toggled(self.x264_constant_radiobutton)
 
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.deblock = deblock_settings
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_no_fast_pskip_checkbox_toggled(self, no_fast_pskip_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_fast_pskip = no_fast_pskip_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_no_dct_decimate_checkbox_toggled(self, no_dct_decimate_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_dct_decimate = no_dct_decimate_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x264_no_cabac_checkbox_toggled(self, no_cabac_checkbox):
-        if self.__is_widgets_setting_up:
-            return
-
-        for row in self.__get_selected_inputs_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_cabac = no_cabac_checkbox.get_active()
-
-            row.setup_labels()
-
-        self.inputs_page_handlers.update_preview_page()
+    def signal_2pass_radiobutton(self):
+        self.x264_bitrate_signal.on_x264_2pass_radiobutton_toggled(self.x264_2pass_radiobutton)

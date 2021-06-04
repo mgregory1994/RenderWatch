@@ -23,20 +23,30 @@ import threading
 from render_watch.app_formatting import format_converter
 from render_watch.encoding import preview
 from render_watch.ffmpeg.trim_settings import TrimSettings
+from render_watch.signals.trim.trim_enabled_signal import TrimEnabledSignal
+from render_watch.signals.trim.trim_start_signal import TrimStartSignal
+from render_watch.signals.trim.trim_end_signal import TrimEndSignal
+from render_watch.signals.trim.trim_preview_size_signal import TrimPreviewSizeSignal
 from render_watch.startup import GLib, GdkPixbuf
 
 
 class TrimPageHandlers:
-    def __init__(self, gtk_builder, preferences):
-        self.inputs_page_handlers = None
+    def __init__(self, gtk_builder, inputs_page_handlers, preferences):
+        self.inputs_page_handlers = inputs_page_handlers
+        self.preferences = preferences
         self.ffmpeg = None
         self.image_buffer = None
         self.image_scaled_buffer = None
         self.resize_thumbnail_thread = None
         self.trim_preview_viewport_width = 0
         self.trim_preview_viewport_height = 0
-        self.__is_widgets_setting_up = False
-        self.preferences = preferences
+        self.is_widgets_setting_up = False
+        self.trim_enabled_signal = TrimEnabledSignal(self, inputs_page_handlers)
+        self.trim_start_signal = TrimStartSignal(self, inputs_page_handlers)
+        self.trim_end_signal = TrimEndSignal(self, inputs_page_handlers)
+        self.trim_preview_size_signal = TrimPreviewSizeSignal(self, inputs_page_handlers)
+        self.signals_list = (self.trim_enabled_signal, self.trim_start_signal, self.trim_end_signal,
+                             self.trim_preview_size_signal)
         self.trim_popover = gtk_builder.get_object('trim_popover')
         self.trim_time_box = gtk_builder.get_object('trim_time_box')
         self.trim_start_scale = gtk_builder.get_object('trim_start_scale')
@@ -53,50 +63,25 @@ class TrimPageHandlers:
         self.trim_end_value_label = gtk_builder.get_object('trim_end_value_label')
         self.trim_preview_viewport = gtk_builder.get_object('trim_preview_viewport')
 
-    def __set_trim_start_label_value_text(self, trim_start_value_text, bold_text_enabled=False):
-        if bold_text_enabled:
-            self.trim_start_label.set_markup('<b>Trim Start:</b>')
-            self.trim_start_value_label.set_markup('<b>' + trim_start_value_text + '</b>')
-            self.__disable_trim_end_label_bold_text()
-        else:
-            self.trim_start_label.set_text('Trim Start:')
-            self.trim_start_value_label.set_text(trim_start_value_text)
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        for signal in self.signals_list:
+            if hasattr(signal, signal_name):
+                return getattr(signal, signal_name)
 
-    def __set_trim_end_label_value_text(self, trim_end_value_text, bold_text_enabled=False):
-        if bold_text_enabled:
-            self.trim_end_label.set_markup('<b>Trim End:</b>')
-            self.trim_end_value_label.set_markup('<b>' + trim_end_value_text + '</b>')
-            self.__disable_trim_start_label_bold_text()
-        else:
-            self.trim_end_label.set_text('Trim End:')
-            self.trim_end_value_label.set_text(trim_end_value_text)
-
-    def __disable_trim_start_label_bold_text(self):
-        start_time_in_seconds = round(self.trim_start_scale.get_value(), 1)
-        start_timecode = format_converter.get_timecode_from_seconds(start_time_in_seconds)
-
-        self.trim_start_label.set_text('Trim Start:')
-        self.trim_start_value_label.set_text(start_timecode)
-
-    def __disable_trim_end_label_bold_text(self):
-        end_time_in_seconds = round(self.trim_end_scale.get_value(), 1)
-        end_timecode = format_converter.get_timecode_from_seconds(end_time_in_seconds)
-
-        self.trim_end_label.set_text('Trim End:')
-        self.trim_end_value_label.set_text(end_timecode)
+        raise AttributeError
 
     def setup_trim_page(self):
         if not self.__setup_ffmpeg():
             return
 
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.__setup_trim_page_scales()
         self.__setup_trim_page_labels()
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
-        self.__run_set_trim_thumbnail_thread()
+        self.run_trim_thumbnail_thread()
 
     def __setup_ffmpeg(self):
         inputs_row = self.inputs_page_handlers.get_selected_row()
@@ -128,10 +113,42 @@ class TrimPageHandlers:
         start_timecode = format_converter.get_timecode_from_seconds(self.trim_start_scale.get_value())
         end_timecode = format_converter.get_timecode_from_seconds(self.trim_end_scale.get_value())
 
-        self.__set_trim_start_label_value_text(start_timecode, True)
-        self.__set_trim_end_label_value_text(end_timecode)
+        self.set_trim_start_text(start_timecode, True)
+        self.set_trim_end_text(end_timecode)
 
-    def __run_set_trim_thumbnail_thread(self, use_end_time=False):
+    def set_trim_start_text(self, trim_start_value_text, bold_text_enabled=False):
+        if bold_text_enabled:
+            self.trim_start_label.set_markup('<b>Trim Start:</b>')
+            self.trim_start_value_label.set_markup('<b>' + trim_start_value_text + '</b>')
+            self.__disable_trim_end_label_bold_text()
+        else:
+            self.trim_start_label.set_text('Trim Start:')
+            self.trim_start_value_label.set_text(trim_start_value_text)
+
+    def __disable_trim_end_label_bold_text(self):
+        end_time_in_seconds = round(self.trim_end_scale.get_value(), 1)
+        end_timecode = format_converter.get_timecode_from_seconds(end_time_in_seconds)
+
+        self.trim_end_label.set_text('Trim End:')
+        self.trim_end_value_label.set_text(end_timecode)
+
+    def set_trim_end_text(self, trim_end_value_text, bold_text_enabled=False):
+        if bold_text_enabled:
+            self.trim_end_label.set_markup('<b>Trim End:</b>')
+            self.trim_end_value_label.set_markup('<b>' + trim_end_value_text + '</b>')
+            self.__disable_trim_start_label_bold_text()
+        else:
+            self.trim_end_label.set_text('Trim End:')
+            self.trim_end_value_label.set_text(trim_end_value_text)
+
+    def __disable_trim_start_label_bold_text(self):
+        start_time_in_seconds = round(self.trim_start_scale.get_value(), 1)
+        start_timecode = format_converter.get_timecode_from_seconds(start_time_in_seconds)
+
+        self.trim_start_label.set_text('Trim Start:')
+        self.trim_start_value_label.set_text(start_timecode)
+
+    def run_trim_thumbnail_thread(self, use_end_time=False):
         if use_end_time:
             time = round(self.trim_end_scale.get_value(), 1)
         else:
@@ -145,9 +162,9 @@ class TrimPageHandlers:
         widget_width = self.trim_preview_viewport.get_allocated_width()
         widget_height = self.trim_preview_viewport.get_allocated_height()
 
-        GLib.idle_add(self.__set_thumbnail_resize, widget_width, widget_height)
+        GLib.idle_add(self.resize_thumbnail, widget_width, widget_height)
 
-    def __set_thumbnail_resize(self, widget_width, widget_height):
+    def resize_thumbnail(self, widget_width, widget_height):
         if self.image_buffer is None:
             return
 
@@ -176,7 +193,7 @@ class TrimPageHandlers:
         GLib.idle_add(self.trim_preview.set_opacity, 1)
 
     def reset_trim_page(self):
-        self.__is_widgets_setting_up = True
+        self.is_widgets_setting_up = True
 
         self.trim_start_scale.set_value(0)
         self.trim_end_scale.set_value(self.trim_end_adjustment.get_upper())
@@ -184,17 +201,36 @@ class TrimPageHandlers:
         self.trim_preview.set_opacity(0.5)
         self.trim_enabled_checkbox.set_active(False)
 
-        self.__is_widgets_setting_up = False
+        self.is_widgets_setting_up = False
 
-    def on_trim_enabled_checkbox_toggled(self, trim_enabled_checkbox):
-        self.trim_time_box.set_sensitive(trim_enabled_checkbox.get_active())
+    def get_trim_start_value(self):
+        return self.trim_start_scale.get_value()
 
-        if self.__is_widgets_setting_up:
-            return
+    def get_trim_end_value(self):
+        return self.trim_end_scale.get_value()
 
-        self.__setup_trim_settings()
+    def get_preview_viewport_width(self):
+        return self.trim_preview_viewport_width
 
-    def __setup_trim_settings(self):
+    def get_preview_viewport_height(self):
+        return self.trim_preview_viewport_height
+
+    def set_trim_start_value(self, trim_start_value):
+        self.trim_start_scale.set_value(trim_start_value)
+
+    def set_trim_end_value(self, trim_end_value):
+        self.trim_end_scale.set_value(trim_end_value)
+
+    def set_trim_state(self, enabled):
+        self.trim_time_box.set_sensitive(enabled)
+
+    def set_preview_viewport_width(self, viewport_width):
+        self.trim_preview_viewport_width = viewport_width
+
+    def set_preview_viewport_height(self, viewport_height):
+        self.trim_preview_viewport_height = viewport_height
+
+    def update_trim_settings(self):
         if self.trim_enabled_checkbox.get_active():
             start_time = round(self.trim_start_scale.get_value(), 1)
             duration = round(self.trim_end_scale.get_value() - start_time, 1)
@@ -207,67 +243,3 @@ class TrimPageHandlers:
             self.ffmpeg.trim_settings = None
 
         self.inputs_page_handlers.get_selected_row().setup_labels()
-
-    def on_trim_start_scale_value_changed(self, trim_start_scale):
-        start_time_in_seconds = round(trim_start_scale.get_value(), 1)
-
-        if start_time_in_seconds >= self.trim_end_scale.get_value():
-            self.trim_end_scale.set_value(start_time_in_seconds + 1)
-
-        if start_time_in_seconds == self.ffmpeg.duration_origin:
-            trim_start_scale.set_value(start_time_in_seconds - 1)
-
-        start_timecode = format_converter.get_timecode_from_seconds(start_time_in_seconds)
-
-        self.__set_trim_start_label_value_text(start_timecode, True)
-
-    def on_trim_start_scale_button_release_event(self, event, data):
-        if self.__is_widgets_setting_up:
-            return
-        
-        self.__run_set_trim_thumbnail_thread()
-        self.__setup_trim_settings()
-
-    def on_trim_start_scale_key_release_event(self, event, data):
-        if self.__is_widgets_setting_up:
-            return
-        
-        self.__run_set_trim_thumbnail_thread()
-        self.__setup_trim_settings()
-
-    def on_trim_end_scale_value_changed(self, trim_end_scale):
-        end_time_in_seconds = round(trim_end_scale.get_value(), 1)
-
-        if end_time_in_seconds <= self.trim_start_scale.get_value():
-            self.trim_start_scale.set_value(end_time_in_seconds - 1)
-
-        if end_time_in_seconds == 0:
-            trim_end_scale.set_value(1)
-
-        end_timecode = format_converter.get_timecode_from_seconds(end_time_in_seconds)
-
-        self.__set_trim_end_label_value_text(end_timecode, True)
-
-    def on_trim_end_scale_button_release_event(self, event, data):
-        if self.__is_widgets_setting_up:
-            return
-        
-        self.__run_set_trim_thumbnail_thread(True)
-        self.__setup_trim_settings()
-
-    def on_trim_end_scale_key_release_event(self, event, data):
-        if self.__is_widgets_setting_up:
-            return
-        
-        self.__run_set_trim_thumbnail_thread(True)
-        self.__setup_trim_settings()
-
-    def on_trim_preview_viewport_size_allocate(self, trim_preview_viewport, allocation):
-        widget_width = trim_preview_viewport.get_allocated_width()
-        widget_height = trim_preview_viewport.get_allocated_height()
-
-        if not self.trim_preview_viewport_width == widget_width \
-                or not self.trim_preview_viewport_height == widget_height:
-            self.__set_thumbnail_resize(widget_width, widget_height)
-            self.trim_preview_viewport_width = widget_width
-            self.trim_preview_viewport_height = widget_height

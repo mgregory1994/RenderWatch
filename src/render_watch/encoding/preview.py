@@ -525,7 +525,7 @@ def __run_vid_preview_ffmpeg_process(ffmpeg, duration, preview_page_handlers, st
                     else:
                         progress = .5 + ((current / duration) / len(ffmpeg_args))
 
-                    GLib.idle_add(preview_page_handlers.set_preview_progress_bar_fraction, progress)
+                    GLib.idle_add(preview_page_handlers.set_progress_fraction, progress)
                 except:
                     continue
 
