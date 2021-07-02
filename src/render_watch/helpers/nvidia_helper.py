@@ -21,8 +21,6 @@ import logging
 
 from concurrent.futures import ThreadPoolExecutor
 
-from render_watch.ffmpeg.settings import Settings
-
 
 class NvidiaHelper:
     """Contains methods for testing Nvidia's NVENC functionality on the system."""
@@ -50,6 +48,8 @@ class NvidiaHelper:
     @staticmethod
     def __get_new_nvenc_test_args():
         # Generates ffmpeg arguments for running a test encode using a null source.
+        from render_watch.ffmpeg.settings import Settings
+
         ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
         ffmpeg_args.append('-f')
         ffmpeg_args.append('lavfi')
@@ -93,6 +93,8 @@ class NvidiaHelper:
     @staticmethod
     def __get_new_nvdec_test_args():
         # Returns ffmpeg arguments to test if NVDEC is supported.
+        from render_watch.ffmpeg.settings import Settings
+
         ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
         ffmpeg_args.append('-decoders')
         return ffmpeg_args
@@ -128,6 +130,8 @@ class NvidiaHelper:
     @staticmethod
     def __get_new_npp_test_args():
         # Returns ffmpeg arguments to test if npp is supported.
+        from render_watch.ffmpeg.settings import Settings
+
         ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
         ffmpeg_args.append('-filters')
         return ffmpeg_args
