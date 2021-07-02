@@ -1,21 +1,19 @@
-"""
-Copyright 2021 Michael Gregory
-
-This file is part of Render Watch.
-
-Render Watch is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Render Watch is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# Copyright 2021 Michael Gregory
+#
+# This file is part of Render Watch.
+#
+# Render Watch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Render Watch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
 from render_watch.ffmpeg.opus import Opus
@@ -24,6 +22,8 @@ from render_watch.signals.opus.opus_channels_signal import OpusChannelsSignal
 
 
 class OpusHandlers:
+    """Handles all widget changes for the Opus codec."""
+
     def __init__(self, gtk_builder, inputs_page_handlers):
         self.inputs_page_handlers = inputs_page_handlers
         self.is_widgets_setting_up = False
@@ -34,40 +34,45 @@ class OpusHandlers:
         self.opus_bitrate_spinbutton = gtk_builder.get_object('opus_bitrate_spinbutton')
 
     def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        """Returns the list of signals this class uses.
+
+        Used for Gtk.Builder.get_signals().
+
+        :param signal_name:
+            The signal function name being looked for.
+        """
         for signal in self.signals_list:
             if hasattr(signal, signal_name):
                 return getattr(signal, signal_name)
-
         raise AttributeError
 
     def get_settings(self, ffmpeg):
+        """Applies the Opus settings to the ffmpeg settings object."""
         audio_settings = Opus()
         audio_settings.channels = self.opus_channels_combobox.get_active()
         audio_settings.bitrate = self.opus_bitrate_spinbutton.get_value_as_int()
         ffmpeg.audio_settings = audio_settings
 
     def set_settings(self, ffmpeg_param=None):
+        """Applies the ffmpeg settings object to the Opus widgets."""
         if ffmpeg_param is not None:
             ffmpeg = ffmpeg_param
         else:
             ffmpeg = self.inputs_page_handlers.get_selected_row_ffmpeg()
+        self._setup_opus_settings_widgets(ffmpeg)
 
-        self.__setup_opus_settings_widgets(ffmpeg)
-
-    def __setup_opus_settings_widgets(self, ffmpeg):
+    def _setup_opus_settings_widgets(self, ffmpeg):
         audio_settings = ffmpeg.audio_settings
-
         if audio_settings is not None and audio_settings.codec_name == 'libopus':
             self.is_widgets_setting_up = True
-
             self.opus_bitrate_spinbutton.set_value(audio_settings.bitrate)
             self.opus_channels_combobox.set_active(audio_settings.channels)
-
             self.is_widgets_setting_up = False
         else:
             self.reset_settings()
 
     def reset_settings(self):
+        """Resets the Opus widgets to their default values."""
         self.is_widgets_setting_up = True
         self.opus_bitrate_spinbutton.set_value(128)
         self.opus_channels_combobox.set_active(0)

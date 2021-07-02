@@ -1,7 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.38.2 
+
+Copyright (C) Michael Gregory
+
+This file is part of Render Watch.
+
+Render Watch is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Render Watch is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Render Watch.  If not, see <http://www.gnu.org/licenses/>.
+
+Author: Michael Gregory
+
+-->
 <interface>
   <requires lib="gtk+" version="3.24"/>
+  <!-- interface-license-type gplv3 -->
+  <!-- interface-name Render Watch -->
+  <!-- interface-description A professional video transcoder for Linux -->
+  <!-- interface-copyright Michael Gregory -->
+  <!-- interface-authors Michael Gregory -->
   <object class="GtkAdjustment" id="aac_bitrate_adjustment">
     <property name="lower">16</property>
     <property name="upper">999</property>
@@ -356,15 +382,13 @@
     <property name="skip-taskbar-hint">True</property>
     <property name="transient-for">main_window</property>
     <property name="program-name">Render Watch</property>
-    <property name="version">0.1.0</property>
+    <property name="version">0.1.1-Beta</property>
     <property name="copyright" translatable="yes">Copyright 2021 Michael Gregory</property>
     <property name="comments" translatable="yes">A professional video transcoder for Linux</property>
     <property name="website">https://github.com/mgregory1994/RenderWatch</property>
     <property name="website-label" translatable="yes">Visit GitHub web page</property>
-    <property name="authors">- Developers -
-Michael Gregory</property>
-    <property name="artists">- Render Watch Icon -
-Laura Pluckhan</property>
+    <property name="authors">Michael Gregory</property>
+    <property name="artists">Laura Pluckhan</property>
     <property name="logo">rw_128.png</property>
     <property name="license-type">gpl-3-0</property>
     <child internal-child="vbox">
@@ -459,7 +483,7 @@ Laura Pluckhan</property>
                                     <property name="sensitive">False</property>
                                     <property name="can-focus">False</property>
                                     <property name="valign">start</property>
-                                    <property name="label" translatable="yes">Add or Drag N' Drop a New Input</property>
+                                    <property name="label" translatable="yes">Add or Drop a New Input</property>
                                     <property name="justify">center</property>
                                     <property name="yalign">0.14999999105930328</property>
                                     <attributes>
@@ -7911,6 +7935,17 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="margin-start">20</property>
+                                                    <child type="center">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
                                                     <child>
                                                       <object class="GtkLabel" id="aac_bitrate_label">
                                                         <property name="visible">True</property>
@@ -7938,7 +7973,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                         <signal name="value-changed" handler="on_aac_bitrate_spinbutton_value_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
-                                                        <property name="expand">False</property>
+                                                        <property name="expand">True</property>
                                                         <property name="fill">True</property>
                                                         <property name="pack-type">end</property>
                                                         <property name="position">1</property>
@@ -8273,6 +8308,7 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                                                             <property name="visible">True</property>
                                                             <property name="sensitive">False</property>
                                                             <property name="can-focus">False</property>
+                                                            <property name="width-chars">13</property>
                                                           </object>
                                                           <packing>
                                                             <property name="expand">False</property>
@@ -8698,7 +8734,7 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                             <property name="sensitive">False</property>
                             <property name="can-focus">False</property>
                             <property name="valign">start</property>
-                            <property name="label" translatable="yes">No Active Processes</property>
+                            <property name="label" translatable="yes">No Active Tasks</property>
                             <property name="justify">center</property>
                             <property name="yalign">0.15000000596046448</property>
                             <attributes>
@@ -8769,7 +8805,7 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                             <property name="sensitive">False</property>
                             <property name="can-focus">False</property>
                             <property name="valign">start</property>
-                            <property name="label" translatable="yes">No Completed Processes</property>
+                            <property name="label" translatable="yes">No Completed Tasks</property>
                             <property name="justify">center</property>
                             <property name="yalign">0.15000000596046448</property>
                             <attributes>
@@ -9781,21 +9817,49 @@ If this option is disabled, then conflicting tasks will have their output file r
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkCheckButton" id="auto_crop_button">
-                    <property name="label" translatable="yes">Auto-Crop Inputs</property>
+                  <object class="GtkBox">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">False</property>
-                    <property name="tooltip-text" translatable="yes">Automatically detect and remove "black bars" by cropping input</property>
-                    <property name="halign">start</property>
-                    <property name="active">True</property>
-                    <property name="draw-indicator">True</property>
-                    <signal name="toggled" handler="on_auto_crop_button_toggled" swapped="no"/>
+                    <property name="can-focus">False</property>
+                    <property name="margin-start">5</property>
+                    <property name="margin-end">5</property>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Auto. Crop Inputs</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="auto_crop_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">False</property>
+                        <property name="tooltip-text" translatable="yes">Automatically detect and remove "black bars" by cropping input</property>
+                        <property name="image-position">right</property>
+                        <property name="active">True</property>
+                        <property name="draw-indicator">True</property>
+                        <signal name="toggled" handler="on_auto_crop_button_toggled" swapped="no"/>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="pack-type">end</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">3</property>
+                    <property name="position">4</property>
                   </packing>
                 </child>
                 <child>
@@ -9806,26 +9870,16 @@ If this option is disabled, then conflicting tasks will have their output file r
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">4</property>
+                    <property name="position">5</property>
                   </packing>
                 </child>
                 <child>
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="spacing">5</property>
-                    <child>
-                      <object class="GtkSwitch" id="apply_to_all_switch">
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <signal name="state-set" handler="on_apply_to_all_switch_state_set" swapped="no"/>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
+                    <property name="margin-start">5</property>
+                    <property name="margin-end">5</property>
+                    <property name="spacing">10</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
@@ -9835,6 +9889,19 @@ If this option is disabled, then conflicting tasks will have their output file r
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkSwitch" id="apply_to_all_switch">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <signal name="state-set" handler="on_apply_to_all_switch_state_set" swapped="no"/>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
@@ -9842,7 +9909,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">5</property>
+                    <property name="position">6</property>
                   </packing>
                 </child>
                 <child>
@@ -9853,56 +9920,49 @@ If this option is disabled, then conflicting tasks will have their output file r
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">6</property>
+                    <property name="position">7</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="task_processing_type_box">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="orientation">vertical</property>
+                    <property name="spacing">8</property>
                     <child>
-                      <object class="GtkButtonBox">
+                      <object class="GtkBox" id="standard_tasks_box">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="halign">start</property>
-                        <property name="orientation">vertical</property>
-                        <property name="layout-style">start</property>
+                        <property name="margin-start">5</property>
+                        <property name="margin-end">5</property>
                         <child>
-                          <object class="GtkRadioButton" id="std_proc_button">
-                            <property name="label" translatable="yes">Standard Task Processing</property>
+                          <object class="GtkLabel">
                             <property name="visible">True</property>
-                            <property name="can-focus">True</property>
-                            <property name="receives-default">False</property>
-                            <property name="tooltip-text" translatable="yes">Started inputs will be processed as a standard task</property>
-                            <property name="halign">start</property>
-                            <property name="active">True</property>
-                            <property name="draw-indicator">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Standard Tasks</property>
                           </object>
                           <packing>
-                            <property name="expand">True</property>
+                            <property name="expand">False</property>
                             <property name="fill">True</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkRadioButton" id="dist_proc_button">
-                            <property name="label" translatable="yes">Parallel Task Processing</property>
+                          <object class="GtkRadioButton" id="std_proc_button">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
-                            <property name="tooltip-text" translatable="yes">Started inputs will be processed as a parallel task
-
-The parallel task type selected below will be used</property>
-                            <property name="halign">start</property>
+                            <property name="tooltip-text" translatable="yes">Started inputs will be processed as a standard task</property>
                             <property name="active">True</property>
                             <property name="draw-indicator">True</property>
-                            <property name="group">std_proc_button</property>
-                            <signal name="toggled" handler="on_dist_proc_button_toggled" swapped="no"/>
+                            <child>
+                              <placeholder/>
+                            </child>
                           </object>
                           <packing>
-                            <property name="expand">True</property>
+                            <property name="expand">False</property>
                             <property name="fill">True</property>
+                            <property name="pack-type">end</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
@@ -9910,16 +9970,62 @@ The parallel task type selected below will be used</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">0</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButtonBox" id="dist_proc_type_buttonbox">
+                      <object class="GtkBox" id="parallel_tasks_box">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-start">5</property>
+                        <property name="margin-end">5</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="label" translatable="yes">Parallel Tasks</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkRadioButton" id="dist_proc_button">
+                            <property name="visible">True</property>
+                            <property name="can-focus">True</property>
+                            <property name="receives-default">False</property>
+                            <property name="tooltip-text" translatable="yes">Started inputs will be processed as a parallel task
+
+The parallel task type selected below will be used</property>
+                            <property name="draw-indicator">True</property>
+                            <property name="group">std_proc_button</property>
+                            <signal name="toggled" handler="on_dist_proc_button_toggled" swapped="no"/>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="pack-type">end</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="parallel_tasks_options_box">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-start">10</property>
-                        <property name="layout-style">center</property>
+                        <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkRadioButton" id="batch_radio_button">
                             <property name="label" translatable="yes">Batch</property>
@@ -9927,9 +10033,8 @@ The parallel task type selected below will be used</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
                             <property name="tooltip-text" translatable="yes">Multiple inputs will be processed simultaneously</property>
-                            <property name="halign">start</property>
                             <property name="active">True</property>
-                            <property name="draw-indicator">True</property>
+                            <property name="draw-indicator">False</property>
                           </object>
                           <packing>
                             <property name="expand">True</property>
@@ -9944,8 +10049,7 @@ The parallel task type selected below will be used</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
                             <property name="tooltip-text" translatable="yes">Inputs will be split into chunks and each chunk will be processed simultaneously</property>
-                            <property name="halign">start</property>
-                            <property name="draw-indicator">True</property>
+                            <property name="draw-indicator">False</property>
                             <property name="group">batch_radio_button</property>
                           </object>
                           <packing>
@@ -9954,18 +10058,21 @@ The parallel task type selected below will be used</property>
                             <property name="position">1</property>
                           </packing>
                         </child>
+                        <style>
+                          <class name="linked"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">1</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">7</property>
+                    <property name="position">8</property>
                   </packing>
                 </child>
               </object>

@@ -1,21 +1,19 @@
-"""
-Copyright 2021 Michael Gregory
-
-This file is part of Render Watch.
-
-Render Watch is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Render Watch is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# Copyright 2021 Michael Gregory
+#
+# This file is part of Render Watch.
+#
+# Render Watch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Render Watch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
 from render_watch.ffmpeg.vp9 import VP9
@@ -29,6 +27,8 @@ from render_watch.signals.vp9.vp9_row_multithreading_signal import Vp9RowMultith
 
 
 class VP9Handlers:
+    """Handles all widget changes for the VP9 codec."""
+
     def __init__(self, gtk_builder, inputs_page_handlers, preferences):
         self.inputs_page_handlers = inputs_page_handlers
         self.preferences = preferences
@@ -40,9 +40,11 @@ class VP9Handlers:
         self.vp9_quality_signal = Vp9QualitySignal(self, inputs_page_handlers)
         self.vp9_speed_signal = Vp9SpeedSignal(self, inputs_page_handlers)
         self.vp9_row_multithreading_signal = Vp9RowMultithreadingSignal(self, inputs_page_handlers)
-        self.signals_list = (self.vp9_crf_signal, self.vp9_bitrate_signal, self.vp9_constrained_signal,
-                             self.vp9_2pass_signal, self.vp9_quality_signal, self.vp9_speed_signal,
-                             self.vp9_row_multithreading_signal)
+        self.signals_list = (
+            self.vp9_crf_signal, self.vp9_bitrate_signal, self.vp9_constrained_signal,
+            self.vp9_2pass_signal, self.vp9_quality_signal, self.vp9_speed_signal,
+            self.vp9_row_multithreading_signal
+        )
         self.vp9_bitrate_spinbutton = gtk_builder.get_object('vp9_bitrate_spinbutton')
         self.vp9_max_bitrate_spinbutton = gtk_builder.get_object('vp9_max_bitrate_spinbutton')
         self.vp9_min_bitrate_spinbutton = gtk_builder.get_object('vp9_min_bitrate_spinbutton')
@@ -59,31 +61,35 @@ class VP9Handlers:
         self.vp9_speed_combobox = gtk_builder.get_object('vp9_speed_combobox')
         self.vp9_row_multithreading_checkbox = gtk_builder.get_object('vp9_row_multithreading_checkbox')
 
-    def __getattr__(self, signal_name):
+    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        """Returns the list of signals this class uses.
+
+        Used for Gtk.Builder.get_signals().
+
+        :param signal_name:
+            The signal function name being looked for.
+        """
         for signal in self.signals_list:
             if hasattr(signal, signal_name):
                 return getattr(signal, signal_name)
-
         raise AttributeError
 
-    def get_settings(self, ffmpeg):
+    def apply_settings(self, ffmpeg):
+        """Applies settings from the widgets to the ffmpeg settings object."""
         video_settings = VP9()
         video_settings.quality = self.vp9_quality_combobox.get_active()
         video_settings.speed = self.vp9_speed_combobox.get_active()
         video_settings.row_multithreading = self.vp9_row_multithreading_checkbox.get_active()
-
-        self.__set_rate_control_settings_from_vp9_widgets(video_settings)
-        self.__set_encode_pass_settings_from_vp9_widgets(video_settings, ffmpeg.temp_file_name)
-
+        self._apply_rate_control_settings(video_settings)
+        self._apply_encode_pass_settings(video_settings, ffmpeg.temp_file_name)
         ffmpeg.video_settings = video_settings
 
-    def __set_rate_control_settings_from_vp9_widgets(self, video_settings):
+    def _apply_rate_control_settings(self, video_settings):
         if self.vp9_crf_radiobutton.get_active():
             video_settings.crf = self.vp9_crf_scale.get_value()
             video_settings.bitrate = 0
         elif self.vp9_bitrate_radiobutton.get_active():
             video_settings.bitrate = self.vp9_bitrate_spinbutton.get_value_as_int()
-
             if not self.vp9_average_radiobutton.get_active():
                 video_settings.maxrate = self.vp9_max_bitrate_spinbutton.get_value_as_int()
                 video_settings.minrate = self.vp9_min_bitrate_spinbutton.get_value_as_int()
@@ -91,41 +97,38 @@ class VP9Handlers:
             video_settings.bitrate = self.vp9_bitrate_spinbutton.get_value_as_int()
             video_settings.crf = self.vp9_crf_scale.get_value()
 
-    def __set_encode_pass_settings_from_vp9_widgets(self, video_settings, temp_file_name):
+    def _apply_encode_pass_settings(self, video_settings, temp_file_name):
         if self.vp9_2_pass_checkbox.get_active():
             video_settings.encode_pass = 1
             video_settings.stats = self.preferences.temp_directory + '/' + temp_file_name + '.log'
 
     def set_settings(self, ffmpeg_param=None):
+        """Sets widgets according to the ffmpeg settings object's settings."""
         if ffmpeg_param is not None:
             ffmpeg = ffmpeg_param
         else:
             ffmpeg = self.inputs_page_handlers.get_selected_row_ffmpeg()
+        self._setup_vp9_settings_widgets(ffmpeg)
 
-        self.__setup_vp9_settings_widgets(ffmpeg)
-
-    def __setup_vp9_settings_widgets(self, ffmpeg):
-        video_settings = ffmpeg.video_settings
-
-        if video_settings is not None and video_settings.codec_name == 'libvpx-vp9':
+    def _setup_vp9_settings_widgets(self, ffmpeg):
+        # Configures widgets using the ffmpeg settings object's settings.
+        if ffmpeg.is_video_settings_vp9():
+            video_settings = ffmpeg.video_settings
             self.is_widgets_setting_up = True
-
             self.vp9_quality_combobox.set_active(video_settings.quality)
             self.vp9_speed_combobox.set_active(video_settings.speed)
             self.vp9_row_multithreading_checkbox.set_active(video_settings.row_multithreading)
-            self.__setup_vp9_rate_control_widgets_settings(video_settings)
-            self.__setup_vp9_encode_pass_widgets_settings(video_settings)
-
+            self._setup_vp9_rate_control_widgets(video_settings)
+            self._setup_vp9_encode_pass_widgets(video_settings)
             self.is_widgets_setting_up = False
         else:
             self.reset_settings()
 
-    def __setup_vp9_rate_control_widgets_settings(self, video_settings):
+    def _setup_vp9_rate_control_widgets(self, video_settings):
         bitrate_value = video_settings.bitrate
         max_bitrate_value = video_settings.maxrate
         min_bitrate_value = video_settings.minrate
         crf_value = video_settings.crf
-
         if bitrate_value == 0:
             self.vp9_crf_radiobutton.set_active(True)
             self.vp9_crf_scale.set_value(crf_value)
@@ -136,31 +139,27 @@ class VP9Handlers:
         else:
             self.vp9_bitrate_radiobutton.set_active(True)
             self.vp9_bitrate_spinbutton.set_value(bitrate_value)
-
             if max_bitrate_value and min_bitrate_value:
-
                 if max_bitrate_value == min_bitrate_value:
                     min_bitrate_value = bitrate_value
                     max_bitrate_value = bitrate_value
-
                     self.vp9_constant_radiobutton.set_active(True)
                 else:
                     self.vp9_vbr_radiobutton.set_active(True)
-
                 self.vp9_max_bitrate_spinbutton.set_value(max_bitrate_value)
                 self.vp9_min_bitrate_spinbutton.set_value(min_bitrate_value)
             else:
                 self.vp9_average_radiobutton.set_active(True)
 
-    def __setup_vp9_encode_pass_widgets_settings(self, video_settings):
+    def _setup_vp9_encode_pass_widgets(self, video_settings):
         if video_settings.encode_pass:
             self.vp9_2_pass_checkbox.set_active(True)
         else:
             self.vp9_2_pass_checkbox.set_active(False)
 
     def reset_settings(self):
+        """Sets the page's widgets to their default values."""
         self.is_widgets_setting_up = True
-
         self.vp9_quality_combobox.set_active(0)
         self.vp9_bitrate_radiobutton.set_active(True)
         self.vp9_crf_scale.set_value(30.0)
@@ -171,7 +170,6 @@ class VP9Handlers:
         self.vp9_2_pass_checkbox.set_active(False)
         self.vp9_speed_combobox.set_active(0)
         self.vp9_row_multithreading_checkbox.set_active(False)
-
         self.is_widgets_setting_up = False
 
     def get_crf_value(self):

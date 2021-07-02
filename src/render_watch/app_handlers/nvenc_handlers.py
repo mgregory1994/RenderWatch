@@ -1,21 +1,19 @@
-"""
-Copyright 2021 Michael Gregory
-
-This file is part of Render Watch.
-
-Render Watch is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Render Watch is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# Copyright 2021 Michael Gregory
+#
+# This file is part of Render Watch.
+#
+# Render Watch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Render Watch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
 from render_watch.ffmpeg.hevc_nvenc import HevcNvenc
@@ -46,10 +44,12 @@ from render_watch.startup import GLib
 
 
 class NvencHandlers:
+    """Handles all widget changes for the NVENC codecs."""
+
     def __init__(self, gtk_builder, inputs_page_handlers):
         self.is_widgets_setting_up = False
         self.inputs_page_handlers = inputs_page_handlers
-        self.__is_h264_state = True
+        self._is_h264_state = True
         self.nvenc_qp_signal = NvencQpSignal(self, inputs_page_handlers)
         self.nvenc_bitrate_signal = NvencBitrateSignal(self, inputs_page_handlers)
         self.nvenc_advanced_settings_signal = NvencAdvancedSettingsSignal(self, inputs_page_handlers)
@@ -71,13 +71,15 @@ class NvencHandlers:
         self.nvenc_surfaces_signal = NvencSurfacesSignal(self, inputs_page_handlers)
         self.nvenc_tune_signal = NvencTuneSignal(self, inputs_page_handlers)
         self.nvenc_weighted_prediction_signal = NvencWeightedPredictionSignal(self, inputs_page_handlers)
-        self.signals_list = (self.nvenc_qp_signal, self.nvenc_bitrate_signal, self.nvenc_advanced_settings_signal,
-                             self.nvenc_aq_signal, self.nvenc_badapt_signal, self.nvenc_bluray_compat_signal,
-                             self.nvenc_bref_mode_signal, self.nvenc_coder_signal, self.nvenc_forced_idr_signal,
-                             self.nvenc_high_tier_signal, self.nvenc_level_signal, self.nvenc_multi_pass_signal,
-                             self.nvenc_no_scenecut_signal, self.nvenc_nonref_pframes_signal, self.nvenc_preset_signal,
-                             self.nvenc_profile_signal, self.nvenc_rate_control_signal, self.nvenc_strict_gop_signal,
-                             self.nvenc_surfaces_signal, self.nvenc_tune_signal, self.nvenc_weighted_prediction_signal)
+        self.signals_list = (
+            self.nvenc_qp_signal, self.nvenc_bitrate_signal, self.nvenc_advanced_settings_signal,
+            self.nvenc_aq_signal, self.nvenc_badapt_signal, self.nvenc_bluray_compat_signal,
+            self.nvenc_bref_mode_signal, self.nvenc_coder_signal, self.nvenc_forced_idr_signal,
+            self.nvenc_high_tier_signal, self.nvenc_level_signal, self.nvenc_multi_pass_signal,
+            self.nvenc_no_scenecut_signal, self.nvenc_nonref_pframes_signal, self.nvenc_preset_signal,
+            self.nvenc_profile_signal, self.nvenc_rate_control_signal, self.nvenc_strict_gop_signal,
+            self.nvenc_surfaces_signal, self.nvenc_tune_signal, self.nvenc_weighted_prediction_signal
+        )
         self.nvenc_preset_combobox = gtk_builder.get_object('nvenc_preset_combobox')
         self.nvenc_profile_combobox = gtk_builder.get_object('nvenc_profile_combobox')
         self.nvenc_level_combobox = gtk_builder.get_object('nvenc_level_combobox')
@@ -125,29 +127,33 @@ class NvencHandlers:
         self.nvenc_weighted_prediction_checkbox = gtk_builder.get_object('nvenc_weighted_prediction_checkbox')
 
     def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+        """Returns the list of signals this class uses.
+
+        Used for Gtk.Builder.get_signals().
+
+        :param signal_name:
+            The signal function name being looked for.
+        """
         for signal in self.signals_list:
             if hasattr(signal, signal_name):
                 return getattr(signal, signal_name)
-
         raise AttributeError
 
     def get_settings(self, ffmpeg):
-        if self.__is_h264_state:
+        """Gets and applies settings from NVENC widgets to the ffmpeg settings object."""
+        if self._is_h264_state:
             video_settings = H264Nvenc()
         else:
             video_settings = HevcNvenc()
-
         video_settings.preset = self.nvenc_preset_combobox.get_active()
         video_settings.profile = self.nvenc_profile_combobox.get_active()
         video_settings.level = self.nvenc_level_combobox.get_active()
         video_settings.tune = self.nvenc_tune_combobox.get_active()
-
-        self.__set_rate_control_settings_from_nvenc_widgets(video_settings)
-        self.__set_advanced_settings_from_nvenc_widgets(video_settings)
-
+        self._apply_rate_control_settings(video_settings)
+        self._apply_advanced_settings(video_settings)
         ffmpeg.video_settings = video_settings
 
-    def __set_rate_control_settings_from_nvenc_widgets(self, video_settings):
+    def _apply_rate_control_settings(self, video_settings):
         if self.nvenc_qp_radiobutton.get_active():
             video_settings.qp = self.nvenc_qp_scale.get_value()
         else:
@@ -156,7 +162,7 @@ class NvencHandlers:
             video_settings.cbr = self.nvenc_constant_radiobutton.get_active()
             video_settings.multi_pass = self.nvenc_multi_pass_combobox.get_active()
 
-    def __set_advanced_settings_from_nvenc_widgets(self, video_settings):
+    def _apply_advanced_settings(self, video_settings):
         if self.nvenc_advanced_settings_switch.get_active():
             video_settings.advanced_enabled = True
             video_settings.no_scenecut = self.nvenc_no_scenecut_checkbox.get_active()
@@ -171,12 +177,11 @@ class NvencHandlers:
             video_settings.surfaces = self.nvenc_surfaces_spinbutton.get_value_as_int()
             video_settings.aq_strength = self.nvenc_aqstrength_spinbutton.get_value_as_int()
             video_settings.rc = self.nvenc_rate_control_combobox.get_active()
+            self._apply_qp_custom_settings(video_settings)
+            self._apply_h264_settings(video_settings)
+            self._apply_hevc_settings(video_settings)
 
-            self.__set_qp_custom_settings_from_nvenc_widgets(video_settings)
-            self.__set_h264_settings_from_nvenc_widgets(video_settings)
-            self.__set_hevc_settings_from_nvenc_widgets(video_settings)
-
-    def __set_qp_custom_settings_from_nvenc_widgets(self, video_settings):
+    def _apply_qp_custom_settings(self, video_settings):
         if self.nvenc_qp_custom_radiobutton.get_active():
             video_settings.bitrate = None
             video_settings.cbr = None
@@ -185,56 +190,52 @@ class NvencHandlers:
             video_settings.qp_p = self.nvenc_qp_p_scale.get_value()
             video_settings.qp_b = self.nvenc_qp_b_scale.get_value()
 
-    def __set_h264_settings_from_nvenc_widgets(self, video_settings):
-        if self.__is_h264_state:
+    def _apply_h264_settings(self, video_settings):
+        if self._is_h264_state:
             video_settings.b_adapt = self.nvenc_badapt_checkbox.get_active()
             video_settings.coder = self.nvenc_coder_combobox.get_active()
 
-    def __set_hevc_settings_from_nvenc_widgets(self, video_settings):
-        if not self.__is_h264_state:
+    def _apply_hevc_settings(self, video_settings):
+        if not self._is_h264_state:
             video_settings.tier = self.nvenc_tier_high_radiobutton.get_active()
 
-    def set_settings(self, ffmpeg_param=None):
-        if ffmpeg_param is not None:
-            ffmpeg = ffmpeg_param
+    def set_settings(self, ffmpeg_custom=None):
+        """Sets the NVENC widgets from the ffmpeg settings object."""
+        if ffmpeg_custom:
+            ffmpeg = ffmpeg_custom
         else:
             ffmpeg = self.inputs_page_handlers.get_selected_row_ffmpeg()
+        self._setup_nvenc_settings_widgets(ffmpeg)
 
-        self.__setup_nvenc_settings_widgets(ffmpeg)
-
-    def __setup_nvenc_settings_widgets(self, ffmpeg):
+    def _setup_nvenc_settings_widgets(self, ffmpeg):
         video_settings = ffmpeg.video_settings
-
-        if video_settings is not None and 'nvenc' in video_settings.codec_name:
+        if video_settings and 'nvenc' in video_settings.codec_name:
             self.is_widgets_setting_up = True
-
-            self.__setup_nvenc_rate_control_widgets_settings(video_settings)
+            self._setup_nvenc_rate_control_widgets(video_settings)
             self.nvenc_preset_combobox.set_active(video_settings.preset)
             self.nvenc_profile_combobox.set_active(video_settings.profile)
             self.nvenc_level_combobox.set_active(video_settings.level)
             self.nvenc_tune_combobox.set_active(video_settings.tune)
-            self.__setup_nvenc_advanced_settings_widgets_settings(video_settings)
-
+            self._setup_nvenc_advanced_settings_widgets(video_settings)
             self.is_widgets_setting_up = False
         else:
             self.reset_settings()
 
-    def __setup_nvenc_rate_control_widgets_settings(self, video_settings):
+    def _setup_nvenc_rate_control_widgets(self, video_settings):
         if video_settings.qp is not None:
             self.nvenc_qp_radiobutton.set_active(True)
             self.nvenc_qp_scale.set_value(video_settings.qp)
         elif video_settings.bitrate is not None:
             self.nvenc_bitrate_radiobutton.set_active(True)
             self.nvenc_bitrate_spinbutton.set_value(video_settings.bitrate)
-
         self.nvenc_2pass_radiobutton.set_active(video_settings.dual_pass_enabled)
         self.nvenc_constant_radiobutton.set_active(video_settings.cbr)
         self.nvenc_average_radiobutton.set_active(not (video_settings.cbr or video_settings.dual_pass_enabled))
         self.nvenc_multi_pass_combobox.set_active(video_settings.multi_pass)
 
-    def __setup_nvenc_advanced_settings_widgets_settings(self, video_settings):
+    def _setup_nvenc_advanced_settings_widgets(self, video_settings):
         self.nvenc_advanced_settings_switch.set_active(video_settings.advanced_enabled)
-        self.__setup_nvenc_qp_custom_widgets_settings(video_settings)
+        self._setup_nvenc_qp_custom_widgets(video_settings)
         self.nvenc_rate_control_combobox.set_active(video_settings.rc)
         self.nvenc_rate_control_lookahead_spinbutton.set_value(video_settings.rc_lookahead)
         self.nvenc_surfaces_spinbutton.set_value(video_settings.surfaces)
@@ -248,33 +249,32 @@ class NvencHandlers:
         self.nvenc_bluray_compat_checkbox.set_active(video_settings.bluray_compat)
         self.nvenc_weighted_prediction_checkbox.set_active(video_settings.weighted_pred)
         self.nvenc_bref_mode_combobox.set_active(video_settings.b_ref_mode)
-        self.__setup_nvenc_h264_widgets_settings(video_settings)
-        self.__setup_nvenc_hevc_widgets_settings(video_settings)
+        self._setup_nvenc_h264_widgets(video_settings)
+        self._setup_nvenc_hevc_widgets(video_settings)
 
-    def __setup_nvenc_qp_custom_widgets_settings(self, video_settings):
+    def _setup_nvenc_qp_custom_widgets(self, video_settings):
         is_qp_custom_enabled = video_settings.qp_custom_enabled
-
         self.nvenc_qp_custom_radiobutton.set_active(is_qp_custom_enabled)
         self.nvenc_qp_auto_radiobutton.set_active(not is_qp_custom_enabled)
         self.nvenc_qp_i_scale.set_value(video_settings.qp_i)
         self.nvenc_qp_p_scale.set_value(video_settings.qp_p)
         self.nvenc_qp_b_scale.set_value(video_settings.qp_b)
 
-    def __setup_nvenc_h264_widgets_settings(self, video_settings):
+    def _setup_nvenc_h264_widgets(self, video_settings):
         if video_settings.codec_name == 'h264_nvenc':
             self.nvenc_badapt_checkbox.set_active(video_settings.b_adapt)
             self.nvenc_coder_combobox.set_active(video_settings.coder)
             self.nvenc_tier_high_radiobutton.set_active(0)
 
-    def __setup_nvenc_hevc_widgets_settings(self, video_settings):
+    def _setup_nvenc_hevc_widgets(self, video_settings):
         if video_settings.codec_name != 'h264_nvenc':
             self.nvenc_tier_high_radiobutton.set_active(video_settings.tier)
             self.nvenc_coder_combobox.set_active(0)
             self.nvenc_badapt_checkbox.set_active(False)
 
     def reset_settings(self):
+        """Resets the NVENC widgets to their default values."""
         self.is_widgets_setting_up = True
-
         self.nvenc_qp_scale.set_value(20)
         self.nvenc_preset_combobox.set_active(0)
         self.nvenc_profile_combobox.set_active(0)
@@ -284,11 +284,10 @@ class NvencHandlers:
         self.nvenc_bitrate_spinbutton.set_value(2500)
         self.nvenc_average_radiobutton.set_active(True)
         self.nvenc_multi_pass_combobox.set_active(0)
-        self.__reset_advanced_settings_widgets()
-
+        self._reset_advanced_settings_widgets()
         self.is_widgets_setting_up = False
 
-    def __reset_advanced_settings_widgets(self):
+    def _reset_advanced_settings_widgets(self):
         self.nvenc_advanced_settings_switch.set_active(False)
         self.nvenc_qp_auto_radiobutton.set_active(True)
         self.nvenc_qp_i_scale.set_value(20)
@@ -326,57 +325,59 @@ class NvencHandlers:
         return self.nvenc_qp_b_scale.get_value()
 
     def set_h264_state(self):
-        self.__is_h264_state = True
+        """Sets the NVENC widgets to the H264 state."""
+        self._is_h264_state = True
         self.is_widgets_setting_up = True
-
         self.nvenc_coder_box.set_sensitive(True)
         self.nvenc_badapt_checkbox.set_sensitive(True)
         self.nvenc_tier_box.set_sensitive(False)
-        UIHelper.rebuild_combobox(self.nvenc_preset_combobox, H264Nvenc.preset_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.profile_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.profile_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_level_combobox, H264Nvenc.level_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, H264Nvenc.tune_human_readable_list)
-        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, H264Nvenc.multi_pass_human_readable_list)
-        UIHelper.rebuild_combobox(self.nvenc_rate_control_combobox, H264Nvenc.rate_control_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_bref_mode_combobox, H264Nvenc.bref_mode_ffmpeg_args_list)
-
+        UIHelper.rebuild_combobox(self.nvenc_preset_combobox, H264Nvenc.PRESET_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.PROFILE_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.PROFILE_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_level_combobox, H264Nvenc.LEVEL_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, H264Nvenc.TUNE_UI_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, H264Nvenc.MULTI_PASS_UI_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_rate_control_combobox, H264Nvenc.RATE_CONTROL_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_bref_mode_combobox, H264Nvenc.BREF_MODE_ARGS_LIST)
         self.is_widgets_setting_up = False
 
     def set_hevc_state(self):
-        self.__is_h264_state = False
+        """Sets the NVENC widgets to the HEVC state."""
+        self._is_h264_state = False
         self.is_widgets_setting_up = True
-
         self.nvenc_coder_box.set_sensitive(False)
         self.nvenc_badapt_checkbox.set_sensitive(False)
         self.nvenc_tier_box.set_sensitive(True)
-        UIHelper.rebuild_combobox(self.nvenc_preset_combobox, HevcNvenc.preset_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.profile_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.profile_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_level_combobox, HevcNvenc.level_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, HevcNvenc.tune_human_readable_list)
-        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, HevcNvenc.multi_pass_human_readable_list)
-        UIHelper.rebuild_combobox(self.nvenc_rate_control_combobox, HevcNvenc.rate_control_ffmpeg_args_list)
-        UIHelper.rebuild_combobox(self.nvenc_bref_mode_combobox, HevcNvenc.bref_mode_ffmpeg_args_list)
-
+        UIHelper.rebuild_combobox(self.nvenc_preset_combobox, HevcNvenc.PRESET_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.PROFILE_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.PROFILE_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_level_combobox, HevcNvenc.LEVEL_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, HevcNvenc.TUNE_UI_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, HevcNvenc.MULTI_PASS_UI_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_rate_control_combobox, HevcNvenc.RATE_CONTROL_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_bref_mode_combobox, HevcNvenc.BREF_MODE_ARGS_LIST)
         self.is_widgets_setting_up = False
 
     def set_qp_state(self):
+        """Shows the QP settings widgets."""
         self.nvenc_rate_type_stack.set_visible_child(self.nvenc_qp_scale)
 
     def set_bitrate_state(self):
+        """Shows the bitrate settings widgets."""
         self.nvenc_rate_type_stack.set_visible_child(self.nvenc_bitrate_box)
 
     def set_multi_pass_state(self, enabled):
+        """Toggles the multi pass widgets."""
         self.nvenc_multi_pass_box.set_sensitive(enabled)
-
         if not enabled:
             self.nvenc_multi_pass_combobox.set_active(0)
 
     def set_advanced_settings_state(self, enabled):
+        """Toggles the advanced settings widgets."""
         self.nvenc_advanced_settings_revealer.set_reveal_child(enabled)
 
     def set_qp_custom_state(self, enabled):
+        """Toggles the qp custom settings widgets."""
         self.nvenc_qp_scales_box.set_sensitive(enabled)
         self.nvenc_qp_radiobutton.set_active(enabled)
         self.nvenc_qp_scale.set_sensitive(not enabled)
@@ -384,114 +385,99 @@ class NvencHandlers:
         self.nvenc_rate_type_buttons_box.set_sensitive(not enabled)
 
     def set_aq_strength_state(self, enabled):
+        """Toggles the aq strength settings widgets."""
         self.nvenc_aqstrength_box.set_sensitive(enabled)
 
     def update_rc_from_qp(self):
+        """Automatically sets the rate control settings widget for QP."""
         advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-
-        if advanced_enabled and not self.__is_rc_valid_for_qp():
-
-            if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('constqp')
+        if advanced_enabled and not self._is_rc_valid_for_qp():
+            if self._is_h264_state:
+                rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('constqp')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('constqp')
-
+                rc_index = HevcNvenc.RATE_CONTROL_ARGS_LIST.index('constqp')
             self.nvenc_rate_control_combobox.set_active(rc_index)
 
-    def __is_rc_valid_for_qp(self):
+    def _is_rc_valid_for_qp(self):
+        # Checks to see if rate control widgets are set up for QP.
         rc_index = self.nvenc_rate_control_combobox.get_active()
-
-        if self.__is_h264_state:
-            rc_value = H264Nvenc.rate_control_ffmpeg_args_list[rc_index]
+        if self._is_h264_state:
+            rc_value = H264Nvenc.RATE_CONTROL_ARGS_LIST[rc_index]
         else:
-            rc_value = HevcNvenc.rate_control_ffmpeg_args_list[rc_index]
-
+            rc_value = HevcNvenc.RATE_CONTROL_ARGS_LIST[rc_index]
         if rc_value == 'constqp' or rc_value == 'auto':
             return True
-
         return False
 
     def update_rc_from_average_bitrate(self):
+        """Automatically sets the rate control settings widget for average bitrate."""
         advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-
-        if advanced_enabled and not self.__is_rc_valid_for_vbr():
-
-            if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('vbr')
+        if advanced_enabled and not self._is_rc_valid_for_vbr():
+            if self._is_h264_state:
+                rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('vbr')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('vbr')
-
+                rc_index = HevcNvenc.RATE_CONTROL_ARGS_LIST.index('vbr')
             self.nvenc_rate_control_combobox.set_active(rc_index)
 
-    def __is_rc_valid_for_vbr(self):
+    def _is_rc_valid_for_vbr(self):
+        # Checks to see if rate control widgets are set up for VBR.
         rc_index = self.nvenc_rate_control_combobox.get_active()
-
-        if self.__is_h264_state:
-            rc_value = H264Nvenc.rate_control_ffmpeg_args_list[rc_index]
+        if self._is_h264_state:
+            rc_value = H264Nvenc.RATE_CONTROL_ARGS_LIST[rc_index]
         else:
-            rc_value = HevcNvenc.rate_control_ffmpeg_args_list[rc_index]
-
+            rc_value = HevcNvenc.RATE_CONTROL_ARGS_LIST[rc_index]
         if 'vbr' in rc_value or rc_value == 'auto':
             return True
-
         return False
 
     def update_rc_from_constant_bitrate(self):
+        """Automatically sets the rate control settings widget for constant bitrate."""
         advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-
-        if advanced_enabled and not self.__is_rc_valid_for_cbr():
-
-            if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('cbr')
+        if advanced_enabled and not self._is_rc_valid_for_cbr():
+            if self._is_h264_state:
+                rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('cbr')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('cbr')
-
+                rc_index = HevcNvenc.RATE_CONTROL_ARGS_LIST.index('cbr')
             self.nvenc_rate_control_combobox.set_active(rc_index)
 
-    def __is_rc_valid_for_cbr(self):
+    def _is_rc_valid_for_cbr(self):
+        # Checks to see if rate control widgets are set up for CBR.
         rc_index = self.nvenc_rate_control_combobox.get_active()
-
-        if self.__is_h264_state:
-            rc_value = H264Nvenc.rate_control_ffmpeg_args_list[rc_index]
+        if self._is_h264_state:
+            rc_value = H264Nvenc.RATE_CONTROL_ARGS_LIST[rc_index]
         else:
-            rc_value = HevcNvenc.rate_control_ffmpeg_args_list[rc_index]
-
+            rc_value = HevcNvenc.RATE_CONTROL_ARGS_LIST[rc_index]
         if 'cbr' in rc_value or rc_value == 'auto':
             return True
-
         return False
 
     def update_rc_from_2pass_bitrate(self):
+        """Automatically sets the rate control settings widget for 2-pass bitrate."""
         advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-
-        if advanced_enabled and not self.__is_rc_valid_for_vbr():
-
-            if self.__is_h264_state:
-                rc_index = H264Nvenc.rate_control_ffmpeg_args_list.index('vbr')
+        if advanced_enabled and not self._is_rc_valid_for_vbr():
+            if self._is_h264_state:
+                rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('vbr')
             else:
-                rc_index = HevcNvenc.rate_control_ffmpeg_args_list.index('vbr')
-
+                rc_index = HevcNvenc.RATE_CONTROL_ARGS_LIST.index('vbr')
             self.nvenc_rate_control_combobox.set_active(rc_index)
 
     def update_qp_from_advanced_settings(self):
+        """Sets up widgets based on whether the qp custom settings are enabled."""
         advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-
         if self.nvenc_qp_custom_radiobutton.get_active():
-
             if advanced_enabled:
                 self.nvenc_qp_radiobutton.set_active(True)
-
             self.nvenc_qp_scale.set_sensitive(not advanced_enabled)
             self.nvenc_bitrate_box.set_sensitive(not advanced_enabled)
             self.nvenc_rate_type_buttons_box.set_sensitive(not advanced_enabled)
 
     def update_settings(self):
+        """Applies NVENC settings to selected inputs row's ffmpeg settings object."""
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-
             self.get_settings(ffmpeg)
-            GLib.idle_add(row.setup_labels)
 
+            GLib.idle_add(row.setup_labels)
         GLib.idle_add(self.inputs_page_handlers.update_preview_page)
 
     def signal_average_radiobutton(self):

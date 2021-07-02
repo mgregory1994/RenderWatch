@@ -1,25 +1,25 @@
-"""
-Copyright 2021 Michael Gregory
+# Copyright 2021 Michael Gregory
+#
+# This file is part of Render Watch.
+#
+# Render Watch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Render Watch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
-This file is part of Render Watch.
-
-Render Watch is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Render Watch is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-"""
 
 import subprocess
 import os
 import logging
+import re
 
 from render_watch.app_formatting import format_converter
 from render_watch.ffmpeg.settings import Settings
@@ -27,17 +27,44 @@ from render_watch.ffmpeg.trim_settings import TrimSettings
 from render_watch.startup import GLib
 
 
-def get_crop_preview_file(ffmpeg, preferences, preview_height=None, start_time_param=None):
+def run_preview_process(generate_preview_func):
+    def inner(*args, **kwargs):
+        args_list, output_file = generate_preview_func(*args, **kwargs)
+
+        for args in args_list:
+            with subprocess.Popen(
+                    args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    bufsize=1) as process:
+                rc = process.wait()
+            if rc != 0:
+                logging.error('--- PREVIEW FAILED ---\n' + str(args))
+                return None
+        return output_file
+    return inner
+
+
+@run_preview_process
+def generate_crop_preview_file(ffmpeg, preferences, preview_height=None, start_time_param=None):
+    """Creates a crop preview image and returns the image's file path.
+
+    :param ffmpeg:
+        The ffmpeg settings object.
+    :param preferences:
+        The application's preferences object.
+    :param preview_height:
+        (Default None) Specify a specific height for the preview image (maintains aspect ratio).
+    :param start_time_param:
+        (Default None) Specifies what time in the video to make the preview image.
+    """
     origin_width, origin_height = ffmpeg.width_origin, ffmpeg.height_origin
-    output_file = preferences.temp_directory + '/' + ffmpeg.temp_file_name + '_crop_preview.tiff'
-    start_time = __get_crop_preview_start_time(ffmpeg, start_time_param)
     preview_width, preview_height = __get_crop_preview_dimensions(ffmpeg, origin_width, origin_height, preview_height)
+    start_time = __get_crop_preview_start_time(ffmpeg, start_time_param)
+    output_file = preferences.temp_directory + '/' + ffmpeg.temp_file_name + '_crop_preview.tiff'
     args = __generate_crop_preview_args(ffmpeg, start_time, preview_width, preview_height, output_file)
-
-    if not __run_crop_preview_process(args):
-        return None
-
-    return output_file
+    return (args,), output_file
 
 
 def __get_crop_preview_start_time(ffmpeg, start_time_param):
@@ -45,13 +72,11 @@ def __get_crop_preview_start_time(ffmpeg, start_time_param):
         start_time = start_time_param
     else:
         start_time = ffmpeg.duration_origin / 2
-
     return start_time
 
 
 def __get_crop_preview_dimensions(ffmpeg, origin_width, origin_height, preview_height):
     if ffmpeg.picture_settings.scale is not None:
-
         if preview_height:
             size = ffmpeg.picture_settings.scale
             width, height = size[0], size[1]
@@ -61,7 +86,6 @@ def __get_crop_preview_dimensions(ffmpeg, origin_width, origin_height, preview_h
             size = ffmpeg.picture_settings.scale
             preview_width, preview_height = size[0], size[1]
     elif ffmpeg.picture_settings.crop is not None:
-
         if preview_height:
             crop = ffmpeg.picture_settings.crop
             width, height = crop[0], crop[1]
@@ -71,62 +95,43 @@ def __get_crop_preview_dimensions(ffmpeg, origin_width, origin_height, preview_h
             crop = ffmpeg.picture_settings.crop
             preview_width, preview_height = crop[0], crop[1]
     else:
-
         if preview_height:
             ratio = origin_width / origin_height
             preview_width = preview_height * ratio
         else:
             preview_width = origin_width
             preview_height = origin_height
-
     return preview_width, preview_height
 
 
 def __generate_crop_preview_args(ffmpeg, start_time, preview_width, preview_height, output_file):
-    args = Settings.ffmpeg_init_args.copy()
-
+    # Returns the ffmpeg arguments for running the crop preview process.
+    args = Settings.FFMPEG_INIT_ARGS.copy()
     args.append('-ss')
     args.append(str(start_time))
     args.append('-i')
     args.append(ffmpeg.input_file)
     args.append('-vframes')
     args.append('1')
-
     if ffmpeg.picture_settings.crop is not None:
         args.append('-filter:v')
         args.append(ffmpeg.picture_settings.ffmpeg_args['-filter:v'])
-
     args.append('-s')
     args.append(str(int(preview_width)) + 'x' + str(preview_height))
     args.append(output_file)
-
     return args
 
 
-def __run_crop_preview_process(args):
-    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
-                          bufsize=1) as process:
-        rc = process.wait()
-
-    if rc != 0:
-        logging.error('--- CROP PREVIEW FAILED ---\n' + str(args))
-
-    return rc == 0
-
-
-def get_trim_preview_file(ffmpeg, start_time, preferences):
+@run_preview_process
+def generate_trim_preview_file(ffmpeg, start_time, preferences):
+    """Creates a trim preview image and returns the image's file path."""
     output_file = preferences.temp_directory + '/' + ffmpeg.temp_file_name + '_trim_preview.tiff'
     args = __generate_trim_preview_args(ffmpeg, start_time, output_file)
-
-    if not __run_trim_preview_process(args):
-        return None
-
-    return output_file
+    return (args,), output_file
 
 
 def __generate_trim_preview_args(ffmpeg, start_time, output_file):
-    args = Settings.ffmpeg_init_args.copy()
-
+    args = Settings.FFMPEG_INIT_ARGS.copy()
     args.append('-ss')
     args.append(str(start_time))
     args.append('-i')
@@ -135,22 +140,17 @@ def __generate_trim_preview_args(ffmpeg, start_time, output_file):
     args.append('1')
     args.append('-an')
     args.append(output_file)
-
     return args
 
 
-def __run_trim_preview_process(args):
-    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
-                          bufsize=1) as process:
-        rc = process.wait()
-
-    if rc != 0:
-        logging.error('--- TRIM PREVIEW FAILED ---\n' + str(args))
-
-    return rc == 0
-
-
 def set_info(ffmpeg):
+    """Fills in all the input info. for the ffmpeg settings object.
+
+    Uses ffprobe and reads stdout to find required info. for input file.
+
+    :param ffmpeg:
+        The ffmpeg settings object.
+    """
     width, height = None, None
     codec_type = None
     codec_name = None
@@ -163,11 +163,15 @@ def set_info(ffmpeg):
     video_streams = {}
     audio_streams = {}
 
-    args = Settings.ffprobe_args.copy()
+    args = Settings.FFPROBE_ARGS.copy()
     args.append(ffmpeg.input_file)
 
-    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
-                          bufsize=1) as process:
+    with subprocess.Popen(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+            bufsize=1) as process:
         while True:
             output = process.stdout.readline().strip()
 
@@ -249,10 +253,11 @@ def set_info(ffmpeg):
     ffmpeg.input_file_info['audio_streams'] = audio_streams
     logging.info('--- INPUT FILE INFO ---\n' + str(ffmpeg.input_file_info))
 
-    return check_info_success(ffmpeg)
+    return __check_info_success(ffmpeg)
 
 
-def check_info_success(ffmpeg):
+def __check_info_success(ffmpeg):
+    # Checks if the ffmpeg settings object's input info. is valid.
     if ffmpeg.codec_video_origin is None:
         ffmpeg.codec_video_origin = 'N/A'
 
@@ -292,30 +297,30 @@ def check_info_success(ffmpeg):
 
 
 def process_auto_crop(ffmpeg):
+    """Checks input for "black bars" and automatically crops them out.
+
+    :param ffmpeg:
+        The ffmpeg settings object.
+    """
     try:
         start_time = ffmpeg.duration_origin / 2
         args = __generate_auto_crop_args(ffmpeg, start_time)
         width, height, x, y = __run_auto_crop_process(args)
 
-        if __is_auto_crop_dimensions_not_valid(ffmpeg, width, height):
+        if not __is_auto_crop_dimensions_valid(ffmpeg, width, height):
             ffmpeg.picture_settings.crop = None
-
             logging.info('--- AUTO CROP NOT NEEDED FOR: ' + ffmpeg.input_file + ', DISABLING ---')
-
             return False
 
         ffmpeg.picture_settings.crop = width, height, x, y
-
         return True
     except UnboundLocalError:
         logging.error('--- FAILED TO SET AUTO CROP FOR: ' + ffmpeg.input_file + ' ---')
-
         return False
 
 
 def __generate_auto_crop_args(ffmpeg, start_time):
-    args = ffmpeg.ffmpeg_init_auto_crop_args.copy()
-
+    args = ffmpeg.FFMPEG_INIT_AUTO_CROP_ARGS.copy()
     args.append('-ss')
     args.append(str(start_time))
     args.append('-i')
@@ -328,65 +333,73 @@ def __generate_auto_crop_args(ffmpeg, start_time):
     args.append('-f')
     args.append('null')
     args.append('-')
-
     return args
 
 
 def __run_auto_crop_process(args):
-    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
+    with subprocess.Popen(args,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT,
+                          universal_newlines=True,
                           bufsize=1) as process:
         while True:
-            output = process.stdout.readline().strip().split('=')
-
-            if '' in output:
+            stdout = process.stdout.readline().strip()
+            if stdout == '':
                 break
 
-            if len(output) > 1:
-                output = output[1].split(':')
+            try:
+                crop_settings_match = re.match('crop=\d+:\d+:\d+:\d+', stdout)
+                if crop_settings_match:
+                    crop_settings = crop_settings_match.group().split('=')[1]
+            except:
+                continue
 
-                if len(output) == 4:
-                    width = output[0]
-                    height = output[1]
-                    x = output[2]
-                    y = output[3]
-
-    return width, height, x, y
-
-
-def __is_auto_crop_dimensions_not_valid(ffmpeg, width, height):
-    width_check = not ((int(width) + 10) < ffmpeg.width_origin)
-    height_check = not ((int(height) + 10) < ffmpeg.height_origin)
-
-    return width_check and height_check
+    if process.poll():
+        logging.error('--- AUTO CROP FAILED ---\n' + str(args))
+    if crop_settings:
+        return crop_settings.split(':')
+    return None
 
 
-def get_preview_file(ffmpeg, start_time, preferences):
+def __is_auto_crop_dimensions_valid(ffmpeg, width, height):
+    try:
+        width_check = ((int(width) + 10) < ffmpeg.width_origin)
+        height_check = ((int(height) + 10) < ffmpeg.height_origin)
+        return width_check and height_check
+    except:
+        return False
+
+
+def generate_preview_file(ffmpeg, start_time, preferences):
+    """Creates a preview image and returns the image's file path.
+
+    :param ffmpeg:
+        The ffmpeg settings object.
+    :param start_time:
+        Time in the video to make a preview.
+    :param preferences:
+        The application's preferences object.
+    """
     ffmpeg_copy = ffmpeg.get_copy()
     output_file = preferences.temp_directory + '/' + ffmpeg_copy.temp_file_name + '_preview.tiff'
     preview_width, preview_height = __get_preview_dimensions(ffmpeg_copy)
     ffmpeg_copy.trim_settings = __get_preview_trim_settings(ffmpeg, start_time)
     ffmpeg_copy.output_directory = preferences.temp_directory + '/'
     ffmpeg_copy.filename = ffmpeg_copy.temp_file_name
-
-    if not __run_preview_ffmpeg_process(ffmpeg_copy):
-        return None
-
-    if not __run_preview_process(ffmpeg_copy, preview_width, preview_height, output_file):
-        return None
-
-    return output_file
+    preview_ffmpeg_args = __get_preview_ffmpeg_args(ffmpeg_copy)
+    preview_args = __get_preview_args(ffmpeg_copy, preview_width, preview_height, output_file)
+    return (preview_ffmpeg_args, preview_args), output_file
 
 
 def __get_preview_dimensions(ffmpeg):
-    if ffmpeg.picture_settings.scale is not None:
+    if ffmpeg.picture_settings.scale:
         size = ffmpeg.picture_settings.scale
         preview_width, preview_height = size[0], size[1]
-    elif ffmpeg.picture_settings.crop is not None:
+    elif ffmpeg.picture_settings.crop:
         crop = ffmpeg.picture_settings.crop
         preview_width, preview_height = crop[0], crop[1]
     else:
         preview_width, preview_height = ffmpeg.width_origin, ffmpeg.height_origin
-
     return preview_width, preview_height
 
 
@@ -398,42 +411,21 @@ def __get_preview_trim_settings(ffmpeg, start_time):
         trim_settings.start_time = start_time - 1
     else:
         trim_settings.start_time = start_time
-
     trim_settings.trim_duration = 0.5
-
     return trim_settings
 
 
 def __get_preview_ffmpeg_args(ffmpeg):
     ffmpeg_args = [ffmpeg.get_args()]
-
     if '&&' in ffmpeg_args[0]:
         first_pass_args = ffmpeg_args[0][:ffmpeg_args[0].index('&&')]
         second_pass_args = ffmpeg_args[0][(ffmpeg_args[0].index('&&') + 1):]
         ffmpeg_args = first_pass_args, second_pass_args
-
     return ffmpeg_args
 
 
-def __run_preview_ffmpeg_process(ffmpeg):
-    rc = -1
-
-    for args in __get_preview_ffmpeg_args(ffmpeg):
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              universal_newlines=True, bufsize=1) as process:
-            rc = process.wait()
-
-        if rc != 0:
-            logging.error('--- PREVIEW THUMBNAIL ENCODE FAILED ---\n' + str(ffmpeg.get_args()))
-
-            return False
-
-    return rc == 0
-
-
 def __get_preview_args(ffmpeg, preview_width, preview_height, output_file):
-    preview_args = Settings.ffmpeg_init_args.copy()
-
+    preview_args = Settings.FFMPEG_INIT_ARGS.copy()
     preview_args.append('-i')
     preview_args.append(ffmpeg.output_directory + ffmpeg.filename + ffmpeg.output_container)
     preview_args.append('-f')
@@ -444,26 +436,25 @@ def __get_preview_args(ffmpeg, preview_width, preview_height, output_file):
     preview_args.append('-update')
     preview_args.append('1')
     preview_args.append(output_file)
-
     return preview_args
 
 
-def __run_preview_process(ffmpeg, preview_width, preview_height, output_file):
-    preview_args = __get_preview_args(ffmpeg, preview_width, preview_height, output_file)
-
-    with subprocess.Popen(preview_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
-                          bufsize=1) as process:
-        rc = process.wait()
-
-    if rc != 0:
-        logging.error('--- PREVIEW THUMBNAIL GENERATION PROCESS FAILED ---\n' + str(preview_args))
-
-        return False
-
-    return rc == 0
-
-
 def start_vid_preview(ffmpeg, start_time, duration, preview_page_handlers, stop, preferences):
+    """Creates a video preview and plays the preview using ffplay.
+
+    :param ffmpeg:
+        The ffmpeg settings object.
+    :param start_time:
+        The time in the video to start the preview.
+    :param duration:
+        The duration of the video preview.
+    :param preview_page_handlers:
+        The preview page handlers class.
+    :param stop:
+        Allows for stopping the preview process.
+    :param preferences:
+        The application's preferences object.
+    """
     ffmpeg_copy = ffmpeg.get_copy()
     file_name = ffmpeg_copy.temp_file_name + '_preview'
     output_file = preferences.temp_directory + '/' + file_name + ffmpeg_copy.output_container
@@ -482,18 +473,15 @@ def __get_vid_preview_trim_settings(start_time, duration):
     trim_settings = TrimSettings()
     trim_settings.start_time = start_time
     trim_settings.trim_duration = duration
-
     return trim_settings
 
 
 def __get_vid_preview_ffmpeg_args(ffmpeg):
     ffmpeg_args = [ffmpeg.get_args()]
-
     if '&&' in ffmpeg_args[0]:
         first_pass_args = ffmpeg_args[0][:ffmpeg_args[0].index('&&')]
         second_pass_args = ffmpeg_args[0][(ffmpeg_args[0].index('&&') + 1):]
         ffmpeg_args = first_pass_args, second_pass_args
-
     return ffmpeg_args
 
 
@@ -502,8 +490,12 @@ def __run_vid_preview_ffmpeg_process(ffmpeg, duration, preview_page_handlers, st
     rc = -1
 
     for encode_pass, args in enumerate(ffmpeg_args):
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              universal_newlines=True, bufsize=1) as process:
+        with subprocess.Popen(
+                args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                bufsize=1) as process:
             while True:
                 if stop():
                     process.terminate()
@@ -528,9 +520,7 @@ def __run_vid_preview_ffmpeg_process(ffmpeg, duration, preview_page_handlers, st
                     GLib.idle_add(preview_page_handlers.set_progress_fraction, progress)
                 except:
                     continue
-
-        rc = process.wait()
-
+            rc = process.wait()
         if rc != 0:
             logging.error('--- VIDEO PREVIEW ENCODE PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
 
@@ -544,8 +534,7 @@ def __reset_vid_preview_widgets(preview_page_handlers):
 
 
 def __get_vid_preview_args(output_file):
-    preview_args = Settings.ffplay_init_args.copy()
-
+    preview_args = Settings.FFPLAY_INIT_ARGS.copy()
     preview_args.append('-i')
     preview_args.append(output_file)
     preview_args.append('-loop')
@@ -559,8 +548,12 @@ def __get_vid_preview_args(output_file):
 def __run_vid_preview_process(output_file, stop):
     preview_args = __get_vid_preview_args(output_file)
 
-    with subprocess.Popen(preview_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
-                          bufsize=1) as process:
+    with subprocess.Popen(
+            preview_args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+            bufsize=1) as process:
         while process.poll() is None:
             if stop():
                 process.terminate()
@@ -574,6 +567,17 @@ def __run_vid_preview_process(output_file, stop):
 
 
 def start_benchmark(ffmpeg, settings_sidebar_handlers, stop, preferences):
+    """Benchmarks the ffmpeg settings object.
+
+    :param ffmpeg:
+        The ffmpeg settings object.
+    :param settings_sidebar_handlers:
+        The settings sidebar handlers class.
+    :param stop:
+        Allows for stopping the benchmark process.
+    :param preferences:
+        The application's preferences object.
+    """
     ffmpeg_copy = ffmpeg.get_copy()
     origin_duration = ffmpeg_copy.duration_origin
     start_time, duration = __get_benchmark_start_time_and_duration(settings_sidebar_handlers, origin_duration)
@@ -630,35 +634,30 @@ def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_
     file_size_value = None
 
     for encode_pass, args in enumerate(ffmpeg_args):
-        with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              universal_newlines=True, bufsize=1) as process:
+        with subprocess.Popen(
+                args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                bufsize=1) as process:
             while True:
                 if stop():
                     process.terminate()
 
                     break
 
-                output = process.stdout.readline().strip()
+                stdout = process.stdout.readline().strip()
 
-                if not output:
+                if not stdout:
                     break
 
                 try:
-                    output = output.split('=')
-                    bitrate = output[6].split(' ')
-
-                    while '' in bitrate:
-                        bitrate.remove('')
-
-                    bitrate_value = bitrate[0]
-                    file_size = output[4].split(' ')
-                    file_size = file_size[-2].split('k')[0]
-                    file_size_value = int(file_size)
-                    speed = output[-1]
-                    speed_temp = speed.split('x')
-                    speed_value = float(speed_temp[0])
-                    current_time = output[5].split(' ')
-                    current_time = format_converter.get_seconds_from_timecode(current_time[0])
+                    stdout = stdout.split('=')
+                    bitrate_value = __get_bitrate_value(stdout)
+                    file_size_value = __get_file_size_value(stdout)
+                    speed = __get_speed_text(stdout)
+                    speed_value = __get_speed_value(stdout)
+                    current_time = __get_current_time(stdout)
 
                     if encode_pass == 0:
                         progress = (current_time / duration) / len(ffmpeg_args)
@@ -683,11 +682,9 @@ def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_
         logging.error('--- BENCHMARK SPEED LABEL CAN\'T BE SET ---')
 
     if file_size_value is not None:
-        ratio = origin_duration / duration
-        total = file_size_value * ratio * 1000
-        total = format_converter.get_file_size_from_bytes(total)
+        total_file_size = __get_final_file_size(file_size_value, origin_duration, duration)
 
-        GLib.idle_add(settings_sidebar_handlers.set_benchmark_file_size_label_text, total)
+        GLib.idle_add(settings_sidebar_handlers.set_benchmark_file_size_label_text, total_file_size)
 
     rc = process.poll()
 
@@ -700,6 +697,46 @@ def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_
             logging.error('--- BENCHMARK PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
 
     return rc == 0
+
+
+def __get_bitrate_value(stdout):
+    bitrate = stdout[6].split(' ')
+
+    while '' in bitrate:
+        bitrate.remove('')
+
+    return bitrate[0]
+
+
+def __get_file_size_value(stdout):
+    file_size = stdout[4].split(' ')
+    file_size = file_size[-2].split('k')[0]
+
+    return int(file_size)
+
+
+def __get_speed_text(stdout):
+    return stdout[-1]
+
+
+def __get_speed_value(stdout):
+    speed = stdout[-1]
+    speed_temp = speed.split('x')
+
+    return float(speed_temp[0])
+
+
+def __get_current_time(stdout):
+    current_time = stdout[5].split(' ')
+
+    return format_converter.get_seconds_from_timecode(current_time[0])
+
+
+def __get_final_file_size(file_size_value, origin_duration, duration):
+    ratio = origin_duration / duration
+    total = file_size_value * ratio * 1000
+
+    return format_converter.get_file_size_from_bytes(total)
 
 
 def __get_benchmark_ffmpeg_args(ffmpeg):
