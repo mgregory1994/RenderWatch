@@ -65,7 +65,7 @@ class Aac:
     @channels.setter
     def channels(self, channels_index):
         """Stores index as a channels argument."""
-        if channels_index is None or channels_index < 1:
+        if channels_index is None or not 1 <= channels_index <= 6:
             self.ffmpeg_args.pop('-ac', 0)
         else:
             self.ffmpeg_args['-ac'] = self.CHANNELS_ARGS_LIST[channels_index]
