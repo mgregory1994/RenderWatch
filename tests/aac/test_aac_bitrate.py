@@ -21,14 +21,8 @@ import unittest
 from render_watch.ffmpeg.aac import Aac
 
 
-class TestAAC(unittest.TestCase):
-    """Tests all AAC options."""
-
-    def test_instantiation(self):
-        """Tests the initial values of the AAC object."""
-        aac = Aac()
-        self.assertEqual(aac.bitrate, 128)
-        self.assertEqual(aac.channels, 0)
+class TestAACBitrate(unittest.TestCase):
+    """Tests all Bitrate option values of the AAC object."""
 
     def test_bitrate(self):
         """Tests the Bitrate option of the AAC object."""
@@ -57,40 +51,6 @@ class TestAAC(unittest.TestCase):
         self.assertEqual(aac.bitrate, 128)
         aac.bitrate = None
         self.assertEqual(aac.bitrate, 128)
-
-    def test_channels(self):
-        """Tests the Channels option of the AAC object."""
-        aac = Aac()
-        self._test_channels_normal_values(aac)
-        self._test_channels_abnormal_values(aac)
-
-    def _test_channels_normal_values(self, aac):
-        # Values that should apply.
-        aac.channels = 0
-        self.assertEqual(aac.channels, 0)
-        aac.channels = 1
-        self.assertEqual(aac.channels, 1)
-        aac.channels = 2
-        self.assertEqual(aac.channels, 2)
-        aac.channels = 3
-        self.assertEqual(aac.channels, 3)
-        aac.channels = 4
-        self.assertEqual(aac.channels, 4)
-        aac.channels = 5
-        self.assertEqual(aac.channels, 5)
-        aac.channels = 6
-        self.assertEqual(aac.channels, 6)
-
-    def _test_channels_abnormal_values(self, aac):
-        # Invalid values that shouldn't apply.
-        aac.channels = -1
-        self.assertEqual(aac.channels, 0)
-        aac.channels = -10
-        self.assertEqual(aac.channels, 0)
-        aac.channels = 10
-        self.assertEqual(aac.channels, 0)
-        aac.channels = None
-        self.assertEqual(aac.channels, 0)
 
 
 if __name__ == '__main__':

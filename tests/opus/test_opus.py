@@ -38,6 +38,8 @@ class TestOpus(unittest.TestCase):
 
     def _test_bitrate_normal_values(self, opus):
         # Values that should apply.
+        opus.bitrate = 64
+        self.assertEqual(opus.bitrate, 64)
         opus.bitrate = 128
         self.assertEqual(opus.bitrate, 128)
         opus.bitrate = 256
@@ -46,8 +48,8 @@ class TestOpus(unittest.TestCase):
         self.assertEqual(opus.bitrate, 320)
         opus.bitrate = 512
         self.assertEqual(opus.bitrate, 512)
-        opus.bitrate = 444
-        self.assertEqual(opus.bitrate, 444)
+        opus.bitrate = 999
+        self.assertEqual(opus.bitrate, 999)
 
     def _test_bitrate_abnormal_values(self, opus):
         # Invalid values that shouldn't apply.
@@ -55,9 +57,15 @@ class TestOpus(unittest.TestCase):
         self.assertEqual(opus.bitrate, 128)
         opus.bitrate = -1
         self.assertEqual(opus.bitrate, 128)
-        opus.bitrate = -1024
+        opus.bitrate = -64
         self.assertEqual(opus.bitrate, 128)
-        opus.bitrate = 1024
+        opus.bitrate = -999
+        self.assertEqual(opus.bitrate, 128)
+        opus.bitrate = -1000
+        self.assertEqual(opus.bitrate, 128)
+        opus.bitrate = 63
+        self.assertEqual(opus.bitrate, 128)
+        opus.bitrate = 1000
         self.assertEqual(opus.bitrate, 128)
         opus.bitrate = None
         self.assertEqual(opus.bitrate, 128)
