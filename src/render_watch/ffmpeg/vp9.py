@@ -43,7 +43,7 @@ class VP9:
     @quality.setter
     def quality(self, quality_index):
         """Stores index as a quality argument."""
-        if quality_index is None or quality_index < 1:
+        if quality_index is None or not 1 <= quality_index <= 3:
             self.ffmpeg_args.pop('-deadline', 0)
         else:
             self.ffmpeg_args['-deadline'] = self.QUALITY_ARGS_LIST[quality_index]
@@ -59,7 +59,7 @@ class VP9:
     @speed.setter
     def speed(self, speed_index):
         """Stores index as a speed argument."""
-        if speed_index is None or speed_index < 1:
+        if speed_index is None or not 1 <= speed_index <= 6:
             self.ffmpeg_args.pop('-cpu-used', 0)
         else:
             self.ffmpeg_args['-cpu-used'] = self.SPEED_ARGS_LIST[speed_index]
@@ -73,7 +73,7 @@ class VP9:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or bitrate_value < 0 or bitrate_value > 99999:
+        if bitrate_value is None or not 0 <= bitrate_value <= 99999:
             self.ffmpeg_args['-b:v'] = '2500k'
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
@@ -88,7 +88,7 @@ class VP9:
     @crf.setter
     def crf(self, crf_value):
         """Stores crf value as a string argument."""
-        if crf_value is None or crf_value < 0 or crf_value > 63:
+        if crf_value is None or not 0 <= crf_value <= 63:
             self.ffmpeg_args.pop('-crf', 0)
         else:
             self.ffmpeg_args['-crf'] = str(crf_value)
@@ -104,7 +104,7 @@ class VP9:
     @maxrate.setter
     def maxrate(self, maxrate_value):
         """Stores maxrate value as a string argument."""
-        if maxrate_value is None or maxrate_value < 0 or maxrate_value > 99999:
+        if maxrate_value is None or not 0 <= maxrate_value <= 99999:
             self.ffmpeg_args.pop('-maxrate', 0)
         else:
             self.ffmpeg_args['-maxrate'] = str(maxrate_value) + 'k'
@@ -120,7 +120,7 @@ class VP9:
     @minrate.setter
     def minrate(self, minrate_value):
         """Stores minrate value as a string argument."""
-        if minrate_value is None or minrate_value < 0 or minrate_value > 99999:
+        if minrate_value is None or not 0 <= minrate_value <= 99999:
             self.ffmpeg_args.pop('-minrate', 0)
         else:
             self.ffmpeg_args['-minrate'] = str(minrate_value) + 'k'
@@ -135,7 +135,7 @@ class VP9:
     @encode_pass.setter
     def encode_pass(self, encode_pass_value):
         """Stores encode pass value as a string argument."""
-        if encode_pass_value is None or encode_pass_value < 1 or encode_pass_value > 2:
+        if encode_pass_value is None or not 1 <= encode_pass_value <= 2:
             self.ffmpeg_args.pop('-pass', 0)
         else:
             self.ffmpeg_args['-pass'] = str(encode_pass_value)
