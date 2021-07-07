@@ -32,7 +32,8 @@ class HevcNvenc:
 
     def __init__(self):
         self.ffmpeg_args = {
-            '-c:v': 'hevc_nvenc'
+            '-c:v': 'hevc_nvenc',
+            '-qp': '20'
         }
         self.advanced_enabled = False
         self.qp_custom_enabled = False
@@ -53,7 +54,7 @@ class HevcNvenc:
     @qp.setter
     def qp(self, qp_value):
         """Stores qp value as a string argument."""
-        if qp_value is None or qp_value < 0 or qp_value > 51:
+        if qp_value is None or not 0 <= qp_value <= 51:
             self.ffmpeg_args.pop('-qp', 0)
         else:
             self.ffmpeg_args['-qp'] = str(qp_value)
@@ -70,7 +71,7 @@ class HevcNvenc:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or bitrate_value < 0 or bitrate_value > 99999:
+        if bitrate_value is None or not 0 <= bitrate_value <= 99999:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
@@ -87,7 +88,7 @@ class HevcNvenc:
     @profile.setter
     def profile(self, profile_index):
         """Stores index as a profile argument."""
-        if profile_index is None or profile_index < 1:
+        if profile_index is None or not 1 <= profile_index <= 3:
             self.ffmpeg_args.pop('-profile:v', 0)
         else:
             self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]

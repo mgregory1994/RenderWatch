@@ -36,7 +36,8 @@ class H264Nvenc:
 
     def __init__(self):
         self.ffmpeg_args = {
-            '-c:v': 'h264_nvenc'
+            '-c:v': 'h264_nvenc',
+            '-qp': '20'
         }
         self.advanced_enabled = False
         self.qp_custom_enabled = False
@@ -57,7 +58,7 @@ class H264Nvenc:
     @qp.setter
     def qp(self, qp_value):
         """Stores qp value as a string argument."""
-        if qp_value is None or qp_value < 0 or qp_value > 51:
+        if qp_value is None or not 0 <= qp_value <= 51:
             self.ffmpeg_args.pop('-qp', 0)
         else:
             self.ffmpeg_args['-qp'] = str(qp_value)
@@ -91,7 +92,7 @@ class H264Nvenc:
     @profile.setter
     def profile(self, profile_index):
         """Stores index as a profile argument."""
-        if profile_index is None or profile_index < 1:
+        if profile_index is None or not 1 <= profile_index <= 4:
             self.ffmpeg_args.pop('-profile:v', 0)
         else:
             self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]
