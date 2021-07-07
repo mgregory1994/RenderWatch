@@ -41,7 +41,7 @@ class Opus:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or bitrate_value < 64 or bitrate_value > 999:
+        if bitrate_value is None or not 64 <= bitrate_value <= 999:
             self.ffmpeg_args['-b:a'] = '128k'
         else:
             self.ffmpeg_args['-b:a'] = str(bitrate_value) + 'k'
