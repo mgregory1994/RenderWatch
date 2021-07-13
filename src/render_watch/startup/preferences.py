@@ -1,21 +1,20 @@
-"""
-Copyright 2021 Michael Gregory
+# Copyright 2021 Michael Gregory
+#
+# This file is part of Render Watch.
+#
+# Render Watch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Render Watch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
-This file is part of Render Watch.
-
-Render Watch is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Render Watch is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-"""
 
 import logging
 import os
@@ -25,6 +24,8 @@ from render_watch.helpers import directory_helper
 
 
 class Preferences:
+    """Stores and manages Render Watch application preferences."""
+
     parallel_tasks_values_list = ('2', '3', '4', '6', '8')
     concurrent_nvenc_values_list = ('auto', '1', '2', '3', '4', '5', '6', '7', '8')
     default_config_directory = os.path.join(os.getenv('HOME'), '.config', 'Render Watch')
@@ -46,7 +47,7 @@ class Preferences:
         self.window_dimensions = (1000, 600)
         self.window_maximized = False
 
-        directory_helper.create_config_directory()
+        directory_helper.create_config_directory(Preferences.default_config_directory, self.__temp_directory)
 
     @property
     def temp_directory(self):
@@ -54,6 +55,14 @@ class Preferences:
 
     @temp_directory.setter
     def temp_directory(self, directory_path):
+        """Sets the new temporary directory path.
+
+        This sets the __new_temp_directory instead of __temp_directory because
+        we need to restart for the new directory to take effect. This is necessary
+        because tasks that are currently imported, active, or completed will have their
+        assets inside the old temporary directory and we don't want those assets to be
+        lost by changing to a new empty directory.
+        """
         if directory_path == self.__temp_directory:
             self.__new_temp_directory = None
         else:
@@ -61,6 +70,14 @@ class Preferences:
 
     @temp_directory.setter
     def temp_directory_overwrite(self, directory_path):
+        """Sets the temp directory path.
+
+        This allows you to replace the current temporary directory with a new one.
+        This function ignores the need to restart the application to safely change the
+        temporary directory to a new one.
+
+        Use temp_directory instead unless you have a good reason to use this one.
+        """
         self.__temp_directory = directory_path
 
     @property
@@ -82,13 +99,22 @@ class Preferences:
 
     @property
     def concurrent_nvenc_value_as_string(self):
+        """Returns the amount of parallel tasks that can run for NVENC tasks.
+
+        Mainly used to set up the NVENC concurrency combobox in the preferences dialog.
+        That's why we return a string for the numbers or 'auto' if set to 0.
+        """
         if self.concurrent_nvenc_value == 0:
             return 'auto'
-
         return str(self.__concurrent_nvenc_value)
 
     @concurrent_nvenc_value.setter
     def concurrent_nvenc_value(self, value):
+        """Sets the amount of parallel tasks that can run for NVENC tasks.
+
+        We are storing the value from the NVENC concurrency combobox.
+        That's why we are checking if the value is 'auto' or a string that's a number.
+        """
         if value == 'auto':
             self.__concurrent_nvenc_value = 0
         elif value in self.concurrent_nvenc_values_list:
@@ -96,6 +122,13 @@ class Preferences:
 
     @staticmethod
     def create_temp_directory(preferences):
+        """Creates the temporary directory stored in preferences.
+
+        This directory is created unless it already exists.
+
+        :param preferences:
+            Application's preferences object.
+        """
         try:
             os.mkdir(preferences.temp_directory)
         except FileExistsError:
@@ -103,6 +136,11 @@ class Preferences:
 
     @staticmethod
     def clear_temp_directory(preferences):
+        """Deletes all files in the temporary directory if it's enabled in preferences.
+
+        :param preferences:
+            Application's preferences object.
+        """
         try:
             if preferences.clear_temp_directory_on_exit:
                 shutil.rmtree(Preferences.__get_preferences_temp_directory_to_clear(preferences))
@@ -118,6 +156,11 @@ class Preferences:
 
     @staticmethod
     def save_preferences(preferences):
+        """Writes the preferences options to a 'prefs' file in the default_config_directory.
+
+        :param preferences:
+            Application's preferences object.
+        """
         with open(os.path.join(Preferences.default_config_directory, 'prefs'), 'w') as preferences_file:
             try:
                 preferences_file.writelines(Preferences.__get_preferences_lines(preferences))
@@ -126,6 +169,7 @@ class Preferences:
 
     @staticmethod
     def __get_preferences_lines(preferences):
+        # Returns a list of strings that represent all of the options for the Preferences class
         output_directory_arg = 'out_dir=' + preferences.output_directory + '\n'
         parallel_tasks_arg = 'parallel_tasks=' + preferences.parallel_tasks_as_string + '\n'
         concurrent_nvenc_value_arg = 'concurrent_nvenc_value=' + preferences.concurrent_nvenc_value_as_string + '\n'
@@ -140,10 +184,12 @@ class Preferences:
         use_dark_mode_arg = Preferences.__get_use_dark_mode_arg(preferences)
         concurrent_nvenc_arg = Preferences.__get_concurrent_nvenc_arg(preferences)
 
-        return [temp_directory_arg, clear_temp_directory_on_exit_arg, overwrite_outputs_arg, output_directory_arg,
-                parallel_tasks_arg, concurrent_nvenc_arg, concurrent_nvenc_value_arg, concurrent_watch_folder_arg,
-                watch_folder_move_to_done_arg, watch_folder_wait_for_others_arg, window_dimensions_arg,
-                window_maximized_arg, use_dark_mode_arg]
+        return [
+            temp_directory_arg, clear_temp_directory_on_exit_arg, overwrite_outputs_arg, output_directory_arg,
+            parallel_tasks_arg, concurrent_nvenc_arg, concurrent_nvenc_value_arg, concurrent_watch_folder_arg,
+            watch_folder_move_to_done_arg, watch_folder_wait_for_others_arg, window_dimensions_arg,
+            window_maximized_arg, use_dark_mode_arg
+        ]
 
     @staticmethod
     def __get_window_dimensions_arg(preferences):
@@ -156,7 +202,6 @@ class Preferences:
             concurrent_nvenc_arg = 'concurrent_nvenc=true\n'
         else:
             concurrent_nvenc_arg = 'concurrent_nvenc=false\n'
-
         return concurrent_nvenc_arg
 
     @staticmethod
@@ -165,7 +210,6 @@ class Preferences:
             concurrent_watch_folder_arg = 'concurrent_watch_folder=true\n'
         else:
             concurrent_watch_folder_arg = 'concurrent_watch_folder=false\n'
-
         return concurrent_watch_folder_arg
 
     @staticmethod
@@ -174,7 +218,6 @@ class Preferences:
             watch_folder_wait_for_others_arg = 'watch_folder_wait_for_others=true\n'
         else:
             watch_folder_wait_for_others_arg = 'watch_folder_wait_for_others=false\n'
-
         return watch_folder_wait_for_others_arg
 
     @staticmethod
@@ -183,7 +226,6 @@ class Preferences:
             watch_folder_move_to_done_arg = 'watch_folder_move_finished_to_done=true\n'
         else:
             watch_folder_move_to_done_arg = 'watch_folder_move_finished_to_done=false\n'
-
         return watch_folder_move_to_done_arg
 
     @staticmethod
@@ -192,7 +234,6 @@ class Preferences:
             temp_directory_arg = 'temp_dir=' + preferences.__new_temp_directory + '\n'
         else:
             temp_directory_arg = 'temp_dir=' + preferences.temp_directory + '\n'
-
         return temp_directory_arg
 
     @staticmethod
@@ -201,7 +242,6 @@ class Preferences:
             window_maximized_arg = 'maximized=true\n'
         else:
             window_maximized_arg = 'maximized=false\n'
-
         return window_maximized_arg
 
     @staticmethod
@@ -210,7 +250,6 @@ class Preferences:
             use_dark_mode_arg = 'dark_mode=true\n'
         else:
             use_dark_mode_arg = 'dark_mode=false\n'
-
         return use_dark_mode_arg
 
     @staticmethod
@@ -219,7 +258,6 @@ class Preferences:
             clear_temp_directory_on_exit_arg = 'clear_temp=true\n'
         else:
             clear_temp_directory_on_exit_arg = 'clear_temp=false\n'
-
         return clear_temp_directory_on_exit_arg
 
     @staticmethod
@@ -228,52 +266,45 @@ class Preferences:
             overwrite_outputs_arg = 'overwrite_outputs=true\n'
         else:
             overwrite_outputs_arg = 'overwrite_outputs=false\n'
-
         return overwrite_outputs_arg
 
     @staticmethod
     def load_preferences(preferences):
+        """Loads options from the 'prefs' file into preferences.
+
+        If an option is unreadable, the default value for that option will be applied.
+
+        :param preferences:
+            Application's preferences object.
+        """
         try:
             with open(os.path.join(Preferences.default_config_directory, 'prefs'), 'r') as preferences_file:
                 for preferences_string_line in preferences_file.readlines():
                     args = preferences_string_line.rstrip('\n').split('=')
-
                     if Preferences.__processed_temp_directory_overwrite_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_output_directory_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_parallel_tasks_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_concurrent_nvenc_value_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_concurrent_nvenc_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_concurrent_watch_folder_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_watch_folder_wait_for_other_tasks_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_watch_folder_move_finished_to_done_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_window_dimensions_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_window_maximized_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_use_dark_mode_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_clear_temp_directory_on_exit_arg(args, preferences):
                         continue
-
                     if Preferences.__processed_overwrite_outputs_arg(args, preferences):
                         continue
         except:
@@ -284,9 +315,10 @@ class Preferences:
         if 'temp_dir' in args:
             try:
                 preferences.temp_directory_overwrite = args[1]
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -294,9 +326,10 @@ class Preferences:
         if 'out_dir' in args:
             try:
                 preferences.output_directory = args[1]
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -304,9 +337,10 @@ class Preferences:
         if 'parallel_tasks' in args:
             try:
                 preferences.parallel_tasks = args[1]
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -314,9 +348,10 @@ class Preferences:
         if 'concurrent_nvenc_value' in args:
             try:
                 preferences.concurrent_nvenc_value = args[1]
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -324,9 +359,10 @@ class Preferences:
         if 'concurrent_nvenc' in args:
             try:
                 preferences.concurrent_nvenc = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -334,9 +370,10 @@ class Preferences:
         if 'concurrent_watch_folder' in args:
             try:
                 preferences.concurrent_watch_folder = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -344,9 +381,10 @@ class Preferences:
         if 'watch_folder_wait_for_others' in args:
             try:
                 preferences.watch_folder_wait_for_other_tasks = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -354,9 +392,10 @@ class Preferences:
         if 'watch_folder_move_finished_to_done' in args:
             try:
                 preferences.watch_folder_move_finished_to_done = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -365,9 +404,10 @@ class Preferences:
             try:
                 window_size = args[1].split('x')
                 preferences.window_dimensions = (int(window_size[0]), int(window_size[1]))
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -375,9 +415,10 @@ class Preferences:
         if 'maximized' in args:
             try:
                 preferences.window_maximized = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -385,9 +426,10 @@ class Preferences:
         if 'dark_mode' in args:
             try:
                 preferences.use_dark_mode = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -395,9 +437,10 @@ class Preferences:
         if 'clear_temp' in args:
             try:
                 preferences.clear_temp_directory_on_exit = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False
 
     @staticmethod
@@ -405,7 +448,8 @@ class Preferences:
         if 'overwrite_outputs' in args:
             try:
                 preferences.overwrite_outputs = 'true' in args
-            finally:
+            except:
+                return False
+            else:
                 return True
-
         return False

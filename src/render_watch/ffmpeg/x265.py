@@ -1,94 +1,44 @@
-"""
-Copyright 2021 Michael Gregory
-
-This file is part of Render Watch.
-
-Render Watch is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Render Watch is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# Copyright 2021 Michael Gregory
+#
+# This file is part of Render Watch.
+#
+# Render Watch is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Render Watch is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
 class X265:
-    profile_ffmpeg_args_list = ("auto", "main", "main10", "main12")
-    preset_ffmpeg_args_list = ("auto", "ultrafast", "superfast", "veryfast", "faster", "fast", "slow", "slower", "veryslow")
-    level_ffmpeg_args_list = ("auto", "1", "2", "2.1", "3", "3.1", "4", "4.1", "5", "5.1", "5.2", "6", "6.1", "6.2", "8.5")
-    tune_ffmpeg_args_list = ("auto", "grain", "animation", "zerolatency", "fastdecode", "psnr", "ssim")
-    aq_mode_ffmpeg_args_list = ("auto", "0", "1", "2", "3", "4")
-    aq_mode_human_readable_list = ('auto', 'disabled', 'enabled', 'auto variance', 'auto variance(dark)',
-                                   'auto variance(dark + edge)')
-    b_adapt_ffmpeg_args_list = ('auto', '0', '1', '2')
-    b_adapt_human_readable_list = ('auto', 'none', 'fast', 'full(trellis)')
-    me_ffmpeg_args_list = ('auto', 'dia', 'hex', 'umh', 'star', 'sea', 'full')
-    rdoq_level_ffmpeg_args_list = ('auto', '0', '1', '2')
-    rdoq_level_human_readable_list = ('auto', 'none', 'optimal rounding', 'decimate decisions')
-    max_cu_size_ffmpeg_args_list = ('auto', '64', '32', '16')
-    min_cu_size_ffmpeg_args_list = ('auto', '8', '16', '32')
+    """Manages all settings for the x265 codec."""
+
+    PROFILE_ARGS_LIST = ('auto', 'main', 'main10', 'main12')
+    PRESET_ARGS_LIST = ('auto', 'ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'slow', 'slower', 'veryslow')
+    LEVEL_ARGS_LIST = ('auto', '1', '2', '2.1', '3', '3.1', '4', '4.1', '5', '5.1', '5.2', '6', '6.1', '6.2', '8.5')
+    TUNE_ARGS_LIST = ('auto', 'grain', 'animation', 'zerolatency', 'fastdecode', 'psnr', 'ssim')
+    AQ_MODE_ARGS_LIST = ('auto', '0', '1', '2', '3', '4')
+    AQ_MODE_UI_LIST = ('auto', 'disabled', 'enabled', 'variance', 'variance(dark)', 'variance(dark + edge)')
+    B_ADAPT_ARGS_LIST = ('auto', '0', '1', '2')
+    B_ADAPT_UI_LIST = ('auto', 'none', 'fast', 'full(trellis)')
+    ME_ARGS_LIST = ('auto', 'dia', 'hex', 'umh', 'star', 'sea', 'full')
+    RDOQ_LEVEL_ARGS_LIST = ('auto', '0', '1', '2')
+    RDOQ_LEVEL_UI_LIST = ('auto', 'none', 'optimal rounding', 'decimate decisions')
+    MAX_CU_SIZE_ARGS_LIST = ('auto', '64', '32', '16')
+    MIN_CU_SIZE_ARGS_LIST = ('auto', '8', '16', '32')
 
     def __init__(self):
         self.ffmpeg_args = {
-            "-c:v": "libx265",
-            "-crf": "20",
-            '-qp': None,
-            "-b:v": None,
-            "-profile:v": None,
-            "-preset": None,
-            "-level": None,
-            "-tune": None
+            '-c:v': 'libx265'
         }
         self.advanced_enabled = False
-        self.__ffmpeg_advanced_args = {
-            'vbv-maxrate=': None,
-            'vbv-bufsize=': None,
-            'aq-mode=': None,
-            'aq-strength=': None,
-            'hevc-aq=': None,
-            'keyint=': None,
-            'min-keyint=': None,
-            'ref=': None,
-            'bframes=': None,
-            'b-adapt=': None,
-            'no-b-pyramid=': None,
-            'b-intra=': None,
-            'no-open-gop=': None,
-            'rc-lookahead=': None,
-            'no-scenecut=': None,
-            'no-high-tier=': None,
-            'psy-rd=': None,
-            'psy-rdoq=': None,
-            'me=': None,
-            'subme=': None,
-            'weightb=': None,
-            'no-weightp=': None,
-            'deblock=': None,
-            'no-deblock=': None,
-            'no-sao=': None,
-            'sao-non-deblock=': None,
-            'limit-sao=': None,
-            'selective-sao=': None,
-            'rd=': None,
-            'rdoq-level=': None,
-            'rd-refine=': None,
-            'ctu=': None,
-            'min-cu-size=': None,
-            'rect=': None,
-            'amp=': None,
-            'wpp=': None,
-            'pmode=': None,
-            'pme=': None,
-            'uhd-bd=': None,
-            'pass=': None,
-            'stats=': None
-        }
+        self._ffmpeg_advanced_args = {}
 
     @property
     def codec_name(self):
@@ -96,961 +46,791 @@ class X265:
 
     @property
     def crf(self):
-        try:
-            crf = self.ffmpeg_args['-crf']
-            crf_value = float(crf)
-        except TypeError:
-            return None
-        else:
-            return crf_value
+        """Returns crf argument as a float."""
+        if '-crf' in self.ffmpeg_args:
+            return float(self.ffmpeg_args['-crf'])
+        return None
 
     @crf.setter
     def crf(self, crf_value):
-        try:
-            if crf_value is None or crf_value < 0 or crf_value > 51:
-                raise ValueError
-
-            self.ffmpeg_args['-crf'] = str(crf_value)
-        except (ValueError, TypeError):
-            self.ffmpeg_args['-crf'] = None
+        """Stores crf value as a string argument."""
+        if crf_value is None or crf_value < 0 or crf_value > 51:
+            self.ffmpeg_args.pop('-crf', 0)
         else:
+            self.ffmpeg_args['-crf'] = str(crf_value)
             self.qp = None
             self.bitrate = None
 
     @property
     def qp(self):
-        try:
-            qp = self.ffmpeg_args['-qp']
-            qp_value = float(qp)
-        except TypeError:
-            return None
-        else:
-            return qp_value
+        """Returns qp argument as a float."""
+        if '-qp' in self.ffmpeg_args:
+            return float(self.ffmpeg_args['-qp'])
+        return None
 
     @qp.setter
     def qp(self, qp_value):
-        try:
-            if qp_value is None or qp_value < 0 or qp_value > 51:
-                raise ValueError
-
-            self.ffmpeg_args['-qp'] = str(qp_value)
-        except (ValueError, TypeError):
-            self.ffmpeg_args['-qp'] = None
+        """Stores qp value as a string argument."""
+        if qp_value is None or qp_value < 0 or qp_value > 51:
+            self.ffmpeg_args.pop('-qp', 0)
         else:
+            self.ffmpeg_args['-qp'] = str(qp_value)
             self.crf = None
             self.bitrate = None
 
     @property
     def bitrate(self):
-        try:
-            bitrate = self.ffmpeg_args['-b:v']
-            bitrate_value = int(bitrate.split('k')[0])
-        except:
-            return None
-        else:
-            return bitrate_value
+        """Returns bitrate argument as an int."""
+        if '-b:v' in self.ffmpeg_args:
+            bitrate_arg = self.ffmpeg_args['-b:v']
+            return int(bitrate_arg.split('k')[0])
+        return None
 
     @bitrate.setter
     def bitrate(self, bitrate_value):
-        try:
-            if bitrate_value is None or bitrate_value < 0 or bitrate_value > 99999:
-                raise ValueError
-
-            self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
-        except (ValueError, TypeError):
-            self.ffmpeg_args['-b:v'] = None
+        """Stores bitrate value as a string argument."""
+        if bitrate_value is None or bitrate_value < 0 or bitrate_value > 99999:
+            self.ffmpeg_args.pop('-b:v', 0)
         else:
+            self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
             self.crf = None
             self.qp = None
 
     @property
     def profile(self):
-        try:
-            profile_value = self.ffmpeg_args['-profile:v']
-
-            if profile_value is None:
-                profile_index = 0
-            else:
-                profile_index = self.profile_ffmpeg_args_list.index(profile_value)
-        except ValueError:
-            return 0
-        else:
-            return profile_index
+        """Returns profile argument as an index."""
+        if '-profile:v' in self.ffmpeg_args:
+            profile_arg = self.ffmpeg_args['-profile:v']
+            return self.PROFILE_ARGS_LIST.index(profile_arg)
+        return 0
 
     @profile.setter
     def profile(self, profile_index):
-        try:
-            if profile_index is None or profile_index < 1:
-                self.ffmpeg_args['-profile:v'] = None
-            else:
-                self.ffmpeg_args['-profile:v'] = self.profile_ffmpeg_args_list[profile_index]
-        except IndexError:
-            self.ffmpeg_args['-profile:v'] = None
+        """Stores index as a profile argument."""
+        if profile_index is None or profile_index < 1:
+            self.ffmpeg_args.pop('-profile:v', 0)
+        else:
+            self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]
 
     @property
     def preset(self):
-        try:
+        """Returns preset argument as an index."""
+        if '-preset' in self.ffmpeg_args:
             preset_value = self.ffmpeg_args['-preset']
-
-            if preset_value is None:
-                preset_index = 0
-            else:
-                preset_index = self.preset_ffmpeg_args_list.index(preset_value)
-        except ValueError:
-            return 0
-        else:
-            return preset_index
+            return self.PRESET_ARGS_LIST.index(preset_value)
+        return 0
 
     @preset.setter
     def preset(self, preset_index):
-        try:
-            if preset_index is None or preset_index < 1:
-                self.ffmpeg_args['-preset'] = None
-            else:
-                self.ffmpeg_args['-preset'] = self.preset_ffmpeg_args_list[preset_index]
-        except IndexError:
-            self.ffmpeg_args['-preset'] = None
+        """Stores index as a preset argument."""
+        if preset_index is None or preset_index < 1:
+            self.ffmpeg_args.pop('-preset', 0)
+        else:
+            self.ffmpeg_args['-preset'] = self.PRESET_ARGS_LIST[preset_index]
 
     @property
     def level(self):
-        try:
+        """Returns level argument as an index."""
+        if '-level' in self.ffmpeg_args:
             level_value = self.ffmpeg_args['-level']
-
-            if level_value is None:
-                level_index = 0
-            else:
-                level_index = self.level_ffmpeg_args_list.index(level_value)
-        except ValueError:
-            return 0
-        else:
-            return level_index
+            return self.LEVEL_ARGS_LIST.index(level_value)
+        return 0
 
     @level.setter
     def level(self, level_index):
-        try:
-            if level_index is None or level_index < 1:
-                self.ffmpeg_args['-level'] = None
-            else:
-                self.ffmpeg_args['-level'] = self.level_ffmpeg_args_list[level_index]
-        except IndexError:
-            self.ffmpeg_args['-level'] = None
+        """Stores index as a level argument."""
+        if level_index is None or level_index < 1:
+            self.ffmpeg_args.pop('-level', 0)
+        else:
+            self.ffmpeg_args['-level'] = self.LEVEL_ARGS_LIST[level_index]
 
     @property
     def tune(self):
-        try:
+        """Returns tune argument as an index."""
+        if '-tune' in self.ffmpeg_args:
             tune_value = self.ffmpeg_args['-tune']
-
-            if tune_value is None:
-                tune_index = 0
-            else:
-                tune_index = self.tune_ffmpeg_args_list.index(tune_value)
-        except ValueError:
-            return 0
-        else:
-            return tune_index
+            return self.TUNE_ARGS_LIST.index(tune_value)
+        return 0
 
     @tune.setter
     def tune(self, tune_index):
-        try:
-            if tune_index is None or tune_index < 1:
-                self.ffmpeg_args['-tune'] = None
-            else:
-                self.ffmpeg_args['-tune'] = self.tune_ffmpeg_args_list[tune_index]
-        except IndexError:
-            self.ffmpeg_args['-tune'] = None
+        """Stores index as a tune argument."""
+        if tune_index is None or tune_index < 1:
+            self.ffmpeg_args.pop('-tune', 0)
+        else:
+            self.ffmpeg_args['-tune'] = self.TUNE_ARGS_LIST[tune_index]
 
     @property
     def vbv_maxrate(self):
-        try:
-            vbv_maxrate = self.__ffmpeg_advanced_args['vbv-maxrate=']
-            vbv_maxrate_value = int(vbv_maxrate)
-        except TypeError:
-            return 2500
-        else:
-            return vbv_maxrate_value
+        """Returns vbv maxrate argument as an int."""
+        if 'vbv-maxrate=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['vbv-maxrate='])
+        return 2500
 
     @vbv_maxrate.setter
     def vbv_maxrate(self, vbv_maxrate_value):
-        try:
-            if vbv_maxrate_value is None or vbv_maxrate_value < 0 or vbv_maxrate_value > 99999:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['vbv-maxrate='] = str(vbv_maxrate_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['vbv-maxrate='] = None
+        """Stores vbv maxrate value as a string argument."""
+        if vbv_maxrate_value is None or vbv_maxrate_value < 0 or vbv_maxrate_value > 99999:
+            self._ffmpeg_advanced_args.pop('vbv-maxrate=', 0)
+        else:
+            self._ffmpeg_advanced_args['vbv-maxrate='] = str(vbv_maxrate_value)
 
     @property
     def vbv_bufsize(self):
-        try:
-            vbv_bufsize = self.__ffmpeg_advanced_args['vbv-bufsize=']
-            vbv_bufsize_value = int(vbv_bufsize)
-        except TypeError:
-            return 2500
-        else:
-            return vbv_bufsize_value
+        """Returns vbv bufsize argument as an int."""
+        if 'vbv-bufsize=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['vbv-bufsize='])
+        return 2500
 
     @vbv_bufsize.setter
     def vbv_bufsize(self, vbv_bufsize_value):
-        try:
-            if vbv_bufsize_value is None or vbv_bufsize_value < 0 or vbv_bufsize_value > 99999:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['vbv-bufsize='] = str(vbv_bufsize_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['vbv-bufsize='] = None
+        """Stores vbv bufsize value as a string argument."""
+        if vbv_bufsize_value is None or vbv_bufsize_value < 0 or vbv_bufsize_value > 99999:
+            self._ffmpeg_advanced_args.pop('vbv-bufsize=', 0)
+        else:
+            self._ffmpeg_advanced_args['vbv-bufsize='] = str(vbv_bufsize_value)
 
     @property
     def aq_mode(self):
-        try:
-            aq_mode_value = self.__ffmpeg_advanced_args['aq-mode=']
-
-            if aq_mode_value is None:
-                aq_mode_index = 0
-            else:
-                aq_mode_index = self.aq_mode_ffmpeg_args_list.index(aq_mode_value)
-        except ValueError:
-            return 0
-        else:
-            return aq_mode_index
+        """Returns aq mode argument as an index."""
+        if 'aq-mode=' in self._ffmpeg_advanced_args:
+            aq_mode_arg = self._ffmpeg_advanced_args['aq-mode=']
+            return self.AQ_MODE_ARGS_LIST.index(aq_mode_arg)
+        return 0
 
     @aq_mode.setter
     def aq_mode(self, aq_mode_index):
-        try:
-            if aq_mode_index is None or aq_mode_index == 0:
-                self.__ffmpeg_advanced_args['aq-mode='] = None
-            else:
-                self.__ffmpeg_advanced_args['aq-mode='] = self.aq_mode_ffmpeg_args_list[aq_mode_index]
-        except IndexError:
-            self.__ffmpeg_advanced_args['aq-mode='] = None
+        """Stores index as a aq mode argument."""
+        if aq_mode_index is None or aq_mode_index == 0:
+            self._ffmpeg_advanced_args.pop('aq-mode=', 0)
+        else:
+            self._ffmpeg_advanced_args['aq-mode='] = self.AQ_MODE_ARGS_LIST[aq_mode_index]
 
     @property
     def aq_strength(self):
-        try:
-            aq_strength = self.__ffmpeg_advanced_args['aq-strength=']
-            aq_strength_value = float(aq_strength)
-        except TypeError:
-            return 1.0
-        else:
-            return aq_strength_value
+        """Returns aq strength argument as a float."""
+        if 'aq-strength=' in self._ffmpeg_advanced_args:
+            return float(self._ffmpeg_advanced_args['aq-strength='])
+        return 1.0
 
     @aq_strength.setter
     def aq_strength(self, aq_strength_value):
-        try:
-            if aq_strength_value is None or aq_strength_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['aq-strength='] = str(aq_strength_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['aq-strength='] = None
+        """Stores aq strength value as a string argument."""
+        if aq_strength_value is None or aq_strength_value < 0:
+            self._ffmpeg_advanced_args.pop('aq-strength=', 0)
+        else:
+            self._ffmpeg_advanced_args['aq-strength='] = str(aq_strength_value)
 
     @property
     def hevc_aq(self):
-        hevc_aq_value = self.__ffmpeg_advanced_args['hevc-aq=']
-
-        if hevc_aq_value is None or hevc_aq_value != '1':
-            return False
-
-        return True
+        """Returns hevc aq argument as a boolean."""
+        if 'hevc-aq=' in self._ffmpeg_advanced_args:
+            hevc_aq_arg = self._ffmpeg_advanced_args['hevc-aq=']
+            return hevc_aq_arg == '1'
+        return False
 
     @hevc_aq.setter
     def hevc_aq(self, hevc_aq_enabled):
+        """Stores hevc aq boolean as a string argument."""
         if hevc_aq_enabled is None or not hevc_aq_enabled:
-            self.__ffmpeg_advanced_args['hevc-aq='] = None
+            self._ffmpeg_advanced_args.pop('hevc-aq=', 0)
         else:
-            self.__ffmpeg_advanced_args['hevc-aq='] = '1'
+            self._ffmpeg_advanced_args['hevc-aq='] = '1'
 
     @property
     def keyint(self):
-        try:
-            keyint = self.__ffmpeg_advanced_args['keyint=']
-            keyint_value = int(keyint)
-        except TypeError:
-            return 250
-        else:
-            return keyint_value
+        """Returns keyint argument as an int."""
+        if 'keyint=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['keyint='])
+        return 250
 
     @keyint.setter
     def keyint(self, keyint_value):
-        try:
-            if keyint_value is None or keyint_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['keyint='] = str(keyint_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['keyint='] = None
+        """Stores keyint value as a string argument."""
+        if keyint_value is None or keyint_value < 0:
+            self._ffmpeg_advanced_args.pop('keyint=', 0)
+        else:
+            self._ffmpeg_advanced_args['keyint='] = str(keyint_value)
 
     @property
     def min_keyint(self):
-        try:
-            min_keyint = self.__ffmpeg_advanced_args['min-keyint=']
-            min_keyint_value = int(min_keyint)
-        except TypeError:
-            return 0
-        else:
-            return min_keyint_value
+        """Returns min keyint argument as an int."""
+        if 'min-keyint=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['min-keyint='])
+        return 0
 
     @min_keyint.setter
     def min_keyint(self, min_keyint_value):
-        try:
-            if min_keyint_value is None or min_keyint_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['min-keyint='] = str(min_keyint_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['min-keyint='] = None
+        """Stores min keyint value as a string argument."""
+        if min_keyint_value is None or min_keyint_value < 0:
+            self._ffmpeg_advanced_args.pop('min-keyint=', 0)
+        else:
+            self._ffmpeg_advanced_args['min-keyint='] = str(min_keyint_value)
 
     @property
     def ref(self):
-        try:
-            ref = self.__ffmpeg_advanced_args['ref=']
-            ref_value = int(ref)
-        except TypeError:
-            return 3
-        else:
-            return ref_value
+        """Returns ref argument as an int."""
+        if 'ref=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['ref='])
+        return 3
 
     @ref.setter
     def ref(self, ref_value):
-        try:
-            if ref_value is None or ref_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['ref='] = str(ref_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['ref='] = None
+        """Stores ref value as a string argument."""
+        if ref_value is None or ref_value < 0:
+            self._ffmpeg_advanced_args.pop('ref=', 0)
+        else:
+            self._ffmpeg_advanced_args['ref='] = str(ref_value)
 
     @property
     def bframes(self):
-        try:
-            bframes = self.__ffmpeg_advanced_args['bframes=']
-            bframes_value = int(bframes)
-        except TypeError:
-            return 4
-        else:
-            return bframes_value
+        """Returns bframes argument as an int."""
+        if 'bframes=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['bframes='])
+        return 4
 
     @bframes.setter
     def bframes(self, bframes_value):
-        try:
-            if bframes_value is None or bframes_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['bframes='] = str(bframes_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['bframes='] = None
+        """Stores bframes value as a string argument."""
+        if bframes_value is None or bframes_value < 0:
+            self._ffmpeg_advanced_args.pop('bframes=', 0)
+        else:
+            self._ffmpeg_advanced_args['bframes='] = str(bframes_value)
 
     @property
     def b_adapt(self):
-        try:
-            b_adapt_value = self.__ffmpeg_advanced_args['b-adapt=']
-
-            if b_adapt_value is None:
-                b_adapt_index = 0
-            else:
-                b_adapt_index = self.b_adapt_ffmpeg_args_list.index(b_adapt_value)
-        except ValueError:
-            return 0
-        else:
-            return b_adapt_index
+        """Returns b adapt argument as an index."""
+        if 'b-adapt=' in self._ffmpeg_advanced_args:
+            b_adapt_arg = self._ffmpeg_advanced_args['b-adapt=']
+            return self.B_ADAPT_ARGS_LIST.index(b_adapt_arg)
+        return 0
 
     @b_adapt.setter
     def b_adapt(self, b_adapt_index):
-        try:
-            if b_adapt_index is None or b_adapt_index < 1:
-                self.__ffmpeg_advanced_args['b-adapt='] = None
-            else:
-                self.__ffmpeg_advanced_args['b-adapt='] = self.b_adapt_ffmpeg_args_list[b_adapt_index]
-        except IndexError:
-            self.__ffmpeg_advanced_args['b-adapt='] = None
+        """Stores index as a b adapt argument."""
+        if b_adapt_index is None or b_adapt_index < 1:
+            self._ffmpeg_advanced_args.pop('b-adapt=', 0)
+        else:
+            self._ffmpeg_advanced_args['b-adapt='] = self.B_ADAPT_ARGS_LIST[b_adapt_index]
 
     @property
     def no_b_pyramid(self):
-        no_b_pyramid_value = self.__ffmpeg_advanced_args['no-b-pyramid=']
-
-        if no_b_pyramid_value is None or no_b_pyramid_value != '1':
-            return False
-
-        return True
+        """Returns no b pyramid argument as a boolean."""
+        if 'no-b-pyramid=' in self._ffmpeg_advanced_args:
+            no_b_pyramid_arg = self._ffmpeg_advanced_args['no-b-pyramid=']
+            return no_b_pyramid_arg == '1'
+        return False
 
     @no_b_pyramid.setter
     def no_b_pyramid(self, no_b_pyramid_enabled):
+        """Stores no b pyramid boolean as a string argument."""
         if no_b_pyramid_enabled is None or not no_b_pyramid_enabled:
-            self.__ffmpeg_advanced_args['no-b-pyramid='] = None
+            self._ffmpeg_advanced_args.pop('no-b-pyramid=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-b-pyramid='] = '1'
+            self._ffmpeg_advanced_args['no-b-pyramid='] = '1'
 
     @property
     def b_intra(self):
-        b_intra_value = self.__ffmpeg_advanced_args['b-intra=']
-
-        if b_intra_value is None or b_intra_value != '1':
-            return False
-
-        return True
+        """Returns b intra argument as a boolean."""
+        if 'b-intra=' in self._ffmpeg_advanced_args:
+            b_intra_arg = self._ffmpeg_advanced_args['b-intra=']
+            return b_intra_arg == '1'
+        return False
 
     @b_intra.setter
     def b_intra(self, b_intra_enabled):
+        """Stores b intra boolean as a string argument."""
         if b_intra_enabled is None or not b_intra_enabled:
-            self.__ffmpeg_advanced_args['b-intra='] = None
+            self._ffmpeg_advanced_args.pop('b-intra=', 0)
         else:
-            self.__ffmpeg_advanced_args['b-intra='] = '1'
+            self._ffmpeg_advanced_args['b-intra='] = '1'
 
     @property
     def no_open_gop(self):
-        no_open_gop_value = self.__ffmpeg_advanced_args['no-open-gop=']
-
-        if no_open_gop_value is None or no_open_gop_value != '1':
-            return False
-
-        return True
+        """Returns no open gop argument as a boolean."""
+        if 'no-open-gop=' in self._ffmpeg_advanced_args:
+            no_open_gop_arg = self._ffmpeg_advanced_args['no-open-gop=']
+            return no_open_gop_arg == '1'
+        return False
 
     @no_open_gop.setter
     def no_open_gop(self, no_open_gop_enabled):
+        """Stores no open gop boolean as a string argument."""
         if no_open_gop_enabled is None or not no_open_gop_enabled:
-            self.__ffmpeg_advanced_args['no-open-gop='] = None
+            self._ffmpeg_advanced_args.pop('no-open-gop=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-open-gop='] = '1'
+            self._ffmpeg_advanced_args['no-open-gop='] = '1'
 
     @property
     def rc_lookahead(self):
-        try:
-            rc_lookahead = self.__ffmpeg_advanced_args['rc-lookahead=']
-            rc_lookahead_value = int(rc_lookahead)
-        except TypeError:
-            return 20
-        else:
-            return rc_lookahead_value
+        """Returns rc lookahead argument as an int."""
+        if 'rc-lookahead=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['rc-lookahead='])
+        return 20
 
     @rc_lookahead.setter
     def rc_lookahead(self, rc_lookahead_value):
-        try:
-            if rc_lookahead_value is None or rc_lookahead_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['rc-lookahead='] = str(rc_lookahead_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['rc-lookahead='] = None
+        """Stores rc lookahead value as a string argument."""
+        if rc_lookahead_value is None or rc_lookahead_value < 0:
+            self._ffmpeg_advanced_args.pop('rc-lookahead=', 0)
+        else:
+            self._ffmpeg_advanced_args['rc-lookahead='] = str(rc_lookahead_value)
 
     @property
     def no_scenecut(self):
-        no_scenecut_value = self.__ffmpeg_advanced_args['no-scenecut=']
-
-        if no_scenecut_value is None or no_scenecut_value != '1':
-            return False
-
-        return True
+        """Returns no scenecut argument as a boolean."""
+        if 'no-scenecut=' in self._ffmpeg_advanced_args:
+            no_scenecut_arg = self._ffmpeg_advanced_args['no-scenecut=']
+            return no_scenecut_arg == '1'
+        return False
 
     @no_scenecut.setter
     def no_scenecut(self, no_scenecut_enabled):
+        """Stores no scenecut boolean as a string argument."""
         if no_scenecut_enabled is None or not no_scenecut_enabled:
-            self.__ffmpeg_advanced_args['no-scenecut='] = None
+            self._ffmpeg_advanced_args.pop('no-scenecut=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-scenecut='] = '1'
+            self._ffmpeg_advanced_args['no-scenecut='] = '1'
 
     @property
     def no_high_tier(self):
-        no_high_tier_value = self.__ffmpeg_advanced_args['no-high-tier=']
-
-        if no_high_tier_value is None or no_high_tier_value != '1':
-            return False
-
-        return True
+        """Returns no high tier argument as a boolean."""
+        if 'no-high-tier=' in self._ffmpeg_advanced_args:
+            no_high_tier_arg = self._ffmpeg_advanced_args['no-high-tier=']
+            return no_high_tier_arg == '1'
+        return False
 
     @no_high_tier.setter
     def no_high_tier(self, no_high_tier_enabled):
+        """Stores no high tier boolean as a string argument."""
         if no_high_tier_enabled is None or not no_high_tier_enabled:
-            self.__ffmpeg_advanced_args['no-high-tier='] = None
+            self._ffmpeg_advanced_args.pop('no-high-tier=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-high-tier='] = '1'
+            self._ffmpeg_advanced_args['no-high-tier='] = '1'
 
     @property
     def psy_rd(self):
-        try:
-            psy_rd = self.__ffmpeg_advanced_args['psy-rd=']
-            psy_rd_value = float(psy_rd)
-        except TypeError:
-            return 2.0
-        else:
-            return psy_rd_value
+        """Returns psy rd argument as a float."""
+        if 'psy-rd=' in self._ffmpeg_advanced_args:
+            return float(self._ffmpeg_advanced_args['psy-rd='])
+        return 2.0
 
     @psy_rd.setter
     def psy_rd(self, psy_rd_value):
-        try:
-            if psy_rd_value is None or psy_rd_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['psy-rd='] = str(psy_rd_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['psy-rd='] = None
+        """Stores psy rd value as a string argument."""
+        if psy_rd_value is None or psy_rd_value < 0:
+            self._ffmpeg_advanced_args.pop('psy-rd=', 0)
+        else:
+            self._ffmpeg_advanced_args['psy-rd='] = str(psy_rd_value)
 
     @property
     def psy_rdoq(self):
-        try:
-            psy_rdoq = self.__ffmpeg_advanced_args['psy-rdoq=']
-            psy_rdoq_value = float(psy_rdoq)
-        except TypeError:
-            return 0.0
-        else:
-            return psy_rdoq_value
+        """Returns psy rdoq argument as a float."""
+        if 'psy-rdoq=' in self._ffmpeg_advanced_args:
+            return float(self._ffmpeg_advanced_args['psy-rdoq='])
+        return 0.0
 
     @psy_rdoq.setter
     def psy_rdoq(self, psy_rdoq_value):
-        try:
-            if psy_rdoq_value is None or psy_rdoq_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['psy-rdoq='] = str(psy_rdoq_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['psy-rdoq='] = None
+        """Stores psy rdoq value as a string argument."""
+        if psy_rdoq_value is None or psy_rdoq_value < 0:
+            self._ffmpeg_advanced_args.pop('psy-rdoq=', 0)
+        else:
+            self._ffmpeg_advanced_args['psy-rdoq='] = str(psy_rdoq_value)
 
     @property
     def me(self):
-        try:
-            me_value = self.__ffmpeg_advanced_args['me=']
-
-            if me_value is None:
-                me_index = 0
-            else:
-                me_index = self.me_ffmpeg_args_list.index(me_value)
-        except ValueError:
-            return 0
-        else:
-            return me_index
+        """Returns me argument as an index."""
+        if 'me=' in self._ffmpeg_advanced_args:
+            me_arg = self._ffmpeg_advanced_args['me=']
+            return self.ME_ARGS_LIST.index(me_arg)
+        return 0
 
     @me.setter
     def me(self, me_index):
-        try:
-            if me_index is None or me_index < 1:
-                self.__ffmpeg_advanced_args['me='] = None
-            else:
-                self.__ffmpeg_advanced_args['me='] = self.me_ffmpeg_args_list[me_index]
-        except IndexError:
-            self.__ffmpeg_advanced_args['me='] = None
+        """Stores index as a me argument."""
+        if me_index is None or me_index < 1:
+            self._ffmpeg_advanced_args.pop('me=', 0)
+        else:
+            self._ffmpeg_advanced_args['me='] = self.ME_ARGS_LIST[me_index]
 
     @property
     def subme(self):
-        try:
-            subme = self.__ffmpeg_advanced_args['subme=']
-            subme_value = int(subme)
-        except TypeError:
-            return 2
-        else:
-            return subme_value
+        """Returns subme argument as an int."""
+        if 'subme=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['subme='])
+        return 2
 
     @subme.setter
     def subme(self, subme_value):
-        try:
-            if subme_value is None or subme_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['subme='] = str(subme_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['subme='] = None
+        """Stores subme value as a string argument."""
+        if subme_value is None or subme_value < 0:
+            self._ffmpeg_advanced_args.pop('subme=', 0)
+        else:
+            self._ffmpeg_advanced_args['subme='] = str(subme_value)
 
     @property
     def weightb(self):
-        weightb_value = self.__ffmpeg_advanced_args['weightb=']
-
-        if weightb_value is None or weightb_value != '1':
-            return False
-
-        return True
+        """Return weight b argument as a boolean."""
+        if 'weightb=' in self._ffmpeg_advanced_args:
+            weightb_arg = self._ffmpeg_advanced_args['weightb=']
+            return weightb_arg == '1'
+        return False
 
     @weightb.setter
     def weightb(self, weightb_enabled):
+        """Stores weight b boolean as a string argument."""
         if weightb_enabled is None or not weightb_enabled:
-            self.__ffmpeg_advanced_args['weightb='] = None
+            self._ffmpeg_advanced_args.pop('weightb=', 0)
         else:
-            self.__ffmpeg_advanced_args['weightb='] = '1'
+            self._ffmpeg_advanced_args['weightb='] = '1'
 
     @property
     def no_weightp(self):
-        no_weightp_value = self.__ffmpeg_advanced_args['no-weightp=']
-
-        if no_weightp_value is None or no_weightp_value != '1':
-            return False
-
-        return True
+        """Returns no weightp argument as a boolean."""
+        if 'no-weightp=' in self._ffmpeg_advanced_args:
+            no_weightp_arg = self._ffmpeg_advanced_args['no-weightp=']
+            return no_weightp_arg == '1'
+        return False
 
     @no_weightp.setter
     def no_weightp(self, no_weightp_enabled):
+        """Stores no weightp boolean as a string argument."""
         if no_weightp_enabled is None or not no_weightp_enabled:
-            self.__ffmpeg_advanced_args['no-weightp='] = None
+            self._ffmpeg_advanced_args.pop('no-weightp=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-weightp='] = '1'
+            self._ffmpeg_advanced_args['no-weightp='] = '1'
 
     @property
     def deblock(self):
-        try:
-            deblock = self.__ffmpeg_advanced_args['deblock=']
-            deblock_split_values = deblock.split(',')
-            deblock_values = int(deblock_split_values[0]), int(deblock_split_values[1])
-        except:
-            return 0, 0
-        else:
-            return deblock_values
+        """Returns deblock argument as a tuple of ints."""
+        if 'deblock=' in self._ffmpeg_advanced_args:
+            deblock_split_args = self._ffmpeg_advanced_args['deblock='].split(',')
+            return int(deblock_split_args[0]), int(deblock_split_args[1])
+        return 0, 0
 
     @deblock.setter
     def deblock(self, deblock_values):
-        try:
-            if deblock_values is None:
-                self.__ffmpeg_advanced_args['deblock='] = None
-            else:
-                alpha_strength, beta_strength = deblock_values
-                self.__ffmpeg_advanced_args['deblock='] = str(alpha_strength) + ',' + str(beta_strength)
-        except TypeError:
-            self.__ffmpeg_advanced_args['deblock='] = None
+        """Stores deblock values tuple as a string argument."""
+        if deblock_values is None:
+            self._ffmpeg_advanced_args.pop('deblock=', 0)
+        else:
+            alpha_strength, beta_strength = deblock_values
+            self._ffmpeg_advanced_args['deblock='] = str(alpha_strength) + ',' + str(beta_strength)
 
     @property
     def no_deblock(self):
-        no_deblock_value = self.__ffmpeg_advanced_args['no-deblock=']
-
-        if no_deblock_value is None or no_deblock_value != '1':
-            return False
-
-        return True
+        """Returns no deblock argument as a boolean."""
+        if 'no-deblock=' in self._ffmpeg_advanced_args:
+            no_deblock_arg = self._ffmpeg_advanced_args['no-deblock=']
+            return no_deblock_arg == '1'
+        return False
 
     @no_deblock.setter
     def no_deblock(self, no_deblock_enabled):
+        """Stores no deblock boolean as a string argument."""
         if no_deblock_enabled is None or not no_deblock_enabled:
-            self.__ffmpeg_advanced_args['no-deblock='] = None
+            self._ffmpeg_advanced_args.pop('no-deblock=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-deblock='] = '1'
+            self._ffmpeg_advanced_args['no-deblock='] = '1'
 
     @property
     def no_sao(self):
-        no_sao_value = self.__ffmpeg_advanced_args['no-sao=']
-
-        if no_sao_value is None or no_sao_value != '1':
-            return False
-
-        return True
+        """Returns no sao argument as a boolean."""
+        if 'no-sao=' in self._ffmpeg_advanced_args:
+            no_sao_arg = self._ffmpeg_advanced_args['no-sao=']
+            return no_sao_arg == '1'
+        return False
 
     @no_sao.setter
     def no_sao(self, no_sao_enabled):
+        """Stores no sao boolean as a string argument."""
         if no_sao_enabled is None or not no_sao_enabled:
-            self.__ffmpeg_advanced_args['no-sao='] = None
+            self._ffmpeg_advanced_args.pop('no-sao=', 0)
         else:
-            self.__ffmpeg_advanced_args['no-sao='] = '1'
+            self._ffmpeg_advanced_args['no-sao='] = '1'
 
     @property
     def sao_non_deblock(self):
-        sao_non_deblock_value = self.__ffmpeg_advanced_args['sao-non-deblock=']
-
-        if sao_non_deblock_value is None or sao_non_deblock_value != '1':
-            return False
-
-        return True
+        """Returns sao non deblock argument as a boolean."""
+        if 'sao-non-deblock=' in self._ffmpeg_advanced_args:
+            sao_non_deblock_args = self._ffmpeg_advanced_args['sao-non-deblock=']
+            return sao_non_deblock_args == '1'
+        return False
 
     @sao_non_deblock.setter
     def sao_non_deblock(self, sao_non_deblock_enabled):
+        """Stores sao non deblock boolean as a string argument."""
         if sao_non_deblock_enabled is None or not sao_non_deblock_enabled:
-            self.__ffmpeg_advanced_args['sao-non-deblock='] = None
+            self._ffmpeg_advanced_args.pop('sao-non-deblock=', 0)
         else:
-            self.__ffmpeg_advanced_args['sao-non-deblock='] = '1'
+            self._ffmpeg_advanced_args['sao-non-deblock='] = '1'
 
     @property
     def limit_sao(self):
-        limit_sao_value = self.__ffmpeg_advanced_args['limit-sao=']
-
-        if limit_sao_value is None or limit_sao_value != '1':
-            return False
-
-        return True
+        """Returns limit sao argument as a boolean."""
+        if 'limit-sao=' in self._ffmpeg_advanced_args:
+            limit_sao_arg = self._ffmpeg_advanced_args['limit-sao=']
+            return limit_sao_arg == '1'
+        return False
 
     @limit_sao.setter
     def limit_sao(self, limit_sao_enabled):
+        """Stores limit sao boolean as a string argument."""
         if limit_sao_enabled is None or not limit_sao_enabled:
-            self.__ffmpeg_advanced_args['limit-sao='] = None
+            self._ffmpeg_advanced_args.pop('limit-sao=', 0)
         else:
-            self.__ffmpeg_advanced_args['limit-sao='] = '1'
+            self._ffmpeg_advanced_args['limit-sao='] = '1'
 
     @property
     def selective_sao(self):
-        try:
-            selective_sao = self.__ffmpeg_advanced_args['selective-sao=']
-            selective_sao_value = int(selective_sao)
-        except TypeError:
-            return 0
-        else:
-            return selective_sao_value
+        """Returns selective sao argument as a boolean."""
+        if 'selective-sao=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['selective-sao='])
+        return 0
 
     @selective_sao.setter
     def selective_sao(self, selective_sao_value):
-        try:
-            if selective_sao_value is None or selective_sao_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['selective-sao='] = str(selective_sao_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['selective-sao='] = None
+        """Stores selective sao boolean as a string argument."""
+        if selective_sao_value is None or selective_sao_value < 0:
+            self._ffmpeg_advanced_args.pop('selective-sao=', 0)
+        else:
+            self._ffmpeg_advanced_args['selective-sao='] = str(selective_sao_value)
 
     @property
     def rd(self):
-        try:
-            rd = self.__ffmpeg_advanced_args['rd=']
-            rd_value = int(rd)
-        except TypeError:
-            return 3
-        else:
-            return rd_value
+        """Returns rd argument as an int."""
+        if 'rd=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['rd='])
+        return 3
 
     @rd.setter
     def rd(self, rd_value):
-        try:
-            if rd_value is None or rd_value < 0:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['rd='] = str(rd_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['rd='] = None
+        """Stores rd value as a string argument."""
+        if rd_value is None or rd_value < 0:
+            self._ffmpeg_advanced_args.pop('rd=', 0)
+        else:
+            self._ffmpeg_advanced_args['rd='] = str(rd_value)
 
     @property
     def rdoq_level(self):
-        try:
-            rdoq_level_value = self.__ffmpeg_advanced_args['rdoq-level=']
-
-            if rdoq_level_value is None:
-                rdoq_level_index = 0
-            else:
-                rdoq_level_index = self.rdoq_level_ffmpeg_args_list.index(rdoq_level_value)
-        except ValueError:
-            return 0
-        else:
-            return rdoq_level_index
+        """Returns rdoq level argument as an intex."""
+        if 'rdoq-level=' in self._ffmpeg_advanced_args:
+            rdoq_level_arg = self._ffmpeg_advanced_args['rdoq-level=']
+            return self.RDOQ_LEVEL_ARGS_LIST.index(rdoq_level_arg)
+        return 0
 
     @rdoq_level.setter
     def rdoq_level(self, rdoq_level_index):
-        try:
-            if rdoq_level_index is None or rdoq_level_index < 1:
-                self.__ffmpeg_advanced_args['rdoq-level='] = None
-            else:
-                self.__ffmpeg_advanced_args['rdoq-level='] = self.rdoq_level_ffmpeg_args_list[rdoq_level_index]
-        except IndexError:
-            self.__ffmpeg_advanced_args['rdoq-level='] = None
+        """Stores index as a rdoq level argument."""
+        if rdoq_level_index is None or rdoq_level_index < 1:
+            self._ffmpeg_advanced_args.pop('rdoq-level=', 0)
+        else:
+            self._ffmpeg_advanced_args['rdoq-level='] = self.RDOQ_LEVEL_ARGS_LIST[rdoq_level_index]
 
     @property
     def rd_refine(self):
-        rd_refine_value = self.__ffmpeg_advanced_args['rd-refine=']
-
-        if rd_refine_value is None or rd_refine_value != '1':
-            return False
-
-        return True
+        """Returns rd refine argument as a boolean."""
+        if 'rd-refine=' in self._ffmpeg_advanced_args:
+            rd_refine_value = self._ffmpeg_advanced_args['rd-refine=']
+            return rd_refine_value == '1'
+        return False
 
     @rd_refine.setter
     def rd_refine(self, rd_refine_enabled):
+        """Stores rd refine boolean as a string argument."""
         if rd_refine_enabled is None or not rd_refine_enabled:
-            self.__ffmpeg_advanced_args['rd-refine='] = None
+            self._ffmpeg_advanced_args.pop('rd-refine=', 0)
         else:
-            self.__ffmpeg_advanced_args['rd-refine='] = '1'
+            self._ffmpeg_advanced_args['rd-refine='] = '1'
 
     @property
     def ctu(self):
-        try:
-            ctu_value = self.__ffmpeg_advanced_args['ctu=']
-
-            if ctu_value is None:
-                ctu_index = 0
-            else:
-                ctu_index = self.max_cu_size_ffmpeg_args_list.index(ctu_value)
-        except ValueError:
-            return 0
-        else:
-            return ctu_index
+        """Returns ctu argument as an index."""
+        if 'ctu=' in self._ffmpeg_advanced_args:
+            ctu_arg = self._ffmpeg_advanced_args['ctu=']
+            return self.MAX_CU_SIZE_ARGS_LIST.index(ctu_arg)
+        return 0
 
     @ctu.setter
     def ctu(self, ctu_index):
-        try:
-            if ctu_index is None or ctu_index < 1:
-                self.__ffmpeg_advanced_args['ctu='] = None
-            else:
-                self.__ffmpeg_advanced_args['ctu='] = self.max_cu_size_ffmpeg_args_list[ctu_index]
-        except IndexError:
-            self.__ffmpeg_advanced_args['ctu='] = None
+        """Stores index as a ctu argument."""
+        if ctu_index is None or ctu_index < 1:
+            self._ffmpeg_advanced_args.pop('ctu=', 0)
+        else:
+            self._ffmpeg_advanced_args['ctu='] = self.MAX_CU_SIZE_ARGS_LIST[ctu_index]
 
     @property
     def min_cu_size(self):
-        try:
-            min_cu_size_value = self.__ffmpeg_advanced_args['min-cu-size=']
-
-            if min_cu_size_value is None:
-                min_cu_size_index = 0
-            else:
-                min_cu_size_index = self.min_cu_size_ffmpeg_args_list.index(min_cu_size_value)
-        except ValueError:
-            return 0
-        else:
-            return min_cu_size_index
+        """Returns min cu size argument as an index."""
+        if 'min-cu-size=' in self._ffmpeg_advanced_args:
+            min_cu_size_arg = self._ffmpeg_advanced_args['min-cu-size=']
+            return self.MIN_CU_SIZE_ARGS_LIST.index(min_cu_size_arg)
+        return 0
 
     @min_cu_size.setter
     def min_cu_size(self, min_cu_size_index):
-        try:
-            if min_cu_size_index is None or min_cu_size_index < 1:
-                self.__ffmpeg_advanced_args['min-cu-size='] = None
-            else:
-                self.__ffmpeg_advanced_args['min-cu-size='] = self.min_cu_size_ffmpeg_args_list[min_cu_size_index]
-        except IndexError:
-            self.__ffmpeg_advanced_args['min-cu-size='] = None
+        """Stores index as a min cu size argument."""
+        if min_cu_size_index is None or min_cu_size_index < 1:
+            self._ffmpeg_advanced_args.pop('min-cu-size=', 0)
+        else:
+            self._ffmpeg_advanced_args['min-cu-size='] = self.MIN_CU_SIZE_ARGS_LIST[min_cu_size_index]
 
     @property
     def rect(self):
-        rect_value = self.__ffmpeg_advanced_args['rect=']
-
-        if rect_value is None or rect_value != '1':
-            return False
-
-        return True
+        """Returns rect argument as a boolean."""
+        if 'rect=' in self._ffmpeg_advanced_args:
+            rect_arg = self._ffmpeg_advanced_args['rect=']
+            return rect_arg == '1'
+        return False
 
     @rect.setter
     def rect(self, rect_enabled):
+        """Stores rect boolean as a string argument."""
         if rect_enabled is None or not rect_enabled:
-            self.__ffmpeg_advanced_args['rect='] = None
+            self._ffmpeg_advanced_args.pop('rect=', 0)
         else:
-            self.__ffmpeg_advanced_args['rect='] = '1'
+            self._ffmpeg_advanced_args['rect='] = '1'
 
     @property
     def amp(self):
-        amp_value = self.__ffmpeg_advanced_args['amp=']
-
-        if amp_value is None or amp_value != '1':
-            return False
-
-        return True
+        """Returns amp argument as a boolean."""
+        if 'amp=' in self._ffmpeg_advanced_args:
+            amp_arg = self._ffmpeg_advanced_args['amp=']
+            return amp_arg == '1'
+        return False
 
     @amp.setter
     def amp(self, amp_enabled):
+        """Stores amp boolean as a string argument."""
         if amp_enabled is None or not amp_enabled:
-            self.__ffmpeg_advanced_args['amp='] = None
+            self._ffmpeg_advanced_args.pop('amp=', 0)
         else:
-            self.__ffmpeg_advanced_args['amp='] = '1'
+            self._ffmpeg_advanced_args['amp='] = '1'
 
     @property
     def wpp(self):
-        wpp_value = self.__ffmpeg_advanced_args['wpp=']
-
-        if wpp_value is None or wpp_value != '1':
-            return False
-
-        return True
+        """Returns wpp argument as a boolean."""
+        if 'wpp=' in self._ffmpeg_advanced_args:
+            wpp_arg = self._ffmpeg_advanced_args['wpp=']
+            return wpp_arg == '1'
+        return False
 
     @wpp.setter
     def wpp(self, wpp_enabled):
+        """Stores wpp boolean as a string argument."""
         if wpp_enabled is None or not wpp_enabled:
-            self.__ffmpeg_advanced_args['wpp='] = None
+            self._ffmpeg_advanced_args.pop('wpp=', 0)
         else:
-            self.__ffmpeg_advanced_args['wpp='] = '1'
+            self._ffmpeg_advanced_args['wpp='] = '1'
 
     @property
     def pmode(self):
-        pmode_value = self.__ffmpeg_advanced_args['pmode=']
-
-        if pmode_value is None or pmode_value != '1':
-            return False
-
-        return True
+        """Returns pmode argument as a boolean."""
+        if 'pmode=' in self._ffmpeg_advanced_args:
+            pmode_arg = self._ffmpeg_advanced_args['pmode=']
+            return pmode_arg == '1'
+        return False
 
     @pmode.setter
     def pmode(self, pmode_enabled):
+        """Stores pmode boolean as a string argument."""
         if pmode_enabled is None or not pmode_enabled:
-            self.__ffmpeg_advanced_args['pmode='] = None
+            self._ffmpeg_advanced_args.pop('pmode=', 0)
         else:
-            self.__ffmpeg_advanced_args['pmode='] = '1'
+            self._ffmpeg_advanced_args['pmode='] = '1'
 
     @property
     def pme(self):
-        pme_value = self.__ffmpeg_advanced_args['pme=']
-
-        if pme_value is None or pme_value != '1':
-            return False
-
-        return True
+        """Returns pme argument as a boolean."""
+        if 'pme=' in self._ffmpeg_advanced_args:
+            pme_arg = self._ffmpeg_advanced_args['pme=']
+            return pme_arg == '1'
+        return False
 
     @pme.setter
     def pme(self, pme_enabled):
+        """Stores pme boolean as a string argument."""
         if pme_enabled is None or not pme_enabled:
-            self.__ffmpeg_advanced_args['pme='] = None
+            self._ffmpeg_advanced_args.pop('pme=', 0)
         else:
-            self.__ffmpeg_advanced_args['pme='] = '1'
+            self._ffmpeg_advanced_args['pme='] = '1'
 
     @property
     def uhd_bd(self):
-        uhd_bd_value = self.__ffmpeg_advanced_args['uhd-bd=']
-
-        if uhd_bd_value is None or uhd_bd_value != '1':
-            return False
-
-        return True
+        """Returns uhd bd argument as a boolean."""
+        if 'uhd-bd=' in self._ffmpeg_advanced_args:
+            uhd_bd_value = self._ffmpeg_advanced_args['uhd-bd=']
+            return uhd_bd_value == '1'
+        return False
 
     @uhd_bd.setter
     def uhd_bd(self, uhd_bd_enabled):
+        """Stores uhd bd boolean as a string argument."""
         if uhd_bd_enabled is None or not uhd_bd_enabled:
-            self.__ffmpeg_advanced_args['uhd-bd='] = None
+            self._ffmpeg_advanced_args.pop('uhd-bd=', 0)
         else:
-            self.__ffmpeg_advanced_args['uhd-bd='] = '1'
+            self._ffmpeg_advanced_args['uhd-bd='] = '1'
 
     @property
     def encode_pass(self):
-        try:
-            encode_pass = self.__ffmpeg_advanced_args['pass=']
-            encode_pass_value = int(encode_pass)
-
-            if encode_pass_value < 1 or encode_pass_value > 2:
-                raise ValueError
-        except (ValueError, TypeError):
-            return None
-        else:
-            return encode_pass_value
+        """Returns encode pass argument as an int."""
+        if 'pass=' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['pass='])
+        return None
 
     @encode_pass.setter
     def encode_pass(self, encode_pass_value):
-        try:
-            if encode_pass_value is None or encode_pass_value < 1 or encode_pass_value > 2:
-                raise ValueError
-
-            self.__ffmpeg_advanced_args['pass='] = str(encode_pass_value)
-        except (ValueError, TypeError):
-            self.__ffmpeg_advanced_args['pass='] = None
+        """Stores encode pass value as a string argument."""
+        if encode_pass_value is None or encode_pass_value < 1 or encode_pass_value > 2:
+            self._ffmpeg_advanced_args.pop('pass=', 0)
+        else:
+            self._ffmpeg_advanced_args['pass='] = str(encode_pass_value)
 
     @property
     def stats(self):
-        return self.__ffmpeg_advanced_args['stats=']
+        """Returns stats argument as a file path string."""
+        if 'stats=' in self._ffmpeg_advanced_args:
+            return self._ffmpeg_advanced_args['stats=']
+        return None
 
     @stats.setter
     def stats(self, file_path):
-        self.__ffmpeg_advanced_args['stats='] = file_path
+        """Stores file path as a string argument."""
+        if file_path is None:
+            self._ffmpeg_advanced_args.pop('stats=', 0)
+        else:
+            self._ffmpeg_advanced_args['stats='] = file_path
 
     def get_ffmpeg_advanced_args(self):
+        """Returns dictionary with advanced args string."""
         advanced_args = {'-x265-params': None}
+
         args = ''
-
-        if not self.advanced_enabled:
-            if self.__ffmpeg_advanced_args['pass='] is not None:
-                args = self.__get_pass_args()
+        if self.advanced_enabled:
+            args = self._generate_advanced_args()
         else:
-            args = self.__generate_advanced_args()
-
-        if args != '':
+            if self._ffmpeg_advanced_args['pass=']:
+                args = self._get_pass_args()
+        if args:
             advanced_args['-x265-params'] = args
-
         return advanced_args
 
-    def __get_pass_args(self):
+    def _get_pass_args(self):
+        """Returns string for encode pass arguments."""
         pass_args = 'pass='
-        pass_args += self.__ffmpeg_advanced_args['pass=']
+        pass_args += str(self.encode_pass)
         pass_args += ':'
         pass_args += 'stats='
-        pass_args += self.__ffmpeg_advanced_args['stats=']
-
+        pass_args += self._ffmpeg_advanced_args['stats=']
         return pass_args
 
-    def __generate_advanced_args(self):
+    def _generate_advanced_args(self):
+        """Returns string for all advanced settings."""
         x265_advanced_settings = ''
-
-        for setting, value in self.__ffmpeg_advanced_args.items():
-            if value is not None:
+        for setting, arg in self._ffmpeg_advanced_args.items():
+            if arg is not None:
                 x265_advanced_settings += setting
-                x265_advanced_settings += value
+                x265_advanced_settings += arg
                 x265_advanced_settings += ':'
-
         return x265_advanced_settings
