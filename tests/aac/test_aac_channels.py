@@ -36,24 +36,16 @@ class TestAACChannels(unittest.TestCase):
         self.assertEqual(aac.channels, 0)
         aac.channels = 1
         self.assertEqual(aac.channels, 1)
-        aac.channels = 2
-        self.assertEqual(aac.channels, 2)
-        aac.channels = 3
-        self.assertEqual(aac.channels, 3)
-        aac.channels = 4
-        self.assertEqual(aac.channels, 4)
-        aac.channels = 5
-        self.assertEqual(aac.channels, 5)
-        aac.channels = 6
-        self.assertEqual(aac.channels, 6)
+        aac.channels = Aac.CHANNELS_LIST_LENGTH - 1
+        self.assertEqual(aac.channels, Aac.CHANNELS_LIST_LENGTH - 1)
 
     def _test_channels_abnormal_values(self, aac):
         # Invalid values that shouldn't apply.
         aac.channels = -1
         self.assertEqual(aac.channels, 0)
-        aac.channels = -10
+        aac.channels = Aac.CHANNELS_LIST_LENGTH * -1
         self.assertEqual(aac.channels, 0)
-        aac.channels = 10
+        aac.channels = Aac.CHANNELS_LIST_LENGTH
         self.assertEqual(aac.channels, 0)
         aac.channels = None
         self.assertEqual(aac.channels, 0)
