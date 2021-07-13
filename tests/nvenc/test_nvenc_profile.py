@@ -42,16 +42,10 @@ class TestNvencProfile(unittest.TestCase):
         hevc_nvenc.profile = 1
         self.assertEqual(h264_nvenc.profile, 1)
         self.assertEqual(hevc_nvenc.profile, 1)
-        h264_nvenc.profile = 2
-        hevc_nvenc.profile = 2
-        self.assertEqual(h264_nvenc.profile, 2)
-        self.assertEqual(hevc_nvenc.profile, 2)
-        h264_nvenc.profile = 3
-        hevc_nvenc.profile = 3
-        self.assertEqual(h264_nvenc.profile, 3)
-        self.assertEqual(hevc_nvenc.profile, 3)
-        h264_nvenc.profile = 4
-        self.assertEqual(h264_nvenc.profile, 4)
+        h264_nvenc.profile = H264Nvenc.PROFILE_LIST_LENGTH - 1
+        hevc_nvenc.profile = HevcNvenc.PROFILE_LIST_LENGTH - 1
+        self.assertEqual(h264_nvenc.profile, H264Nvenc.PROFILE_LIST_LENGTH - 1)
+        self.assertEqual(hevc_nvenc.profile, HevcNvenc.PROFILE_LIST_LENGTH - 1)
 
     def _test_profile_abnormal_values(self, h264_nvenc, hevc_nvenc):
         # Invalid values that shouldn't apply.
@@ -59,12 +53,12 @@ class TestNvencProfile(unittest.TestCase):
         hevc_nvenc.profile = -1
         self.assertEqual(h264_nvenc.profile, 0)
         self.assertEqual(hevc_nvenc.profile, 0)
-        h264_nvenc.profile = -5
-        hevc_nvenc.profile = -4
+        h264_nvenc.profile = H264Nvenc.PROFILE_LIST_LENGTH * -1
+        hevc_nvenc.profile = HevcNvenc.PROFILE_LIST_LENGTH * -1
         self.assertEqual(h264_nvenc.profile, 0)
         self.assertEqual(hevc_nvenc.profile, 0)
-        h264_nvenc.profile = 5
-        hevc_nvenc.profile = 4
+        h264_nvenc.profile = H264Nvenc.PROFILE_LIST_LENGTH
+        hevc_nvenc.profile = HevcNvenc.PROFILE_LIST_LENGTH
         self.assertEqual(h264_nvenc.profile, 0)
         self.assertEqual(hevc_nvenc.profile, 0)
         h264_nvenc.profile = None
