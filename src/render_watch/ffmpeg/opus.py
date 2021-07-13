@@ -21,6 +21,7 @@ class Opus:
 
     CHANNELS_UI_LIST = ('auto', '1', '2', '2.1', '4', '5.1', '7.1')
     CHANNELS_ARGS_LIST = ('auto', '1', '2', '3', '4', '6', '8')
+    CHANNELS_LIST_LENGTH = len(CHANNELS_ARGS_LIST)
 
     def __init__(self):
         self.ffmpeg_args = {
@@ -65,7 +66,7 @@ class Opus:
     @channels.setter
     def channels(self, channels_index):
         """Stores index as a channels argument."""
-        if channels_index is None or not 1 <= channels_index <= 6:
+        if channels_index is None or not 1 <= channels_index <= (Opus.CHANNELS_LIST_LENGTH - 1):
             self.ffmpeg_args.pop('-ac', 0)
         else:
             self.ffmpeg_args['-ac'] = self.CHANNELS_ARGS_LIST[channels_index]

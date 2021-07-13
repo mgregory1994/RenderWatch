@@ -36,26 +36,18 @@ class TestOpusChannels(unittest.TestCase):
         self.assertEqual(opus.channels, 0)
         opus.channels = 1
         self.assertEqual(opus.channels, 1)
-        opus.channels = 2
-        self.assertEqual(opus.channels, 2)
-        opus.channels = 3
-        self.assertEqual(opus.channels, 3)
-        opus.channels = 4
-        self.assertEqual(opus.channels, 4)
-        opus.channels = 5
-        self.assertEqual(opus.channels, 5)
-        opus.channels = 6
-        self.assertEqual(opus.channels, 6)
+        opus.channels = Opus.CHANNELS_LIST_LENGTH - 1
+        self.assertEqual(opus.channels, Opus.CHANNELS_LIST_LENGTH - 1)
 
     def _test_channels_abnormal_values(self, opus):
         # Invalid values that shouldn't apply.
         opus.channels = -1
         self.assertEqual(opus.channels, 0)
-        opus.channels = -10
+        opus.channels = Opus.CHANNELS_LIST_LENGTH * -1
         self.assertEqual(opus.channels, 0)
         opus.channels = 7
         self.assertEqual(opus.channels, 0)
-        opus.channels = 10
+        opus.channels = Opus.CHANNELS_LIST_LENGTH
         self.assertEqual(opus.channels, 0)
         opus.channels = None
         self.assertEqual(opus.channels, 0)
