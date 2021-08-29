@@ -45,7 +45,8 @@ class X265:
 
     def __init__(self):
         self.ffmpeg_args = {
-            '-c:v': 'libx265'
+            '-c:v': 'libx265',
+            '-crf': '20.0'
         }
         self.advanced_enabled = False
         self._ffmpeg_advanced_args = {}
@@ -820,7 +821,7 @@ class X265:
         if self.advanced_enabled:
             args = self._generate_advanced_args()
         else:
-            if self._ffmpeg_advanced_args['pass=']:
+            if 'pass=' in self._ffmpeg_advanced_args:
                 args = self._get_pass_args()
         if args:
             advanced_args['-x265-params'] = args
