@@ -25,7 +25,7 @@ class TestX264(unittest.TestCase):
     """Tests all X264 initial options."""
 
     def test_instantiation(self):
-        """Tests the inital values of the X264 codec."""
+        """Tests the initial values of the X264 codec."""
         x264 = X264()
         self.assertEqual(x264.codec_name, 'libx264')
         self.assertEqual(x264.crf, 20.0)
