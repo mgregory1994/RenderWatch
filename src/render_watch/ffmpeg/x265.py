@@ -20,18 +20,28 @@ class X265:
     """Manages all settings for the x265 codec."""
 
     PROFILE_ARGS_LIST = ('auto', 'main', 'main10', 'main12')
+    PROFILE_LIST_LENGTH = len(PROFILE_ARGS_LIST)
     PRESET_ARGS_LIST = ('auto', 'ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'slow', 'slower', 'veryslow')
+    PRESET_LIST_LENGTH = len(PRESET_ARGS_LIST)
     LEVEL_ARGS_LIST = ('auto', '1', '2', '2.1', '3', '3.1', '4', '4.1', '5', '5.1', '5.2', '6', '6.1', '6.2', '8.5')
+    LEVEL_LIST_LENGTH = len(LEVEL_ARGS_LIST)
     TUNE_ARGS_LIST = ('auto', 'grain', 'animation', 'zerolatency', 'fastdecode', 'psnr', 'ssim')
+    TUNE_LIST_LENGTH = len(TUNE_ARGS_LIST)
     AQ_MODE_ARGS_LIST = ('auto', '0', '1', '2', '3', '4')
     AQ_MODE_UI_LIST = ('auto', 'disabled', 'enabled', 'variance', 'variance(dark)', 'variance(dark + edge)')
+    AQ_MODE_LIST_LENGTH = len(AQ_MODE_ARGS_LIST)
     B_ADAPT_ARGS_LIST = ('auto', '0', '1', '2')
     B_ADAPT_UI_LIST = ('auto', 'none', 'fast', 'full(trellis)')
+    B_ADAPT_LIST_LENGTH = len(B_ADAPT_ARGS_LIST)
     ME_ARGS_LIST = ('auto', 'dia', 'hex', 'umh', 'star', 'sea', 'full')
+    ME_LIST_LENGTH = len(ME_ARGS_LIST)
     RDOQ_LEVEL_ARGS_LIST = ('auto', '0', '1', '2')
     RDOQ_LEVEL_UI_LIST = ('auto', 'none', 'optimal rounding', 'decimate decisions')
+    RDOQ_LEVEL_LIST_LENGTH = len(RDOQ_LEVEL_ARGS_LIST)
     MAX_CU_SIZE_ARGS_LIST = ('auto', '64', '32', '16')
+    MAX_CU_SIZE_LIST_LENGTH = len(MAX_CU_SIZE_ARGS_LIST)
     MIN_CU_SIZE_ARGS_LIST = ('auto', '8', '16', '32')
+    MIN_CU_SIZE_LIST_LENGTH = len(MIN_CU_SIZE_ARGS_LIST)
 
     def __init__(self):
         self.ffmpeg_args = {

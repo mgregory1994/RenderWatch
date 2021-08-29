@@ -20,7 +20,9 @@ class VP9:
     """Manages all settings for the VP9 codec."""
 
     QUALITY_ARGS_LIST = ('auto', 'good', 'best', 'realtime')
+    QUALITY_LIST_LENGTH = len(QUALITY_ARGS_LIST)
     SPEED_ARGS_LIST = ('auto', '0', '1', '2', '3', '4', '5')
+    SPEED_LIST_LENGTH = len(SPEED_ARGS_LIST)
 
     def __init__(self):
         self.ffmpeg_args = {
