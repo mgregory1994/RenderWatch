@@ -485,16 +485,12 @@ Author: Michael Gregory
                                     <property name="valign">start</property>
                                     <property name="label" translatable="yes">Add or Drop a New Input</property>
                                     <property name="justify">center</property>
-                                    <property name="yalign">0.14999999105930328</property>
-                                    <attributes>
-                                      <attribute name="gravity" value="north"/>
-                                    </attributes>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
                                     <property name="fill">True</property>
                                     <property name="pack-type">end</property>
-                                    <property name="position">0</property>
+                                    <property name="position">2</property>
                                   </packing>
                                 </child>
                               </object>
@@ -8735,17 +8731,12 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                             <property name="can-focus">False</property>
                             <property name="valign">start</property>
                             <property name="label" translatable="yes">No Active Tasks</property>
-                            <property name="justify">center</property>
-                            <property name="yalign">0.15000000596046448</property>
-                            <attributes>
-                              <attribute name="gravity" value="north"/>
-                            </attributes>
                           </object>
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="pack-type">end</property>
-                            <property name="position">0</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
@@ -8806,17 +8797,12 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                             <property name="can-focus">False</property>
                             <property name="valign">start</property>
                             <property name="label" translatable="yes">No Completed Tasks</property>
-                            <property name="justify">center</property>
-                            <property name="yalign">0.15000000596046448</property>
-                            <attributes>
-                              <attribute name="gravity" value="north"/>
-                            </attributes>
                           </object>
                           <packing>
                             <property name="expand">True</property>
                             <property name="fill">True</property>
                             <property name="pack-type">end</property>
-                            <property name="position">0</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </object>
