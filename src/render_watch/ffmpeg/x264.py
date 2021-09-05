@@ -115,7 +115,7 @@ class X264:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or not 0 <= bitrate_value <= 99999:
+        if bitrate_value is None or not 0 < bitrate_value <= 99999:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
@@ -133,7 +133,7 @@ class X264:
     @profile.setter
     def profile(self, profile_index):
         """Stores index as a profile argument."""
-        if profile_index is None or not 1 <= profile_index <= (X264.PROFILE_LIST_LENGTH - 1):
+        if profile_index is None or not 0 < profile_index < X264.PROFILE_LIST_LENGTH:
             self.ffmpeg_args.pop('-profile:v', 0)
         else:
             self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]
@@ -149,7 +149,7 @@ class X264:
     @preset.setter
     def preset(self, preset_index):
         """Stores index as a preset argument."""
-        if preset_index is None or not 1 <= preset_index <= (X264.PRESET_LIST_LENGTH - 1):
+        if preset_index is None or not 0 < preset_index < X264.PRESET_LIST_LENGTH:
             self.ffmpeg_args.pop('-preset', 0)
         else:
             self.ffmpeg_args['-preset'] = self.PRESET_ARGS_LIST[preset_index]
@@ -165,7 +165,7 @@ class X264:
     @level.setter
     def level(self, level_index):
         """Stores index as a level argument."""
-        if level_index is None or not 1 <= level_index <= (X264.LEVEL_LIST_LENGTH - 1):
+        if level_index is None or not 0 < level_index < X264.LEVEL_LIST_LENGTH:
             self.ffmpeg_args.pop('-level', 0)
         else:
             self.ffmpeg_args['-level'] = self.LEVEL_ARGS_LIST[level_index]
@@ -181,7 +181,7 @@ class X264:
     @tune.setter
     def tune(self, tune_index):
         """Stores index as a tune argument."""
-        if tune_index is None or not 1 <= tune_index <= (X264.TUNE_LIST_LENGTH - 1):
+        if tune_index is None or not 0 < tune_index < X264.TUNE_LIST_LENGTH:
             self.ffmpeg_args.pop('-tune', 0)
         else:
             self.ffmpeg_args['-tune'] = self.TUNE_ARGS_LIST[tune_index]
@@ -257,7 +257,7 @@ class X264:
     @b_adapt.setter
     def b_adapt(self, b_adapt_index):
         """Stores index as a b adapt argument."""
-        if b_adapt_index is None or not 1 <= b_adapt_index <= (X264.B_ADAPT_LIST_LENGTH - 1):
+        if b_adapt_index is None or not 0 < b_adapt_index < X264.B_ADAPT_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('b-adapt=', 0)
         else:
             self._ffmpeg_advanced_args['b-adapt='] = self.B_ADAPT_ARGS_LIST[b_adapt_index]
@@ -273,7 +273,7 @@ class X264:
     @b_pyramid.setter
     def b_pyramid(self, b_pyramid_index):
         """Stores index as a b pyramid argument."""
-        if b_pyramid_index is None or not 1 <= b_pyramid_index <= (X264.B_PYRAMID_LIST_LENGTH - 1):
+        if b_pyramid_index is None or not 0 < b_pyramid_index < X264.B_PYRAMID_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('b-pyramid=', 0)
         else:
             self._ffmpeg_advanced_args['b-pyramid='] = self.B_PYRAMID_ARGS_LIST[b_pyramid_index]
@@ -383,7 +383,7 @@ class X264:
     @aq_mode.setter
     def aq_mode(self, aq_mode_index):
         """Stores index as an aq mode argument."""
-        if aq_mode_index is None or not 1 <= aq_mode_index <= (X264.AQ_MODE_LIST_LENGTH - 1):
+        if aq_mode_index is None or not 0 < aq_mode_index < X264.AQ_MODE_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('aq-mode=', 0)
         else:
             self._ffmpeg_advanced_args['aq-mode='] = self.AQ_MODE_ARGS_LIST[aq_mode_index]
@@ -470,7 +470,7 @@ class X264:
     @direct.setter
     def direct(self, direct_index):
         """Stores index as a string argument."""
-        if direct_index is None or not 1 <= direct_index <= (X264.DIRECT_LIST_LENGTH - 1):
+        if direct_index is None or not 0 < direct_index < X264.DIRECT_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('direct=', 0)
         else:
             self._ffmpeg_advanced_args['direct='] = self.DIRECT_ARGS_LIST[direct_index]
@@ -502,7 +502,7 @@ class X264:
     @me.setter
     def me(self, me_index):
         """Stores index as a me argument."""
-        if me_index is None or not 1 <= me_index <= (X264.ME_LIST_LENGTH - 1):
+        if me_index is None or not 0 < me_index < X264.ME_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('me=', 0)
         else:
             self._ffmpeg_advanced_args['me='] = self.ME_ARGS_LIST[me_index]
@@ -533,7 +533,7 @@ class X264:
     @subme.setter
     def subme(self, subme_index):
         """Stores index as a subme argument."""
-        if subme_index is None or not 1 <= subme_index <= (X264.SUB_ME_LIST_LENGTH - 1):
+        if subme_index is None or not 0 < subme_index < X264.SUB_ME_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('subme=', 0)
         else:
             self._ffmpeg_advanced_args['subme='] = self.SUB_ME_ARGS_LIST[subme_index]
@@ -601,7 +601,7 @@ class X264:
 
     @trellis.setter
     def trellis(self, trellis_index):
-        if trellis_index is None or not 1 <= trellis_index <= (X264.TRELLIST_LIST_LENGTH - 1):
+        if trellis_index is None or not 0 < trellis_index < X264.TRELLIST_LIST_LENGTH:
             """Stores index as a trellis argument."""
             self._ffmpeg_advanced_args.pop('trellis=', 0)
         else:
@@ -666,7 +666,7 @@ class X264:
     @weightp.setter
     def weightp(self, weightp_index):
         """Stores index as a weightp argument."""
-        if weightp_index is None or not 1 <= weightp_index <= (X264.WEIGHT_P_LIST_LENGTH - 1):
+        if weightp_index is None or not 0 < weightp_index < X264.WEIGHT_P_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('weightp=', 0)
         else:
             self._ffmpeg_advanced_args['weightp='] = self.WEIGHT_P_ARGS_LIST[weightp_index]

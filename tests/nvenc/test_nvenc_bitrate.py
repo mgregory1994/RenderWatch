@@ -34,10 +34,6 @@ class TestNvencBitrate(unittest.TestCase):
 
     def _test_bitrate_normal_values(self, h264_nvenc, hevc_nvenc):
         # Values that should apply.
-        h264_nvenc.bitrate = 0
-        hevc_nvenc.bitrate = 0
-        self.assertEqual(h264_nvenc.bitrate, 0)
-        self.assertEqual(hevc_nvenc.bitrate, 0)
         h264_nvenc.bitrate = 1
         hevc_nvenc.bitrate = 1
         self.assertEqual(h264_nvenc.bitrate, 1)
@@ -59,6 +55,10 @@ class TestNvencBitrate(unittest.TestCase):
         self.assertIsNone(hevc_nvenc.bitrate)
         h264_nvenc.bitrate = -99999
         hevc_nvenc.bitrate = -99999
+        self.assertIsNone(h264_nvenc.bitrate)
+        self.assertIsNone(hevc_nvenc.bitrate)
+        h264_nvenc.bitrate = 0
+        hevc_nvenc.bitrate = 0
         self.assertIsNone(h264_nvenc.bitrate)
         self.assertIsNone(hevc_nvenc.bitrate)
         h264_nvenc.bitrate = 100000

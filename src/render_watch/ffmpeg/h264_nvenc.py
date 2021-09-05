@@ -83,7 +83,7 @@ class H264Nvenc:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or bitrate_value < 0 or bitrate_value > 99999:
+        if bitrate_value is None or not 0 < bitrate_value <= 99999:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
@@ -100,7 +100,7 @@ class H264Nvenc:
     @profile.setter
     def profile(self, profile_index):
         """Stores index as a profile argument."""
-        if profile_index is None or not 1 <= profile_index <= (H264Nvenc.PROFILE_LIST_LENGTH - 1):
+        if profile_index is None or not 0 < profile_index < H264Nvenc.PROFILE_LIST_LENGTH:
             self.ffmpeg_args.pop('-profile:v', 0)
         else:
             self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]
@@ -116,7 +116,7 @@ class H264Nvenc:
     @preset.setter
     def preset(self, preset_index):
         """Stores index as a preset argument."""
-        if preset_index is None or not 1 <= preset_index <= (H264Nvenc.PRESET_LIST_LENGTH - 1):
+        if preset_index is None or not 0 < preset_index < H264Nvenc.PRESET_LIST_LENGTH:
             self.ffmpeg_args.pop('-preset', 0)
         else:
             self.ffmpeg_args['-preset'] = self.PRESET_ARGS_LIST[preset_index]
@@ -132,7 +132,7 @@ class H264Nvenc:
     @level.setter
     def level(self, level_index):
         """Stores index as a level argument."""
-        if level_index is None or not 1 <= level_index <= (H264Nvenc.LEVEL_LIST_LENGTH - 1):
+        if level_index is None or not 0 < level_index < H264Nvenc.LEVEL_LIST_LENGTH:
             self.ffmpeg_args.pop('-level', 0)
         else:
             self.ffmpeg_args['-level'] = self.LEVEL_ARGS_LIST[level_index]
@@ -148,7 +148,7 @@ class H264Nvenc:
     @tune.setter
     def tune(self, tune_index):
         """Stores index as a tune argument."""
-        if tune_index is None or not 1 <= tune_index <= (H264Nvenc.TUNE_LIST_LENGTH - 1):
+        if tune_index is None or not 0 < tune_index < H264Nvenc.TUNE_LIST_LENGTH:
             self.ffmpeg_args.pop('-tune', 0)
         else:
             self.ffmpeg_args['-tune'] = self.TUNE_ARGS_LIST[tune_index]
@@ -164,7 +164,7 @@ class H264Nvenc:
     @multi_pass.setter
     def multi_pass(self, multi_pass_index):
         """Stores index as a multi pass argument."""
-        if multi_pass_index is None or not 1 <= multi_pass_index <= (H264Nvenc.MULTI_PASS_LIST_LENGTH - 1):
+        if multi_pass_index is None or not 0 < multi_pass_index < H264Nvenc.MULTI_PASS_LIST_LENGTH:
             self.ffmpeg_args.pop('-multipass', 0)
         else:
             self.ffmpeg_args['-multipass'] = self.MULTI_PASS_ARGS_LIST[multi_pass_index]
@@ -241,7 +241,7 @@ class H264Nvenc:
     @rc.setter
     def rc(self, rc_index):
         """Stores index as a rate control argument."""
-        if rc_index is None or not 1 <= rc_index <= (H264Nvenc.RATE_CONTROL_LIST_LENGTH - 1):
+        if rc_index is None or not 0 < rc_index < H264Nvenc.RATE_CONTROL_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('-rc', 0)
         else:
             self._ffmpeg_advanced_args['-rc'] = self.RATE_CONTROL_ARGS_LIST[rc_index]
@@ -446,7 +446,7 @@ class H264Nvenc:
     @coder.setter
     def coder(self, coder_index):
         """Stores index as a coder argument."""
-        if coder_index is None or not 1 <= coder_index <= (H264Nvenc.CODER_LIST_LENGTH - 1):
+        if coder_index is None or not 0 < coder_index < H264Nvenc.CODER_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('-coder', 0)
         else:
             self._ffmpeg_advanced_args['-coder'] = self.CODER_ARGS_LIST[coder_index]
@@ -462,7 +462,7 @@ class H264Nvenc:
     @b_ref_mode.setter
     def b_ref_mode(self, b_ref_mode_index):
         """Stores index as a bref mode argument."""
-        if b_ref_mode_index is None or not 1 <= b_ref_mode_index <= (H264Nvenc.BREF_MODE_LIST_LENGTH - 1):
+        if b_ref_mode_index is None or not 0 < b_ref_mode_index < H264Nvenc.BREF_MODE_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('-b_ref_mode', 0)
         else:
             self._ffmpeg_advanced_args['-b_ref_mode'] = self.BREF_MODE_ARGS_LIST[b_ref_mode_index]

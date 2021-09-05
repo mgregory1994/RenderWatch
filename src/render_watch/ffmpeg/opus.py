@@ -66,7 +66,7 @@ class Opus:
     @channels.setter
     def channels(self, channels_index):
         """Stores index as a channels argument."""
-        if channels_index is None or not 1 <= channels_index <= (Opus.CHANNELS_LIST_LENGTH - 1):
+        if channels_index is None or not 0 < channels_index < Opus.CHANNELS_LIST_LENGTH:
             self.ffmpeg_args.pop('-ac', 0)
         else:
             self.ffmpeg_args['-ac'] = self.CHANNELS_ARGS_LIST[channels_index]

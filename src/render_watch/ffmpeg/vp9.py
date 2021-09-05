@@ -45,7 +45,7 @@ class VP9:
     @quality.setter
     def quality(self, quality_index):
         """Stores index as a quality argument."""
-        if quality_index is None or not 1 <= quality_index <= 3:
+        if quality_index is None or not 0 < quality_index < VP9.QUALITY_LIST_LENGTH:
             self.ffmpeg_args.pop('-deadline', 0)
         else:
             self.ffmpeg_args['-deadline'] = self.QUALITY_ARGS_LIST[quality_index]
@@ -61,7 +61,7 @@ class VP9:
     @speed.setter
     def speed(self, speed_index):
         """Stores index as a speed argument."""
-        if speed_index is None or not 1 <= speed_index <= 6:
+        if speed_index is None or not 0 < speed_index < VP9.SPEED_LIST_LENGTH:
             self.ffmpeg_args.pop('-cpu-used', 0)
         else:
             self.ffmpeg_args['-cpu-used'] = self.SPEED_ARGS_LIST[speed_index]

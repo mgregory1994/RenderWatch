@@ -32,8 +32,6 @@ class TestX264Bitrate(unittest.TestCase):
 
     def _test_bitrate_normal_values(self, x264):
         # Values that should apply.
-        x264.bitrate = 0
-        self.assertEqual(x264.bitrate, 0)
         x264.bitrate = 1
         self.assertEqual(x264.bitrate, 1)
         x264.bitrate = 2500
@@ -50,6 +48,8 @@ class TestX264Bitrate(unittest.TestCase):
         x264.bitrate = -50000
         self.assertIsNone(x264.bitrate)
         x264.bitrate = -100000
+        self.assertIsNone(x264.bitrate)
+        x264.bitrate = 0
         self.assertIsNone(x264.bitrate)
         x264.bitrate = 100000
         self.assertIsNone(x264.bitrate)

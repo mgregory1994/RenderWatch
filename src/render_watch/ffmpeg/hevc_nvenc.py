@@ -79,7 +79,7 @@ class HevcNvenc:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or not 0 <= bitrate_value <= 99999:
+        if bitrate_value is None or not 0 < bitrate_value <= 99999:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
@@ -96,7 +96,7 @@ class HevcNvenc:
     @profile.setter
     def profile(self, profile_index):
         """Stores index as a profile argument."""
-        if profile_index is None or not 1 <= profile_index <= (HevcNvenc.PROFILE_LIST_LENGTH - 1):
+        if profile_index is None or not 0 < profile_index < HevcNvenc.PROFILE_LIST_LENGTH:
             self.ffmpeg_args.pop('-profile:v', 0)
         else:
             self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]
@@ -112,7 +112,7 @@ class HevcNvenc:
     @preset.setter
     def preset(self, preset_index):
         """Stores index as a preset argument."""
-        if preset_index is None or not 1 <= preset_index <= (HevcNvenc.PRESET_LIST_LENGTH - 1):
+        if preset_index is None or not 0 < preset_index < HevcNvenc.PRESET_LIST_LENGTH:
             self.ffmpeg_args.pop('-preset', 0)
         else:
             self.ffmpeg_args['-preset'] = self.PRESET_ARGS_LIST[preset_index]
@@ -128,7 +128,7 @@ class HevcNvenc:
     @level.setter
     def level(self, level_index):
         """Stores index as a level argument."""
-        if level_index is None or not 1 <= level_index <= (HevcNvenc.LEVEL_LIST_LENGTH - 1):
+        if level_index is None or not 0 < level_index < HevcNvenc.LEVEL_LIST_LENGTH:
             self.ffmpeg_args.pop('-level', 0)
         else:
             self.ffmpeg_args['-level'] = self.LEVEL_ARGS_LIST[level_index]
@@ -144,7 +144,7 @@ class HevcNvenc:
     @tune.setter
     def tune(self, tune_index):
         """Stores index as a tune argument."""
-        if tune_index is None or not 1 <= tune_index <= (HevcNvenc.TUNE_LIST_LENGTH - 1):
+        if tune_index is None or not 0 < tune_index < HevcNvenc.TUNE_LIST_LENGTH:
             self.ffmpeg_args.pop('-tune', 0)
         else:
             self.ffmpeg_args['-tune'] = self.TUNE_ARGS_LIST[tune_index]
@@ -160,7 +160,7 @@ class HevcNvenc:
     @multi_pass.setter
     def multi_pass(self, multi_pass_index):
         """Stores index as a multi pass argument."""
-        if multi_pass_index is None or not 1 <= multi_pass_index <= (HevcNvenc.MULTI_PASS_LIST_LENGTH - 1):
+        if multi_pass_index is None or not 0 < multi_pass_index < HevcNvenc.MULTI_PASS_LIST_LENGTH:
             self.ffmpeg_args.pop('-multipass', 0)
         else:
             self.ffmpeg_args['-multipass'] = self.MULTI_PASS_ARGS_LIST[multi_pass_index]
@@ -237,7 +237,7 @@ class HevcNvenc:
     @rc.setter
     def rc(self, rc_index):
         """Stores index as a rate control argument."""
-        if rc_index is None or not 1 <= rc_index <= (HevcNvenc.RATE_CONTROL_LIST_LENGTH - 1):
+        if rc_index is None or not 0 < rc_index < HevcNvenc.RATE_CONTROL_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('-rc', 0)
         else:
             self._ffmpeg_advanced_args['-rc'] = self.RATE_CONTROL_ARGS_LIST[rc_index]
@@ -426,7 +426,7 @@ class HevcNvenc:
     @b_ref_mode.setter
     def b_ref_mode(self, b_ref_mode_index):
         """Stores index as a bref mode argument."""
-        if b_ref_mode_index is None or not 1 <= b_ref_mode_index <= (HevcNvenc.BREF_MODE_LIST_LENGTH - 1):
+        if b_ref_mode_index is None or not 0 < b_ref_mode_index < HevcNvenc.BREF_MODE_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('-b_ref_mode', 0)
         else:
             self._ffmpeg_advanced_args['-b_ref_mode'] = self.BREF_MODE_ARGS_LIST[b_ref_mode_index]
