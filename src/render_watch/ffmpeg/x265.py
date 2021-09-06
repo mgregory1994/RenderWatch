@@ -100,7 +100,7 @@ class X265:
     @bitrate.setter
     def bitrate(self, bitrate_value):
         """Stores bitrate value as a string argument."""
-        if bitrate_value is None or bitrate_value < 0 or bitrate_value > 99999:
+        if bitrate_value is None or bitrate_value <= 0 or bitrate_value > 99999:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
@@ -118,7 +118,7 @@ class X265:
     @profile.setter
     def profile(self, profile_index):
         """Stores index as a profile argument."""
-        if profile_index is None or profile_index < 1:
+        if profile_index is None or not 0 < profile_index < X265.PROFILE_LIST_LENGTH:
             self.ffmpeg_args.pop('-profile:v', 0)
         else:
             self.ffmpeg_args['-profile:v'] = self.PROFILE_ARGS_LIST[profile_index]
@@ -134,7 +134,7 @@ class X265:
     @preset.setter
     def preset(self, preset_index):
         """Stores index as a preset argument."""
-        if preset_index is None or preset_index < 1:
+        if preset_index is None or not 0 < preset_index < X265.PRESET_LIST_LENGTH:
             self.ffmpeg_args.pop('-preset', 0)
         else:
             self.ffmpeg_args['-preset'] = self.PRESET_ARGS_LIST[preset_index]
@@ -150,7 +150,7 @@ class X265:
     @level.setter
     def level(self, level_index):
         """Stores index as a level argument."""
-        if level_index is None or level_index < 1:
+        if level_index is None or not 0 < level_index < X265.LEVEL_LIST_LENGTH:
             self.ffmpeg_args.pop('-level', 0)
         else:
             self.ffmpeg_args['-level'] = self.LEVEL_ARGS_LIST[level_index]
@@ -166,7 +166,7 @@ class X265:
     @tune.setter
     def tune(self, tune_index):
         """Stores index as a tune argument."""
-        if tune_index is None or tune_index < 1:
+        if tune_index is None or not 0 < tune_index < X265.TUNE_LIST_LENGTH:
             self.ffmpeg_args.pop('-tune', 0)
         else:
             self.ffmpeg_args['-tune'] = self.TUNE_ARGS_LIST[tune_index]
@@ -181,7 +181,7 @@ class X265:
     @vbv_maxrate.setter
     def vbv_maxrate(self, vbv_maxrate_value):
         """Stores vbv maxrate value as a string argument."""
-        if vbv_maxrate_value is None or vbv_maxrate_value < 0 or vbv_maxrate_value > 99999:
+        if vbv_maxrate_value is None or not 0 < vbv_maxrate_value <= 99999:
             self._ffmpeg_advanced_args.pop('vbv-maxrate=', 0)
         else:
             self._ffmpeg_advanced_args['vbv-maxrate='] = str(vbv_maxrate_value)
@@ -196,7 +196,7 @@ class X265:
     @vbv_bufsize.setter
     def vbv_bufsize(self, vbv_bufsize_value):
         """Stores vbv bufsize value as a string argument."""
-        if vbv_bufsize_value is None or vbv_bufsize_value < 0 or vbv_bufsize_value > 99999:
+        if vbv_bufsize_value is None or not 0 < vbv_bufsize_value <= 99999:
             self._ffmpeg_advanced_args.pop('vbv-bufsize=', 0)
         else:
             self._ffmpeg_advanced_args['vbv-bufsize='] = str(vbv_bufsize_value)
@@ -212,7 +212,7 @@ class X265:
     @aq_mode.setter
     def aq_mode(self, aq_mode_index):
         """Stores index as a aq mode argument."""
-        if aq_mode_index is None or aq_mode_index == 0:
+        if aq_mode_index is None or not 0 < aq_mode_index < X265.AQ_MODE_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('aq-mode=', 0)
         else:
             self._ffmpeg_advanced_args['aq-mode='] = self.AQ_MODE_ARGS_LIST[aq_mode_index]
@@ -319,7 +319,7 @@ class X265:
     @b_adapt.setter
     def b_adapt(self, b_adapt_index):
         """Stores index as a b adapt argument."""
-        if b_adapt_index is None or b_adapt_index < 1:
+        if b_adapt_index is None or not 0 < b_adapt_index < X265.B_ADAPT_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('b-adapt=', 0)
         else:
             self._ffmpeg_advanced_args['b-adapt='] = self.B_ADAPT_ARGS_LIST[b_adapt_index]
@@ -460,7 +460,7 @@ class X265:
     @me.setter
     def me(self, me_index):
         """Stores index as a me argument."""
-        if me_index is None or me_index < 1:
+        if me_index is None or not 0 < me_index < X265.ME_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('me=', 0)
         else:
             self._ffmpeg_advanced_args['me='] = self.ME_ARGS_LIST[me_index]
@@ -595,7 +595,7 @@ class X265:
 
     @property
     def selective_sao(self):
-        """Returns selective sao argument as a boolean."""
+        """Returns selective sao argument as an int."""
         if 'selective-sao=' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['selective-sao='])
         return 0
@@ -634,7 +634,7 @@ class X265:
     @rdoq_level.setter
     def rdoq_level(self, rdoq_level_index):
         """Stores index as a rdoq level argument."""
-        if rdoq_level_index is None or rdoq_level_index < 1:
+        if rdoq_level_index is None or not 0 < rdoq_level_index < X265.RDOQ_LEVEL_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('rdoq-level=', 0)
         else:
             self._ffmpeg_advanced_args['rdoq-level='] = self.RDOQ_LEVEL_ARGS_LIST[rdoq_level_index]
@@ -666,7 +666,7 @@ class X265:
     @ctu.setter
     def ctu(self, ctu_index):
         """Stores index as a ctu argument."""
-        if ctu_index is None or ctu_index < 1:
+        if ctu_index is None or not 0 < ctu_index < X265.MAX_CU_SIZE_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('ctu=', 0)
         else:
             self._ffmpeg_advanced_args['ctu='] = self.MAX_CU_SIZE_ARGS_LIST[ctu_index]
@@ -682,7 +682,7 @@ class X265:
     @min_cu_size.setter
     def min_cu_size(self, min_cu_size_index):
         """Stores index as a min cu size argument."""
-        if min_cu_size_index is None or min_cu_size_index < 1:
+        if min_cu_size_index is None or not 0 < min_cu_size_index < X265.MIN_CU_SIZE_LIST_LENGTH:
             self._ffmpeg_advanced_args.pop('min-cu-size=', 0)
         else:
             self._ffmpeg_advanced_args['min-cu-size='] = self.MIN_CU_SIZE_ARGS_LIST[min_cu_size_index]
@@ -793,7 +793,7 @@ class X265:
     @encode_pass.setter
     def encode_pass(self, encode_pass_value):
         """Stores encode pass value as a string argument."""
-        if encode_pass_value is None or encode_pass_value < 1 or encode_pass_value > 2:
+        if encode_pass_value is None or not 1 <= encode_pass_value <= 2:
             self._ffmpeg_advanced_args.pop('pass=', 0)
         else:
             self._ffmpeg_advanced_args['pass='] = str(encode_pass_value)
