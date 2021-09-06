@@ -14,8 +14,8 @@ Other distributions require manual installation (see below).
 #### Debian or Ubuntu based distros:
 1. [Download](https://github.com/mgregory1994/RenderWatch/releases/tag/v0.1.0-beta) the .deb file
 2. Install by double-clicking the .deb file or by using apt
-    ```console
-    # apt install ./<name of file>.deb
+    ```bash
+    sudo apt install ./<name of file>.deb
     ```
    
 #### Other distros:
