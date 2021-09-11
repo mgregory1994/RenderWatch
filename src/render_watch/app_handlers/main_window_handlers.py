@@ -83,7 +83,7 @@ class MainWindowHandlers:
         self.output_file_chooser_button = gtk_builder.get_object("output_chooserbutton")
         self.add_button = gtk_builder.get_object("add_button")
         self.add_combobox = gtk_builder.get_object('add_combobox')
-        self.parallel_tasks_type_buttonbox = gtk_builder.get_object('dist_proc_type_buttonbox')
+        self.parallel_tasks_options_box = gtk_builder.get_object('parallel_tasks_options_box')
         self.parallel_tasks_radiobutton = gtk_builder.get_object('dist_proc_button')
         self.parallel_tasks_chunks_radiobutton = gtk_builder.get_object('chunks_radio_button')
         self.main_window = gtk_builder.get_object('main_window')
@@ -168,7 +168,7 @@ class MainWindowHandlers:
 
     def set_parallel_tasks_state(self, enabled):
         """Toggles the parallel task type widgets."""
-        self.parallel_tasks_type_buttonbox.set_sensitive(enabled)
+        self.parallel_tasks_options_box.set_sensitive(enabled)
 
     def update_ffmpeg_template(self):
         """Configures the ffmpeg template settings object to match the selected inputs row."""

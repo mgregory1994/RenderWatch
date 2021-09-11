@@ -23,6 +23,7 @@ from render_watch.ffmpeg.general_settings import GeneralSettings
 from render_watch.ffmpeg.x265 import X265
 from render_watch.ffmpeg.x264 import X264
 from render_watch.ffmpeg.h264_nvenc import H264Nvenc
+from render_watch.ffmpeg.hevc_nvenc import HevcNvenc
 from render_watch.ffmpeg.vp9 import VP9
 from render_watch.ffmpeg.aac import Aac
 from render_watch.ffmpeg.opus import Opus
@@ -317,11 +318,129 @@ class AppUI:
 
     def __setup_nvenc(self):
         # Runs all required functions to set up the NVENC codec's widgets.
-        self.__setup_nvenc_coder_widgets()
+        self._setup_nvenc_profile_widgets()
+        self._setup_nvenc_preset_widgets()
+        self._setup_nvenc_tune_widgets()
+        self._setup_nvenc_level_widgets()
+        self._setup_nvenc_rate_control_widgets()
+        self._setup_nvenc_tier_widgets()
+        self._setup_nvenc_rc_lookahead_widgets()
+        self._setup_nvenc_surfaces_widgets()
+        self._setup_nvenc_no_scenecut_widgets()
+        self._setup_nvenc_forced_idr_widgets()
+        self._setup_nvenc_aq_widgets()
+        self._setup_nvenc_non_ref_p_widgets()
+        self._setup_nvenc_strict_gop_widgets()
+        self._setup_nvenc_bluray_compat_widgets()
+        self._setup_nvenc_init_qp_widgets()
+        self._setup_nvenc_weighted_pred_widgets()
+        self._setup_nvenc_b_ref_mode_widgets()
+        self._setup_nvenc_multipass_widgets()
+        self._setup_nvenc_b_adapt_widgets()
+        self._setup_nvenc_coder_widgets()
 
-    def __setup_nvenc_coder_widgets(self):
-        nvenc_coder_combobox = self.gtk_builder.get_object('nvenc_coder_combobox')
-        UIHelper.setup_combobox(nvenc_coder_combobox, H264Nvenc.CODER_ARGS_LIST)
+    def _setup_nvenc_profile_widgets(self):
+        nvenc_profile_combobox = self.gtk_builder.get_object('nvenc_profile_combobox')
+        nvenc_profile_combobox.set_sensitive('-profile' in H264Nvenc.OPTIONS and '-profile' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_preset_widgets(self):
+        nvenc_preset_combobox = self.gtk_builder.get_object('nvenc_preset_combobox')
+        nvenc_preset_combobox.set_sensitive('-preset' in H264Nvenc.OPTIONS and '-preset' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_tune_widgets(self):
+        nvenc_tune_combobox = self.gtk_builder.get_object('nvenc_tune_combobox')
+        nvenc_tune_combobox.set_sensitive('-tune' in H264Nvenc.OPTIONS and '-tune' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_level_widgets(self):
+        nvenc_level_combobox = self.gtk_builder.get_object('nvenc_level_combobox')
+        nvenc_level_combobox.set_sensitive('-level' in H264Nvenc.OPTIONS and '-level' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_rate_control_widgets(self):
+        nvenc_rate_control_combobox = self.gtk_builder.get_object('nvenc_rate_control_combobox')
+        nvenc_rate_control_combobox.set_sensitive('-rc' in H264Nvenc.OPTIONS and '-rc' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_tier_widgets(self):
+        nvenc_tier_box = self.gtk_builder.get_object('nvenc_tier_box')
+        nvenc_tier_box.set_sensitive('-tier' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_rc_lookahead_widgets(self):
+        nvenc_rc_lookahead_spinbutton = self.gtk_builder.get_object('nvenc_rate_control_lookahead_spinbutton')
+        nvenc_rc_lookahead_spinbutton.set_sensitive('-rc-lookahead' in H264Nvenc.OPTIONS
+                                                    and '-rc-lookahead' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_surfaces_widgets(self):
+        nvenc_surfaces_spinbutton = self.gtk_builder.get_object('nvenc_surfaces_spinbutton')
+        nvenc_surfaces_spinbutton.set_sensitive('-surfaces' in H264Nvenc.OPTIONS and '-surfaces' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_no_scenecut_widgets(self):
+        nvenc_no_scenecut_checkbutton = self.gtk_builder.get_object('nvenc_no_scenecut_checkbox')
+        nvenc_no_scenecut_checkbutton.set_sensitive('-no-scenecut' in H264Nvenc.OPTIONS
+                                                    and '-no-scenecut' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_forced_idr_widgets(self):
+        nvenc_forced_idr_checkbutton = self.gtk_builder.get_object('nvenc_forced_idr_checkbox')
+        nvenc_forced_idr_checkbutton.set_sensitive('-forced-idr' in H264Nvenc.OPTIONS
+                                                   and '-forced-idr' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_aq_widgets(self):
+        nvenc_aq_type_buttonbox = self.gtk_builder.get_object('nvenc_aq_type_buttonbox')
+        nvenc_aq_type_buttonbox.set_sensitive('-spatial-aq' in H264Nvenc.OPTIONS
+                                              and '-spatial-aq' in HevcNvenc.OPTIONS
+                                              and '-temporal-aq' in H264Nvenc.OPTIONS
+                                              and '-temporal-aq' in HevcNvenc.OPTIONS)
+        nvenc_aq_strength_spinbutton = self.gtk_builder.get_object('nvenc_aqstrength_spinbutton')
+        nvenc_aq_strength_spinbutton.set_sensitive('-aq-strength' in H264Nvenc.OPTIONS
+                                                   and '-aq-strength' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_non_ref_p_widgets(self):
+        nvenc_non_ref_p_checkbutton = self.gtk_builder.get_object('nvenc_nonref_pframes_checkbox')
+        nvenc_non_ref_p_checkbutton.set_sensitive('-nonref_p' in H264Nvenc.OPTIONS and '-nonref_p' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_strict_gop_widgets(self):
+        nvenc_strict_gop_checkbutton = self.gtk_builder.get_object('nvenc_strict_gop_checkbox')
+        nvenc_strict_gop_checkbutton.set_sensitive('-strict_gop' in H264Nvenc.OPTIONS
+                                                   and '-strict_gop' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_bluray_compat_widgets(self):
+        nvenc_bluray_compat_checkbox = self.gtk_builder.get_object('nvenc_bluray_compat_checkbox')
+        nvenc_bluray_compat_checkbox.set_sensitive('-bluray-compat' in H264Nvenc.OPTIONS
+                                                   and '-bluray-compat' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_init_qp_widgets(self):
+        nvenc_qp_init_enabled_box = self.gtk_builder.get_object('nvenc_qp_init_enabled_box')
+        nvenc_qp_i_scale = self.gtk_builder.get_object('nvenc_qp_i_scale')
+        nvenc_qp_p_scale = self.gtk_builder.get_object('nvenc_qp_p_scale')
+        nvenc_qp_b_scale = self.gtk_builder.get_object('nvenc_qp_b_scale')
+        is_widgets_sensitive = '-init_qpI' in H264Nvenc.OPTIONS and '-init_qpI' in HevcNvenc.OPTIONS \
+                               and '-init_qpP' in H264Nvenc.OPTIONS and '-init_qpP' in HevcNvenc.OPTIONS \
+                               and '-init_qpB' in H264Nvenc.OPTIONS and '-init_qpB' in HevcNvenc.OPTIONS
+        nvenc_qp_init_enabled_box.set_sensitive(is_widgets_sensitive)
+        nvenc_qp_i_scale.set_sensitive(is_widgets_sensitive)
+        nvenc_qp_p_scale.set_sensitive(is_widgets_sensitive)
+        nvenc_qp_b_scale.set_sensitive(is_widgets_sensitive)
+
+    def _setup_nvenc_weighted_pred_widgets(self):
+        nvenc_weighted_pred_checkbutton = self.gtk_builder.get_object('nvenc_weighted_prediction_checkbox')
+        nvenc_weighted_pred_checkbutton.set_sensitive('-weighted_pred' in H264Nvenc.OPTIONS
+                                                      and '-weighted_pred' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_b_ref_mode_widgets(self):
+        nvenc_b_ref_mode_combobox = self.gtk_builder.get_object('nvenc_bref_mode_combobox')
+        nvenc_b_ref_mode_combobox.set_sensitive('-b_ref_mode' in H264Nvenc.OPTIONS
+                                                and '-b_ref_mode' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_multipass_widgets(self):
+        nvenc_multipass_combobox = self.gtk_builder.get_object('nvenc_multi_pass_combobox')
+        nvenc_multipass_combobox.set_sensitive('-multipass' in H264Nvenc.OPTIONS and '-multipass' in HevcNvenc.OPTIONS)
+
+    def _setup_nvenc_b_adapt_widgets(self):
+        nvenc_b_adapt_checkbox = self.gtk_builder.get_object('nvenc_badapt_checkbox')
+        nvenc_b_adapt_checkbox.set_sensitive('-b_adapt' in H264Nvenc.OPTIONS)
+
+    def _setup_nvenc_coder_widgets(self):
+        if '-coder' in H264Nvenc.OPTIONS:
+            nvenc_coder_combobox = self.gtk_builder.get_object('nvenc_coder_combobox')
+            UIHelper.setup_combobox(nvenc_coder_combobox, H264Nvenc.OPTIONS['-coder'])
 
     def __setup_vp9(self):
         # Runs all required functions to set up the VP9 codec's widgets.

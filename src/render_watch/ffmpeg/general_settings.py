@@ -34,7 +34,7 @@ class GeneralSettings:
     AUDIO_CODEC_MKV_UI_LIST = ('copy', 'aac', 'opus')
     AUDIO_CODEC_TS_UI_LIST = ('copy', 'aac')
     AUDIO_CODEC_WEBM_UI_LIST = ('copy', 'opus')
-    CONTAINERS_UI_LIST = ('mp4', '.mkv', '.ts', '.webm')
+    CONTAINERS_UI_LIST = ('.mp4', '.mkv', '.ts', '.webm')
 
     def __init__(self):
         self.ffmpeg_args = {}

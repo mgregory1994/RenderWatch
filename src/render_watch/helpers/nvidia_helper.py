@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-
-
+import re
 import subprocess
 import logging
 
@@ -181,3 +180,59 @@ class NvidiaHelper:
         another NVENC process from running.
         """
         return NvidiaHelper.__run_test_process(NvidiaHelper.__get_new_nvenc_test_args())
+
+    @staticmethod
+    def get_h264_nvenc_options():
+        """Checks what h264 NVENC options are available on current version of ffmpeg."""
+        ffmpeg_args = NvidiaHelper._get_h264_nvenc_options_args()
+        return NvidiaHelper._run_nvenc_options_args(ffmpeg_args)
+
+    @staticmethod
+    def _get_h264_nvenc_options_args():
+        # Create and return the args needed to show all h264_nvenc options.
+        from render_watch.ffmpeg.settings import Settings
+
+        ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
+        ffmpeg_args.append('-h')
+        ffmpeg_args.append('encoder=h264_nvenc')
+        return ffmpeg_args
+
+    @staticmethod
+    def get_hevc_nvenc_options():
+        """Checks what h264 NVENC options are available on current version of ffmpeg."""
+        ffmpeg_args = NvidiaHelper._get_hevc_nvenc_options_args()
+        return NvidiaHelper._run_nvenc_options_args(ffmpeg_args)
+
+    @staticmethod
+    def _get_hevc_nvenc_options_args():
+        # Create and return the args needed to show all h264_nvenc options.
+        from render_watch.ffmpeg.settings import Settings
+
+        ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
+        ffmpeg_args.append('-h')
+        ffmpeg_args.append('encoder=hevc_nvenc')
+        return ffmpeg_args
+
+    @staticmethod
+    def _run_nvenc_options_args(ffmpeg_args):
+        # Run ffmpeg to display all h264_nvenc options and return those values as a dictionary.
+        h264_nvenc_options = {}
+        last_option_found = None
+
+        with subprocess.Popen(ffmpeg_args,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT) as process:
+            while True:
+                stdout = process.stdout.readline().strip().decode()
+                if stdout == '':
+                    break
+
+                option_match = re.search('^-\w+-\w+|^-\w+', stdout)
+                option_value_match = re.search('^\d.\w+|^\w+', stdout)
+                if option_match:
+                    last_option_found = option_match.group()
+                    h264_nvenc_options[last_option_found] = []
+                if option_value_match and last_option_found:
+                    h264_nvenc_options[last_option_found].append(option_value_match.group())
+        print(h264_nvenc_options)
+        return h264_nvenc_options

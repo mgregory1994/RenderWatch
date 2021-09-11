@@ -214,5 +214,5 @@ class InputsPageHandlers:
         self.start_all_button.set_sensitive(False)
 
     def update_preview_page(self):
-        if self.is_preview_state:
+        if self.is_preview_state():
             self.preview_page_handlers.update_preview()

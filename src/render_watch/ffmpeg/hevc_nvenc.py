@@ -16,26 +16,40 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from render_watch.helpers.nvidia_helper import NvidiaHelper
+
+
 class HevcNvenc:
     """Manages all settings for the HEVC NVENC codec."""
 
-    PRESET_ARGS_LIST = ('auto', 'slow', 'medium', 'fast', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7')
+    OPTIONS = NvidiaHelper.get_hevc_nvenc_options()
+    PRESET_ARGS_LIST = ['auto']
+    if '-preset' in OPTIONS:
+        PRESET_ARGS_LIST = OPTIONS['-preset']
     PRESET_LIST_LENGTH = len(PRESET_ARGS_LIST)
-    PROFILE_ARGS_LIST = ('auto', 'main', 'main10', 'rext')
+    PROFILE_ARGS_LIST = ['auto']
+    if '-profile' in OPTIONS:
+        PROFILE_ARGS_LIST.extend(OPTIONS['-profile'])
     PROFILE_LIST_LENGTH = len(PROFILE_ARGS_LIST)
-    LEVEL_ARGS_LIST = ('auto', '1', '2', '2.1', '3', '3.1', '4', '4.1', '5', '5.1', '5.2', '6', '6.1', '6.2')
+    LEVEL_ARGS_LIST = ['auto']
+    if '-level' in OPTIONS:
+        LEVEL_ARGS_LIST = OPTIONS['-level']
     LEVEL_LIST_LENGTH = len(LEVEL_ARGS_LIST)
-    TUNE_ARGS_LIST = ('auto', 'hq', 'll', 'ull', 'lossless')
-    TUNE_UI_LIST = ('auto', 'high quality', 'low latency', 'ultra-low latency', 'lossless')
+    TUNE_ARGS_LIST = ['auto']
+    if '-tune' in OPTIONS:
+        TUNE_ARGS_LIST.extend(OPTIONS['-tune'])
     TUNE_LIST_LENGTH = len(TUNE_ARGS_LIST)
-    RATE_CONTROL_ARGS_LIST = ('auto', 'constqp', 'vbr', 'cbr')
+    RATE_CONTROL_ARGS_LIST = ['auto']
+    if '-rc' in OPTIONS:
+        RATE_CONTROL_ARGS_LIST.extend(OPTIONS['-rc'])
     RATE_CONTROL_LIST_LENGTH = len(RATE_CONTROL_ARGS_LIST)
-    MULTI_PASS_ARGS_LIST = ('0', '1', '2')
-    MULTI_PASS_UI_LIST = ('disabled', 'quarter-res', 'full-res')
+    MULTI_PASS_ARGS_LIST = ['auto']
+    if '-multipass' in OPTIONS:
+        MULTI_PASS_ARGS_LIST.extend(OPTIONS['-multipass'])
     MULTI_PASS_LIST_LENGTH = len(MULTI_PASS_ARGS_LIST)
-    CODER_ARGS_LIST = ('auto', 'cabac', 'cavlc', 'ac', 'vlc')
-    CODER_LIST_LENGTH = len(CODER_ARGS_LIST)
-    BREF_MODE_ARGS_LIST = ('auto', 'disabled', 'each', 'middle')
+    BREF_MODE_ARGS_LIST = ['auto']
+    if '-b_ref_mode' in OPTIONS:
+        BREF_MODE_ARGS_LIST.extend(OPTIONS['-b_ref_mode'])
     BREF_MODE_LIST_LENGTH = len(BREF_MODE_ARGS_LIST)
 
     def __init__(self):

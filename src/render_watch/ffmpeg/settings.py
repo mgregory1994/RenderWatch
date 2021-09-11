@@ -36,8 +36,7 @@ class Settings:
     FFMPEG_INIT_AUTO_CROP_ARGS = ['ffmpeg', '-hide_banner', '-y']
     FFPROBE_ARGS = [
         'ffprobe', '-hide_banner', '-loglevel', 'warning', '-show_entries',
-        'stream=codec_name,codec_type,width,height,r_frame_rate,bit_rate,channels,sample_rate,index:',
-        'format=duration'
+        'stream=codec_name,codec_type,width,height,r_frame_rate,bit_rate,channels,sample_rate,index:format=duration'
     ]
     FFPLAY_INIT_ARGS = ['ffplay']
     FFMPEG_CONCATENATION_INIT_ARGS = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i']

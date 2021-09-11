@@ -126,9 +126,6 @@ class PreviewPageHandlers:
 
     def _set_preview_thumbnail(self):
         # Generates the previewer's image and sizes it accordingly.
-        if not self._preview_queue.empty():
-            return
-
         output_file = preview.generate_preview_file(self.ffmpeg, self._preview_queue.get(), self.preferences)
 
         if not self._preview_queue.empty():

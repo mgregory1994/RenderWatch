@@ -36,7 +36,7 @@ class AudioCodecSignal:
             return
 
         audio_settings = self.settings_sidebar_handlers.update_audio_settings()
-        for row in self.inputs_page_handlers.get_selected_inputs_rows():
+        for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.audio_settings = audio_settings
             row.setup_labels()

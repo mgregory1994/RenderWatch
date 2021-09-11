@@ -348,7 +348,7 @@ def __run_auto_crop_process(args):
                 break
 
             try:
-                crop_settings_match = re.match('crop=\d+:\d+:\d+:\d+', stdout)
+                crop_settings_match = re.search('crop=\d+:\d+:\d+:\d+', stdout)
                 if crop_settings_match:
                     crop_settings = crop_settings_match.group().split('=')[1]
             except:
@@ -365,11 +365,12 @@ def __is_auto_crop_dimensions_valid(ffmpeg, width, height):
     try:
         width_check = ((int(width) + 10) < ffmpeg.width_origin)
         height_check = ((int(height) + 10) < ffmpeg.height_origin)
-        return width_check and height_check
+        return width_check or height_check
     except:
         return False
 
 
+@run_preview_process
 def generate_preview_file(ffmpeg, start_time, preferences):
     """Creates a preview image and returns the image's file path.
 
@@ -386,9 +387,13 @@ def generate_preview_file(ffmpeg, start_time, preferences):
     ffmpeg_copy.trim_settings = __get_preview_trim_settings(ffmpeg, start_time)
     ffmpeg_copy.output_directory = preferences.temp_directory + '/'
     ffmpeg_copy.filename = ffmpeg_copy.temp_file_name
+    args_list = []
     preview_ffmpeg_args = __get_preview_ffmpeg_args(ffmpeg_copy)
     preview_args = __get_preview_args(ffmpeg_copy, preview_width, preview_height, output_file)
-    return (preview_ffmpeg_args, preview_args), output_file
+    for args in preview_ffmpeg_args:
+        args_list.append(args)
+    args_list.append(preview_args)
+    return args_list, output_file
 
 
 def __get_preview_dimensions(ffmpeg):

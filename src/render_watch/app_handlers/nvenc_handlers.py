@@ -335,8 +335,8 @@ class NvencHandlers:
         UIHelper.rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.PROFILE_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_profile_combobox, H264Nvenc.PROFILE_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_level_combobox, H264Nvenc.LEVEL_ARGS_LIST)
-        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, H264Nvenc.TUNE_UI_LIST)
-        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, H264Nvenc.MULTI_PASS_UI_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, H264Nvenc.TUNE_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, H264Nvenc.MULTI_PASS_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_rate_control_combobox, H264Nvenc.RATE_CONTROL_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_bref_mode_combobox, H264Nvenc.BREF_MODE_ARGS_LIST)
         self.is_widgets_setting_up = False
@@ -352,8 +352,8 @@ class NvencHandlers:
         UIHelper.rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.PROFILE_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_profile_combobox, HevcNvenc.PROFILE_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_level_combobox, HevcNvenc.LEVEL_ARGS_LIST)
-        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, HevcNvenc.TUNE_UI_LIST)
-        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, HevcNvenc.MULTI_PASS_UI_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_tune_combobox, HevcNvenc.TUNE_ARGS_LIST)
+        UIHelper.rebuild_combobox(self.nvenc_multi_pass_combobox, HevcNvenc.MULTI_PASS_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_rate_control_combobox, HevcNvenc.RATE_CONTROL_ARGS_LIST)
         UIHelper.rebuild_combobox(self.nvenc_bref_mode_combobox, HevcNvenc.BREF_MODE_ARGS_LIST)
         self.is_widgets_setting_up = False

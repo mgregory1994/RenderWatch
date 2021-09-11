@@ -60,7 +60,7 @@ class Opus:
         """Returns channels argument as a UI string."""
         channels_index = self.channels
         if channels_index:
-            return self.CHANNELS_ARGS_LIST.index(channels_index)
+            return self.CHANNELS_ARGS_LIST[channels_index]
         return 'N/A'
 
     @channels.setter

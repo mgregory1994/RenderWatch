@@ -7030,7 +7030,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                             <property name="orientation">vertical</property>
                                                             <property name="spacing">5</property>
                                                             <child>
-                                                            <object class="GtkButtonBox">
+                                                            <object class="GtkButtonBox" id="nvenc_qp_init_enabled_box">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="layout-style">end</property>
@@ -7517,7 +7517,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkButtonBox">
+                                                            <object class="GtkButtonBox" id="nvenc_aq_type_buttonbox">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="layout-style">end</property>
@@ -7664,7 +7664,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                             </packing>
                                                             </child>
                                                             <child>
-                                                            <object class="GtkButtonBox">
+                                                            <object class="GtkButtonBox" id="nvenc_tier_bo">
                                                             <property name="visible">True</property>
                                                             <property name="can-focus">False</property>
                                                             <property name="layout-style">end</property>
@@ -10137,6 +10137,30 @@ The parallel task type selected below will be used</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="spacing">5</property>
+                    <child type="center">
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="margin-start">5</property>
+                        <property name="label" translatable="yes">Live Thumbnails</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
                     <child>
                       <object class="GtkSwitch" id="live_thumbnails_switch">
                         <property name="visible">True</property>
@@ -10147,18 +10171,7 @@ The parallel task type selected below will be used</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Live Thumbnails</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
+                        <property name="pack-type">end</property>
                         <property name="position">1</property>
                       </packing>
                     </child>
