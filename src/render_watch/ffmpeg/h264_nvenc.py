@@ -59,7 +59,7 @@ class H264Nvenc:
     def __init__(self):
         self.ffmpeg_args = {
             '-c:v': 'h264_nvenc',
-            '-qp': '20'
+            '-qp': '20.0'
         }
         self.advanced_enabled = False
         self.qp_custom_enabled = False

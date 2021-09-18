@@ -229,10 +229,12 @@ class NvidiaHelper:
 
                 option_match = re.search('^-\w+-\w+|^-\w+', stdout)
                 option_value_match = re.search('^\d.\w+|^\w+', stdout)
+                is_option_deprecated = re.search('deprecated', stdout)
+                if is_option_deprecated:
+                    continue
                 if option_match:
                     last_option_found = option_match.group()
                     h264_nvenc_options[last_option_found] = []
                 if option_value_match and last_option_found:
                     h264_nvenc_options[last_option_found].append(option_value_match.group())
-        print(h264_nvenc_options)
         return h264_nvenc_options

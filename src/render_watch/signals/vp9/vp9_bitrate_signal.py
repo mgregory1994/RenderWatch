@@ -79,11 +79,10 @@ class Vp9BitrateSignal:
             return
 
         bitrate_value = self.vp9_handlers.get_bitrate_value()
-        max_bitrate_value = self.vp9_handlers.get_max_bitrate_value()
-        min_bitrate_value = self.vp9_handlers.get_min_bitrate_value()
-
         self.vp9_handlers.set_vbr_state(True)
         self.vp9_handlers.update_vbr_widgets(bitrate_value)
+        max_bitrate_value = self.vp9_handlers.get_max_bitrate_value()
+        min_bitrate_value = self.vp9_handlers.get_min_bitrate_value()
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg

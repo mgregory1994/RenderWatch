@@ -33,7 +33,7 @@ class X265KeyframeSignal:
             return
 
         keyint_value = keyint_spinbutton.get_value_as_int()
-        for row in self.inputs_page_handlers.get_selected_inputs_rows():
+        for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.keyint = keyint_value
             row.setup_labels()
@@ -50,7 +50,7 @@ class X265KeyframeSignal:
             return
 
         min_keyint_value = min_keyint_spinbutton.get_value_as_int()
-        for row in self.inputs_page_handlers.get_selected_inputs_rows():
+        for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.min_keyint = min_keyint_value
             row.setup_labels()

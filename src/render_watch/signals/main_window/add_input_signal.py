@@ -136,10 +136,10 @@ class AddInputSignal:
         GLib.idle_add(self.main_window_handlers.set_processing_inputs_state, False, None)
 
     def _setup_settings_sidebar_ffmpeg_template(self):
-        # Configures the settings sidebar widgets to match the ffmpeg template.
+        # Configures the ffmpeg template to match the settings sidebar.
         if self.inputs_page_handlers.is_apply_all_selected():
             ffmpeg_template = self.main_window_handlers.ffmpeg_template
-            self.settings_sidebar_handlers.apply_settings(ffmpeg_template)
+            self.settings_sidebar_handlers.get_settings(ffmpeg_template)
 
     def _setup_importing_files_widgets(self, file_path, index, length_of_input_files):
         # Shows widgets to display progress on the import process.
@@ -184,7 +184,7 @@ class AddInputSignal:
             ffmpeg.audio_settings = copy.deepcopy(ffmpeg_template.audio_settings)
         else:
             ffmpeg.audio_settings = None
-        ffmpeg.output_container = str(ffmpeg_template.output_container)
+        ffmpeg.output_container = ffmpeg_template.output_container
         ffmpeg.general_settings.ffmpeg_args = ffmpeg_template.general_settings.ffmpeg_args.copy()
         if ffmpeg.is_video_settings_2_pass():
             ffmpeg.video_settings.stats = self.preferences.temp_directory + '/' + ffmpeg.temp_file_name + '.log'

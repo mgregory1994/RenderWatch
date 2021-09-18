@@ -44,11 +44,14 @@ class ApplySettingsAllSignal:
     def _set_settings_and_apply_to_all(self):
         # Sets up the settings sidebar and then applies the video settings to all inputs.
         ffmpeg_template = self.main_window_handlers.ffmpeg_template
+        general_settings = ffmpeg_template.general_settings
         video_settings = ffmpeg_template.video_settings
-        if video_settings is None:
-            self._reset_settings_sidebar()
-        else:
+        audio_settings = ffmpeg_template.audio_settings
+        is_general_settings_custom = general_settings.frame_rate or general_settings.fast_start
+        if video_settings or audio_settings or is_general_settings_custom:
             self._setup_settings_sidebar(ffmpeg_template)
+        else:
+            self._reset_settings_sidebar()
         self._apply_settings_to_all(ffmpeg_template)
 
     def _reset_settings_sidebar(self):
@@ -61,12 +64,13 @@ class ApplySettingsAllSignal:
         # Applies the settings in the ffmpeg settings object to all inputs on the inputs page.
         for row in self.inputs_page_handlers.get_rows():
             row_ffmpeg = row.ffmpeg
+            row_ffmpeg.output_container = ffmpeg.output_container
             row_ffmpeg.general_settings.ffmpeg_args = ffmpeg.general_settings.ffmpeg_args.copy()
-            if ffmpeg.video_settings is not None:
+            if ffmpeg.video_settings:
                 row_ffmpeg.video_settings = copy.deepcopy(ffmpeg.video_settings)
             else:
                 row_ffmpeg.video_settings = None
-            if ffmpeg.audio_settings is not None:
+            if ffmpeg.audio_settings:
                 row_ffmpeg.audio_settings = copy.deepcopy(ffmpeg.audio_settings)
             else:
                 row.ffmpeg.audio_settings = None

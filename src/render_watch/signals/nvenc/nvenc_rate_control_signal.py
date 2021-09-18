@@ -29,7 +29,7 @@ class NvencRateControlSignal:
         :param rate_control_combobox:
             Combobox that emitted the signal.
         """
-        if self.nvenc_handlers.is_widgets_setting_up:
+        if self.nvenc_handlers.is_widgets_setting_up or not self.nvenc_handlers.is_advanced_settings_enabled():
             return
 
         rate_control_index = rate_control_combobox.get_active()

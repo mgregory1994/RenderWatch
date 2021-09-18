@@ -39,7 +39,7 @@ class X265QpSignal:
 
         qp_value = self.x265_handlers.get_crf_value()
         advanced_settings_enabled = self.x265_handlers.is_advanced_settings_enabled()
-        for row in self.inputs_page_handlers.get_selected_inputs_rows():
+        for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.qp = qp_value
             ffmpeg.video_settings.advanced_enabled = advanced_settings_enabled

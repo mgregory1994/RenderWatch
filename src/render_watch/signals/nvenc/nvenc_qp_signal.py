@@ -33,11 +33,11 @@ class NvencQpSignal:
             return
 
         self.nvenc_handlers.set_qp_state()
+        self.nvenc_handlers.update_rc_from_qp()
 
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        self.nvenc_handlers.update_rc_from_qp()
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.qp = self.nvenc_handlers.get_qp_value()

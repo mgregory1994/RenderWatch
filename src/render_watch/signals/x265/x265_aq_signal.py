@@ -49,7 +49,7 @@ class X265AqSignal:
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        aq_strength_value = aq_strength_spinbutton.get_value()
+        aq_strength_value = round(aq_strength_spinbutton.get_value(), 1)
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.aq_strength = aq_strength_value

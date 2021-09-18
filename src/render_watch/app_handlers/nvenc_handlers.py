@@ -175,7 +175,11 @@ class NvencHandlers:
             video_settings.weighted_pred = self.nvenc_weighted_prediction_checkbox.get_active()
             video_settings.rc_lookahead = self.nvenc_rate_control_lookahead_spinbutton.get_value_as_int()
             video_settings.surfaces = self.nvenc_surfaces_spinbutton.get_value_as_int()
-            video_settings.aq_strength = self.nvenc_aqstrength_spinbutton.get_value_as_int()
+            video_settings.b_ref_mode = self.nvenc_bref_mode_combobox.get_active()
+            if self.nvenc_spatial_radiobutton.get_active():
+                video_settings.aq_strength = self.nvenc_aqstrength_spinbutton.get_value_as_int()
+            else:
+                video_settings.aq_strength = None
             video_settings.rc = self.nvenc_rate_control_combobox.get_active()
             self._apply_qp_custom_settings(video_settings)
             self._apply_h264_settings(video_settings)
@@ -324,6 +328,9 @@ class NvencHandlers:
     def get_qp_b_value(self):
         return self.nvenc_qp_b_scale.get_value()
 
+    def is_advanced_settings_enabled(self):
+        return self.nvenc_advanced_settings_switch.get_active()
+
     def set_h264_state(self):
         """Sets the NVENC widgets to the H264 state."""
         self._is_h264_state = True
@@ -390,8 +397,7 @@ class NvencHandlers:
 
     def update_rc_from_qp(self):
         """Automatically sets the rate control settings widget for QP."""
-        advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-        if advanced_enabled and not self._is_rc_valid_for_qp():
+        if not self._is_rc_valid_for_qp():
             if self._is_h264_state:
                 rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('constqp')
             else:
@@ -411,8 +417,7 @@ class NvencHandlers:
 
     def update_rc_from_average_bitrate(self):
         """Automatically sets the rate control settings widget for average bitrate."""
-        advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-        if advanced_enabled and not self._is_rc_valid_for_vbr():
+        if not self._is_rc_valid_for_vbr():
             if self._is_h264_state:
                 rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('vbr')
             else:
@@ -432,8 +437,7 @@ class NvencHandlers:
 
     def update_rc_from_constant_bitrate(self):
         """Automatically sets the rate control settings widget for constant bitrate."""
-        advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-        if advanced_enabled and not self._is_rc_valid_for_cbr():
+        if not self._is_rc_valid_for_cbr():
             if self._is_h264_state:
                 rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('cbr')
             else:
@@ -453,8 +457,7 @@ class NvencHandlers:
 
     def update_rc_from_2pass_bitrate(self):
         """Automatically sets the rate control settings widget for 2-pass bitrate."""
-        advanced_enabled = self.nvenc_advanced_settings_switch.get_active()
-        if advanced_enabled and not self._is_rc_valid_for_vbr():
+        if not self._is_rc_valid_for_vbr():
             if self._is_h264_state:
                 rc_index = H264Nvenc.RATE_CONTROL_ARGS_LIST.index('vbr')
             else:

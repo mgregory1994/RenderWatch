@@ -151,8 +151,7 @@ class SettingsSidebarHandlers:
 
     def _apply_output_container_settings_from_widgets(self, ffmpeg):
         # Applies the output continer setting to the ffmpeg settings object.
-        if self.container_combobox.get_active() != 0:
-            ffmpeg.output_container = GeneralSettings.CONTAINERS_UI_LIST[self.container_combobox.get_active()]
+        ffmpeg.output_container = GeneralSettings.CONTAINERS_UI_LIST[self.container_combobox.get_active()]
 
     def _apply_frame_rate_settings_from_widgets(self, general_settings):
         # Applies the frame rate setting to the ffmpeg settings object.

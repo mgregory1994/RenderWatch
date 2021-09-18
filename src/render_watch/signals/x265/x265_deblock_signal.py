@@ -55,7 +55,7 @@ class X265DeblockSignal:
             return
 
         deblock_settings = self.x265_handlers.get_deblock_settings()
-        for row in self.inputs_page_handlers.get_selected_inputs_rows():
+        for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.deblock = deblock_settings
             row.setup_labels()

@@ -32,10 +32,10 @@ class VideoCodecSignal:
         if video_codec_combobox.get_active_text() is None \
                 or self.settings_sidebar_handlers.is_video_codec_transitioning:
             return
+        video_settings = self.settings_sidebar_handlers.update_video_settings()
         if self.settings_sidebar_handlers.is_widgets_setting_up:
             return
 
-        video_settings = self.settings_sidebar_handlers.update_video_settings()
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings = video_settings

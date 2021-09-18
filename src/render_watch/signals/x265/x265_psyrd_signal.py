@@ -32,7 +32,7 @@ class X265PsyRdSignal:
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        psy_rd_value = psy_rd_spinbutton.get_value()
+        psy_rd_value = round(psy_rd_spinbutton.get_value(), 1)
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.psy_rd = psy_rd_value
@@ -49,7 +49,7 @@ class X265PsyRdSignal:
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        psy_rdoq_value = psy_rdoq_spinbutton.get_value()
+        psy_rdoq_value = round(psy_rdoq_spinbutton.get_value(), 1)
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.psy_rdoq = psy_rdoq_value

@@ -32,10 +32,10 @@ class AudioCodecSignal:
         if audio_codec_combobox.get_active_text() is None \
                 or self.settings_sidebar_handlers.is_audio_codec_transitioning:
             return
+        audio_settings = self.settings_sidebar_handlers.update_audio_settings()
         if self.settings_sidebar_handlers.is_widgets_setting_up:
             return
 
-        audio_settings = self.settings_sidebar_handlers.update_audio_settings()
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.audio_settings = audio_settings

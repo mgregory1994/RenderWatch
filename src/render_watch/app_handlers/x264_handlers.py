@@ -266,6 +266,12 @@ class X264Handlers:
             self.reset_settings()
 
     def _setup_x264_rate_control_widgets(self, video_settings):
+        if video_settings.constant_bitrate:
+            self.x264_constant_radiobutton.set_active(True)
+        elif video_settings.encode_pass is not None:
+            self.x264_2pass_radiobutton.set_active(True)
+        else:
+            self.x264_average_radiobutton.set_active(True)
         if video_settings.crf is not None:
             self.x264_crf_radiobutton.set_active(True)
             self.x264_crf_scale.set_value(video_settings.crf)
@@ -275,12 +281,6 @@ class X264Handlers:
         else:
             self.x264_bitrate_radiobutton.set_active(True)
             self.x264_bitrate_spinbutton.set_value(video_settings.bitrate)
-        if video_settings.constant_bitrate:
-            self.x264_constant_radiobutton.set_active(True)
-        elif video_settings.encode_pass is not None:
-            self.x264_2pass_radiobutton.set_active(True)
-        else:
-            self.x264_average_radiobutton.set_active(True)
 
     def _setup_x264_advanced_settings_widgets(self, video_settings):
         self.x264_advanced_settings_switch.set_active(video_settings.advanced_enabled)
@@ -502,7 +502,7 @@ class X264Handlers:
         return False
 
     def update_settings(self):
-        for row in self.__get_selected_inputs_rows():
+        for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             self.apply_settings(ffmpeg)
             GLib.idle_add(row.setup_labels)

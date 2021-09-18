@@ -56,10 +56,11 @@ class NvencBitrateSignal:
         if not average_radiobutton.get_active():
             return
 
+        self.nvenc_handlers.update_rc_from_average_bitrate()
+
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        self.nvenc_handlers.update_rc_from_average_bitrate()
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.dual_pass_enabled = False
@@ -78,10 +79,11 @@ class NvencBitrateSignal:
         if not constant_radiobutton.get_active():
             return
 
+        self.nvenc_handlers.update_rc_from_constant_bitrate()
+
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        self.nvenc_handlers.update_rc_from_constant_bitrate()
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.dual_pass_enabled = False
@@ -102,10 +104,11 @@ class NvencBitrateSignal:
         if not dual_pass_radiobutton.get_active():
             return
 
+        self.nvenc_handlers.update_rc_from_2pass_bitrate()
+
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        self.nvenc_handlers.update_rc_from_2pass_bitrate()
         self.nvenc_handlers.signal_multi_pass_combobox()
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
