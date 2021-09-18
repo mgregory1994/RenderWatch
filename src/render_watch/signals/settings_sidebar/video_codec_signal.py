@@ -35,7 +35,9 @@ class VideoCodecSignal:
         video_settings = self.settings_sidebar_handlers.update_video_settings()
         if self.settings_sidebar_handlers.is_widgets_setting_up:
             return
-
+        if not video_codec_combobox.get_active():
+            self.settings_sidebar_handlers.signal_framerate_auto_radiobutton()
+        self.settings_sidebar_handlers.set_framerate_locked_state(not video_codec_combobox.get_active())
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings = video_settings

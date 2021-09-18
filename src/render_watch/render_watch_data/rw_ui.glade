@@ -1884,6 +1884,7 @@ If using the "copy" codec, make sure that the input's audio codec is compatible 
                                                           <object class="GtkRadioButton" id="framerate_auto_radiobutton">
                                                             <property name="label" translatable="yes">Same</property>
                                                             <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Use the input's frame rate</property>
@@ -1902,6 +1903,7 @@ If using the "copy" codec, make sure that the input's audio codec is compatible 
                                                           <object class="GtkRadioButton" id="framerate_custom_radiobutton">
                                                             <property name="label" translatable="yes">Custom</property>
                                                             <property name="visible">True</property>
+                                                            <property name="sensitive">False</property>
                                                             <property name="can-focus">True</property>
                                                             <property name="receives-default">False</property>
                                                             <property name="tooltip-text" translatable="yes">Choose a custom output framerate

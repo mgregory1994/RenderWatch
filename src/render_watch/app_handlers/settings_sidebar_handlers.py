@@ -621,7 +621,13 @@ class SettingsSidebarHandlers:
             self.is_widgets_setting_up = True
 
     def set_framerate_state(self, enabled):
+        if not enabled:
+            self.fps_combobox.set_active(0)
         self.fps_box.set_sensitive(enabled)
+
+    def set_framerate_locked_state(self, is_locked):
+        self.framerate_auto_button.set_sensitive(not is_locked)
+        self.framerate_custom_button.set_sensitive(not is_locked)
 
     def update_video_settings(self):
         video_codec_text = self.get_video_codec_value()
@@ -717,3 +723,6 @@ class SettingsSidebarHandlers:
                 self.benchmark_thread_stopping = True
                 self.benchmark_thread.join()
                 self.benchmark_thread_stopping = False
+
+    def signal_framerate_auto_radiobutton(self):
+        self.framerate_auto_button.set_active(True)
