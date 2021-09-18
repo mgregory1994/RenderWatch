@@ -156,22 +156,20 @@ class InputsRow(Gtk.ListBoxRow):
         self.video_stream_combobox.remove_all()
 
         for index, items in enumerate(self.ffmpeg.input_file_info['video_streams'].items()):
-            self.video_stream_combobox.append_text('[' + str(index) + ']' + items[1])
-            self.video_stream_combobox.set_entry_text_column(0)
-            self.video_stream_combobox.set_active(0)
-            if index == 0:
-                self.ffmpeg.video_stream_index = items[0]
+            self.video_stream_combobox.append_text('[' + str(index) + ']' + items[1]['info'])
+        self.video_stream_combobox.set_entry_text_column(0)
+        self.video_stream_combobox.set_active(0)
+        self.signal_video_stream_combobox()
 
     def _setup_audio_stream_combobox(self):
         # Populates the audio stream combobox widget.
         self.audio_stream_combobox.remove_all()
 
         for index, items in enumerate(self.ffmpeg.input_file_info['audio_streams'].items()):
-            self.audio_stream_combobox.append_text('[' + str(index) + ']' + items[1])
-            self.audio_stream_combobox.set_entry_text_column(0)
-            self.audio_stream_combobox.set_active(0)
-            if index == 0:
-                self.ffmpeg.audio_stream_index = items[0]
+            self.audio_stream_combobox.append_text('[' + str(index) + ']' + items[1]['info'])
+        self.audio_stream_combobox.set_entry_text_column(0)
+        self.audio_stream_combobox.set_active(0)
+        self.signal_audio_stream_combobox()
 
     def setup_labels(self):
         """Sets up labels for inputs row title, input info., and popover labels."""
@@ -340,7 +338,7 @@ class InputsRow(Gtk.ListBoxRow):
                                             input_information_popover,
                                             self.gtk_builder,
                                             preview_thumbnail_file_path,
-                                            self.active_page_handlers.active_page_listbox,
+                                            self.active_page_handlers,
                                             self.preferences)
         self.active_page_handlers.add_row(active_page_listbox_row)
         self.inputs_page_handlers.remove_row(self)
@@ -369,3 +367,9 @@ class InputsRow(Gtk.ListBoxRow):
 
     def signal_start_button(self):
         self.start_signal.on_start_button_clicked(self.start_button)
+
+    def signal_video_stream_combobox(self):
+        self.video_stream_signal.on_video_stream_combobox_changed(self.video_stream_combobox)
+
+    def signal_audio_stream_combobox(self):
+        self.audio_stream_signal.on_audio_stream_combobox_changed(self.audio_stream_combobox)

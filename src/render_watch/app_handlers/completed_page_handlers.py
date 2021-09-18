@@ -74,6 +74,10 @@ class CompletedPageHandlers:
     def remove_row(self, completed_row):
         self.completed_page_listbox.remove(completed_row)
 
+    def remove_all_rows(self):
+        for row in self.get_rows():
+            self.remove_row(row)
+
     def remove_duplicate_row(self, completed_page_listbox_row):
         for listbox_row in self.get_rows():
             if listbox_row.file_path_link.get_uri() == completed_page_listbox_row.file_path_link.get_uri():

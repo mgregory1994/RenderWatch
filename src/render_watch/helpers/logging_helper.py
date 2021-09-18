@@ -95,3 +95,24 @@ class LoggingHelper:
             Install "watchdog" using pip.
             Example: "pip install watchdog"
             Once "watchdog" has been installed, re-run Render Watch.""")
+
+    @staticmethod
+    def log_encoder_error(ffmpeg, message):
+        """
+        Logs an error for failed encode tasks and includes ffmpeg arguments for debugging.
+        The output_args can be copied straight into a terminal in order to investigate why the encode failed.
+
+        :param ffmpeg: ffmpeg settings object used for the encode task.
+        :param message: Message to display prepending the output_args.
+        :return: None
+        """
+        ffmpeg_args = ffmpeg.get_args()
+        output_args = ''
+
+        for index, arg in enumerate(ffmpeg_args):
+            output_args += arg
+
+            if index != len(ffmpeg_args) - 1:
+                output_args += ' '
+
+        logging.error(message + '\n' + output_args)

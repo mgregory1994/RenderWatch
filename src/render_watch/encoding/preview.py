@@ -24,6 +24,7 @@ import re
 from render_watch.app_formatting import format_converter
 from render_watch.ffmpeg.settings import Settings
 from render_watch.ffmpeg.trim_settings import TrimSettings
+from render_watch.helpers.logging_helper import LoggingHelper
 from render_watch.startup import GLib
 
 
@@ -40,7 +41,12 @@ def run_preview_process(generate_preview_func):
                     bufsize=1) as process:
                 rc = process.wait()
             if rc != 0:
-                logging.error('--- PREVIEW FAILED ---\n' + str(args))
+                output_args = ''
+                for index, arg in enumerate(args):
+                    output_args += arg
+                    if index != len(args) - 1:
+                        output_args += ' '
+                logging.error('--- PREVIEW FAILED ---\n' + output_args)
                 return None
         return output_file
     return inner
@@ -182,14 +188,25 @@ def set_info(ffmpeg):
                 if not audio_done and codec_type == 'audio':
                     stream_info = codec_name + ',' + channels + ' channels,' + sample_rate + 'hz'
                     ffmpeg.codec_audio_origin = codec_name
-                    audio_streams[index] = stream_info
+                    audio_streams[index] = {
+                        'codec_name': codec_name,
+                        'channels': channels,
+                        'sample_rate': sample_rate,
+                        'info': stream_info
+                    }
                     ffmpeg.audio_channels_origin = channels
                     ffmpeg.audio_sample_rate_origin = sample_rate
                     audio_done = True
                 elif not video_done and codec_type == 'video':
                     stream_info = codec_name + ',' + str(width) + 'x' + str(height) + '(' + frame_rate + ')'
                     ffmpeg.codec_video_origin = codec_name
-                    video_streams[index] = stream_info
+                    video_streams[index] = {
+                        'codec_name': codec_name,
+                        'width': width,
+                        'height': height,
+                        'frame_rate': frame_rate,
+                        'info': stream_info
+                    }
                     ffmpeg.framerate_origin = frame_rate
                     ffmpeg.width_origin = width
                     ffmpeg.height_origin = height
@@ -466,12 +483,10 @@ def start_vid_preview(ffmpeg, start_time, duration, preview_page_handlers, stop,
     ffmpeg_copy.trim_settings = __get_vid_preview_trim_settings(start_time, duration)
     ffmpeg_copy.filename = file_name
     ffmpeg_copy.output_directory = preferences.temp_directory + '/'
-
-    if not __run_vid_preview_ffmpeg_process(ffmpeg_copy, duration, preview_page_handlers, stop):
-        return None
-
+    is_vid_preview_successful = __run_vid_preview_ffmpeg_process(ffmpeg_copy, duration, preview_page_handlers, stop)
     __reset_vid_preview_widgets(preview_page_handlers)
-    __run_vid_preview_process(output_file, stop)
+    if is_vid_preview_successful:
+        __run_vid_preview_process(output_file, stop)
 
 
 def __get_vid_preview_trim_settings(start_time, duration):
@@ -527,9 +542,7 @@ def __run_vid_preview_ffmpeg_process(ffmpeg, duration, preview_page_handlers, st
                     continue
             rc = process.wait()
         if rc != 0:
-            logging.error('--- VIDEO PREVIEW ENCODE PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
-
-            return False
+            LoggingHelper.log_encoder_error(ffmpeg, '--- VIDEO PREVIEW ENCODE PROCESS FAILED ---')
 
     return rc == 0
 

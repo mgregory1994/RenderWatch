@@ -31,6 +31,15 @@ class VideoStreamSignal:
         ffmpeg = self.inputs_row.ffmpeg
         combobox_index = video_stream_combobox.get_active()
         video_streams = list(ffmpeg.input_file_info['video_streams'].items())
-        video_stream_index = (video_streams[combobox_index])[0]
+        video_stream_index = video_streams[combobox_index][0]
         ffmpeg.video_stream_index = video_stream_index
+        codec_name = video_streams[combobox_index][1]['codec_name']
+        ffmpeg.input_file_info['codec_video'] = codec_name
+        width = video_streams[combobox_index][1]['width']
+        height = video_streams[combobox_index][1]['height']
+        resolution = str(width) + 'x' + str(height)
+        ffmpeg.input_file_info['width'] = width
+        ffmpeg.input_file_info['height'] = height
+        ffmpeg.input_file_info['resolution'] = resolution
+
         self.inputs_row.setup_labels()

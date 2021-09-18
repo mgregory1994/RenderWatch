@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-
+import threading
 
 from render_watch.startup import Gtk
 
@@ -36,10 +36,14 @@ class StopAllSignal:
         self.main_window_handlers.app_preferences_popover.popdown()
 
         stop_all_tasks_message_response = self._show_stop_all_tasks_message_dialog()
+
         if stop_all_tasks_message_response == Gtk.ResponseType.YES:
-            for row in self.active_page_handlers.get_rows():
-                row.on_stop_button_clicked(None)
-            self.active_page_handlers.signal_remove_row()
+            threading.Thread(target=self._stop_and_remove_all_tasks, args=()).start()
+
+    def _stop_and_remove_all_tasks(self):
+        # Stops all tasks and removes them from the encoding queue
+        for row in self.active_page_handlers.get_rows():
+            row.stop_and_remove_row()
 
     def _show_stop_all_tasks_message_dialog(self):
         # Confirms if the user wants to stop all tasks.

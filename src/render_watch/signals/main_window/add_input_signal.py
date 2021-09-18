@@ -202,7 +202,7 @@ class AddInputSignal:
         inputs_page_listbox_row = InputsRow(ffmpeg,
                                             self.inputs_page_handlers,
                                             self.active_page_handlers,
-                                            self,
+                                            self.main_window_handlers,
                                             self.encoder_queue,
                                             self.preferences)
         self.inputs_page_handlers.add_row(inputs_page_listbox_row)

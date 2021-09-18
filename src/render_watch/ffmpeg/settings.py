@@ -47,7 +47,8 @@ class Settings:
     RAW_VIDEO_ARGS = ('-f', 'rawvideo')
     VSYNC_ARGS = ('-vsync', '0')
     NVDEC_ARGS = ('-hwaccel', 'nvdec')
-    NVDEC_OUT_FORMAT_ARGS = ('-hwaccel_output_format', 'cuda')
+    # NVDEC_OUT_FORMAT_ARGS = ('-hwaccel_output_format', 'cuda')
+    NVDEC_OUT_FORMAT_ARGS = ()
 
     def __init__(self):
         self.input_file_info = {

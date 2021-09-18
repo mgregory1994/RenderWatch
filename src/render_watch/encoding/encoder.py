@@ -63,7 +63,6 @@ class Encoder:
                     if process_stdout == '' and encode_process.poll() is not None:
                         break
                     last_line = process_stdout
-                    print(last_line)
 
                     try:
                         Encoder._evaluate_encode_process(active_row,
@@ -71,7 +70,8 @@ class Encoder:
                                                          encode_pass,
                                                          encode_passes,
                                                          duration_in_seconds)
-                    except:
+                    except Exception as e:
+                        print(e)
                         continue
 
         Encoder._check_encode_process_finished_state(active_row, encode_process, last_line)
@@ -130,110 +130,35 @@ class Encoder:
     @staticmethod
     def _get_bitrate_as_float(process_stdout):
         try:
-            bitrate = re.match('bitrate=\d+.\d+', process_stdout).group().split('=')[1]
+            bitrate = re.search('bitrate=\d+\.\d+|bitrate=\s+\d+\.\d+', process_stdout).group().split('=')[1]
             return float(bitrate)
         except:
             return 0.0
 
-
-        """try:
-            bitrate_identifier = 'kbits/s'
-            bitrate_index = None
-
-            for index, stdout_chunk in enumerate(process_stdout):
-                if bitrate_identifier in stdout_chunk:
-                    bitrate_index = index
-
-            if bitrate_index is not None:
-                bitrate = process_stdout[bitrate_index].split(' ')
-
-                while '' in bitrate:
-                    bitrate.remove('')
-
-                return float(bitrate[0].split('k')[0])
-            else:
-                return 0.0
-        except:
-            return 0.0"""
-
     @staticmethod
     def _get_speed_as_float(process_stdout):
         try:
-            speed = re.match('speed=\d+.\d+', process_stdout).group().split('=')[1]
+            speed = re.search('speed=\d+\.\d+|speed=\s+\d+\.\d+', process_stdout).group().split('=')[1]
             return float(speed)
         except:
             return 0
 
-
-        """try:
-            speed_identifier = 'x'
-            speed_index = None
-
-            for index, stdout_chunk in enumerate(process_stdout):
-                if speed_identifier in stdout_chunk:
-                    speed_index = index
-
-            if speed_index is not None:
-                speed = process_stdout[speed_index]
-
-                return float(speed.split('x')[0])
-            else:
-                return 0
-        except:
-            return 0"""
-
     @staticmethod
     def _get_file_size_in_kilobytes(process_stdout):
         try:
-            file_size = re.match('size=\d+', process_stdout).group().split('=')[1]
+            file_size = re.search('size=\d+|size=\s+\d+', process_stdout).group().split('=')[1]
             return int(file_size)
         except:
             return 0
 
-
-        """try:
-            file_size_identifier = 'kB'
-            file_size_index = None
-
-            for index, stdout_chunk in enumerate(process_stdout):
-                if file_size_identifier in stdout_chunk:
-                    file_size_index = index
-
-            if file_size_index is not None:
-                file_size_line = process_stdout[file_size_index].split(' ')
-                file_size = file_size_line[-2].split('k')[0]
-
-                return int(file_size)
-            else:
-                return 0
-        except:
-            return 0"""
-
     @staticmethod
     def _get_current_time_in_seconds(process_stdout):
         try:
-            current_time = re.match('time=\d+:\d+:\d+.\d+', process_stdout).group().split('=')[1]
+            current_time = re.search('time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
+                                    process_stdout).group().split('=')[1]
             return format_converter.get_seconds_from_timecode(current_time)
         except:
             return 0
-
-
-        """try:
-            current_time_identifier = 'bitrate'
-            current_time_index = None
-
-            for index, stdout_chunk in enumerate(process_stdout):
-                if current_time_identifier in stdout_chunk:
-                    current_time_index = index
-
-            if current_time_index is not None:
-                current_time = process_stdout[current_time_index].split(' ')
-
-                return format_converter.get_seconds_from_timecode(current_time[0])
-            else:
-                return 0
-        except:
-            return 0"""
 
     @staticmethod
     def _get_time_estimate(current_time_in_seconds, duration_in_seconds, speed_as_float, encode_pass, encode_passes):

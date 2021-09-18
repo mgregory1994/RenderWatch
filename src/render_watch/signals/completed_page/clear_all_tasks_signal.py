@@ -29,8 +29,6 @@ class ClearAllTasksSignal:
         :param clear_all_completed_button:
             Button that emitted the signal.
         """
-        for row in self.completed_page_handlers.get_list_children():
-            row.on_remove_button_clicked(None)
-
+        self.completed_page_handlers.remove_all_rows()
         clear_all_completed_button.set_sensitive(False)
         self.main_window_handlers.popdown_app_preferences_popover()

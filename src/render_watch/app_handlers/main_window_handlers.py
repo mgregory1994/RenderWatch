@@ -17,6 +17,7 @@
 
 
 from render_watch.ffmpeg.settings import Settings
+from render_watch.ffmpeg.settings import GeneralSettings
 from render_watch.app_handlers.completed_page_handlers import CompletedPageHandlers
 from render_watch.app_handlers.active_page_handlers import ActivePageHandlers
 from render_watch.app_handlers.inputs_page_handlers import InputsPageHandlers
@@ -177,6 +178,7 @@ class MainWindowHandlers:
             self.ffmpeg_template = inputs_row.ffmpeg.get_copy()
         else:
             self.ffmpeg_template = Settings()
+            self.ffmpeg_template.output_container = GeneralSettings.CONTAINERS_UI_LIST[0]
 
     def switch_to_active_page(self):
         self.pages_stack.set_visible_child(self.active_page_scroller)

@@ -31,6 +31,13 @@ class AudioStreamSignal:
         ffmpeg = self.inputs_row.ffmpeg
         combobox_index = audio_stream_combobox.get_active()
         audio_streams = list(ffmpeg.input_file_info['audio_streams'].items())
-        audio_stream_index = (audio_streams[combobox_index])[0]
+        audio_stream_index = audio_streams[combobox_index][0]
         ffmpeg.audio_stream_index = audio_stream_index
+        codec_name = audio_streams[combobox_index][1]['codec_name']
+        ffmpeg.input_file_info['codec_audio'] = codec_name
+        channels = audio_streams[combobox_index][1]['channels']
+        ffmpeg.input_file_info['channels'] = channels
+        sample_rate = audio_streams[combobox_index][1]['sample_rate']
+        ffmpeg.input_file_info['sample_rate'] = sample_rate
+
         self.inputs_row.setup_labels()

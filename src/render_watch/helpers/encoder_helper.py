@@ -75,7 +75,7 @@ def __generate_chunk(ffmpeg, number_of_chunks, chunk, preferences):
     ffmpeg_copy.filename = ffmpeg_copy.temp_file_name + '_' + str(chunk)
     ffmpeg_copy.output_directory = preferences.temp_directory + '/'
     ffmpeg_copy.trim_settings = trim_settings
-    if ffmpeg_copy.is_video_settings_vp9() or ffmpeg_copy.is_video_settings_vp8():
+    if ffmpeg_copy.is_video_settings_vp9():
         ffmpeg_copy.output_container = '.webm'
     else:
         ffmpeg_copy.output_container = '.mp4'
