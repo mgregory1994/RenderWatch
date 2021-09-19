@@ -31,6 +31,8 @@ class PreviewSizeSignal:
         :param allocation:
             Unused parameter.
         """
+        if self.preview_page_handlers.get_preview_encode_state():
+            return
         widget_width = preview_preview_viewport.get_allocated_width()
         widget_height = preview_preview_viewport.get_allocated_height()
         if not self.preview_page_handlers.get_preview_viewport_width() == widget_width \

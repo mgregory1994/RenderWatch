@@ -86,6 +86,8 @@ class PreviewPageHandlers:
 
     def setup_preview_page(self):
         """Sets up the preview page for the currently selected inputs row."""
+        if self.get_preview_encode_state():
+            return
         if not self._setup_ffmpeg():
             return
         if self.ffmpeg.video_settings is None:
@@ -193,6 +195,9 @@ class PreviewPageHandlers:
     def get_preview_viewport_height(self):
         return self.preview_preview_viewport_height
 
+    def get_preview_encode_state(self):
+        return self.preview_stack.get_visible_child() == self.preview_progress_box
+
     def set_progress_fraction(self, progress_bar_fraction_value):
         self.preview_progressbar.set_fraction(progress_bar_fraction_value)
 
@@ -212,11 +217,13 @@ class PreviewPageHandlers:
         self.preview_stack.set_visible_child(self.preview_progress_box)
         self.preview_time_box.set_sensitive(False)
         self.preview_type_buttons_box.set_sensitive(False)
+        self.inputs_page_handlers.set_preview_encoding_state(True)
 
     def set_preview_live_state(self):
         self.preview_stack.set_visible_child(self.preview_preview)
         self.preview_time_box.set_sensitive(True)
         self.preview_type_buttons_box.set_sensitive(True)
+        self.inputs_page_handlers.set_preview_encoding_state(False)
 
     def queue_add_time(self, time):
         self._preview_queue.put(time)

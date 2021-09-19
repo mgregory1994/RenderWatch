@@ -213,6 +213,9 @@ class InputsPageHandlers:
         self.remove_all_inputs_button.set_sensitive(False)
         self.start_all_button.set_sensitive(False)
 
+    def set_preview_encoding_state(self, is_preview_encoding):
+        self.return_to_inputs_button.set_sensitive(not is_preview_encoding)
+
     def update_preview_page(self):
         if self.is_preview_state():
             self.preview_page_handlers.update_preview()

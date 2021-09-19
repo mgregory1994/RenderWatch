@@ -25,7 +25,8 @@ class CropDimensionsSignal:
     def __init__(self, crop_page_handlers):
         self.crop_page_handlers = crop_page_handlers
 
-    def on_crop_width_spinbutton_value_changed(self, crop_width_spinbutton):
+    # Unused parameters needed for this signal
+    def on_crop_width_spinbutton_value_changed(self, crop_width_spinbutton, event=None):
         """Updates the other crop widgets and applies the crop width value.
 
         :param crop_width_spinbutton:
@@ -43,7 +44,8 @@ class CropDimensionsSignal:
         self.crop_page_handlers.apply_crop_settings()
         threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()
 
-    def on_crop_height_spinbutton_value_changed(self, crop_height_spinbutton):
+    # Unused parameters needed for this signal
+    def on_crop_height_spinbutton_value_changed(self, crop_height_spinbutton, event=None):
         """Updates the other crop widgets and applies the crop height value.
 
         :param crop_height_spinbutton:

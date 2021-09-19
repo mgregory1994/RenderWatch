@@ -20,12 +20,13 @@ import threading
 
 
 class ScaleDimensionsSignal:
-    """Handles the signals emitted when the scale dimension settings are changed."""
 
+    """Handles the signals emitted when the scale dimension settings are changed."""
     def __init__(self, crop_page_handlers):
         self.crop_page_handlers = crop_page_handlers
 
-    def on_scale_spinbutton_value_changed(self, scale_spinbutton):  # Unused parameters needed for this signal
+    # Unused parameters needed for this signal
+    def on_scale_spinbutton_value_changed(self, scale_spinbutton, event=None):
         """Applies the scale settings and updates the crop preview.
 
         :param scale_spinbutton:
