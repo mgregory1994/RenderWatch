@@ -356,6 +356,7 @@ class SettingsSidebarHandlers:
         self.benchmark_proc_time_value_label.set_text('')
         self.benchmark_file_size_value_label.set_text('')
         self.benchmark_progress_bar.set_fraction(0.0)
+        self.set_extra_settings_state(True)
 
     def _set_benchmark_not_available_state(self):
         # Sets the benchmark tool to an inaccessible state.
@@ -387,6 +388,7 @@ class SettingsSidebarHandlers:
         self.benchmark_proc_time_value_label.set_text('')
         self.benchmark_file_size_value_label.set_text('')
         self.benchmark_progress_bar.set_fraction(0.0)
+        self.set_extra_settings_state(False)
 
     def set_benchmark_progress_bar_fraction(self, progress_fraction):
         self.benchmark_progress_bar.set_fraction(progress_fraction)
@@ -405,6 +407,7 @@ class SettingsSidebarHandlers:
 
     def set_benchmark_done_state(self):
         self.benchmark_bottom_button_stack.set_visible_child(self.benchmark_start_button)
+        self.set_extra_settings_state(True)
 
     def set_mp4_state(self):
         """Setup widgets for the mp4 container."""
@@ -721,8 +724,9 @@ class SettingsSidebarHandlers:
         with self.benchmark_thread_lock:
             if self.benchmark_thread is not None and self.benchmark_thread.is_alive():
                 self.benchmark_thread_stopping = True
-                self.benchmark_thread.join()
-                self.benchmark_thread_stopping = False
+        if self.benchmark_thread_stopping:
+            self.benchmark_thread.join()
+            self.benchmark_thread_stopping = False
 
     def signal_framerate_auto_radiobutton(self):
         self.framerate_auto_button.set_active(True)

@@ -584,15 +584,13 @@ def __run_vid_preview_process(output_file, stop):
         logging.error('--- VIDEO PREVIEW FAILED ---\n' + str(preview_args))
 
 
-def start_benchmark(ffmpeg, settings_sidebar_handlers, stop, preferences):
+def start_benchmark(ffmpeg, settings_sidebar_handlers, preferences):
     """Benchmarks the ffmpeg settings object.
 
     :param ffmpeg:
         The ffmpeg settings object.
     :param settings_sidebar_handlers:
         The settings sidebar handlers class.
-    :param stop:
-        Allows for stopping the benchmark process.
     :param preferences:
         The application's preferences object.
     """
@@ -605,7 +603,7 @@ def start_benchmark(ffmpeg, settings_sidebar_handlers, stop, preferences):
 
     __set_benchmark_widgets_start_state(settings_sidebar_handlers)
 
-    if not __run_benchmark_process(ffmpeg_copy, settings_sidebar_handlers, duration, origin_duration, stop):
+    if not __run_benchmark_process(ffmpeg_copy, settings_sidebar_handlers, duration, origin_duration):
         return None
 
 
@@ -646,7 +644,7 @@ def __set_benchmark_widgets_start_state(settings_sidebar_handlers):
     GLib.idle_add(settings_sidebar_handlers.set_benchmark_start_state)
 
 
-def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_duration, stop):
+def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_duration):
     ffmpeg_args = __get_benchmark_ffmpeg_args(ffmpeg)
     speed_value = None
     file_size_value = None
@@ -659,10 +657,11 @@ def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_
                 universal_newlines=True,
                 bufsize=1) as process:
             while True:
-                if stop():
-                    process.terminate()
+                with settings_sidebar_handlers.benchmark_thread_lock:
+                    if settings_sidebar_handlers.benchmark_thread_stopping:
+                        process.terminate()
 
-                    break
+                        break
 
                 stdout = process.stdout.readline().strip()
 
@@ -709,10 +708,11 @@ def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_
     GLib.idle_add(settings_sidebar_handlers.set_benchmark_done_state)
 
     if rc != 0:
-        if stop():
-            GLib.idle_add(settings_sidebar_handlers.set_benchmark_ready_state)
-        else:
-            logging.error('--- BENCHMARK PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
+        with settings_sidebar_handlers.benchmark_thread_lock:
+            if settings_sidebar_handlers.benchmark_thread_stopping:
+                GLib.idle_add(settings_sidebar_handlers.set_benchmark_ready_state)
+            else:
+                logging.error('--- BENCHMARK PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
 
     return rc == 0
 

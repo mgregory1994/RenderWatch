@@ -46,11 +46,9 @@ class BenchmarkStartSignal:
         # Stops currently running benchmark, then runs a new benchmark.
         self.settings_sidebar_handlers.stop_benchmark_thread()
 
-        benchmark_thread_stopping = self.settings_sidebar_handlers.benchmark_thread_stopping
         with self.settings_sidebar_handlers.benchmark_thread_lock:
-            self.benchmark_thread = threading.Thread(target=preview.start_benchmark,
-                                                     args=(ffmpeg,
-                                                           self.settings_sidebar_handlers,
-                                                           lambda: benchmark_thread_stopping,
-                                                           self.preferences))
-            self.benchmark_thread.start()
+            self.settings_sidebar_handlers.benchmark_thread = threading.Thread(target=preview.start_benchmark,
+                                                                               args=(ffmpeg,
+                                                                                     self.settings_sidebar_handlers,
+                                                                                     self.preferences))
+            self.settings_sidebar_handlers.benchmark_thread.start()

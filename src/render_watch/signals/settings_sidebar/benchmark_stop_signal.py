@@ -24,7 +24,7 @@ class BenchmarkStopSignal:
 
     def __init__(self, settings_sidebar_handlers, inputs_page_handlers):
         self.settings_sidebar_handlers = settings_sidebar_handlers
-        self.inputs_page_handlers = inputs_page_handlers
+        # self.inputs_page_handlers = inputs_page_handlers
 
     def on_benchmark_stop_button_clicked(self, benchmark_stop_button):  # Unused parameters needed for this signal
         """Stops the currently running benchmark task.
@@ -32,5 +32,4 @@ class BenchmarkStopSignal:
         :param benchmark_stop_button:
             Button that emitted the signal.
         """
-        benchmark_thread_stopping = self.settings_sidebar_handlers.benchmark_thread_stopping
-        threading.Thread(target=benchmark_thread_stopping, args=(), daemon=True).start()
+        threading.Thread(target=self.settings_sidebar_handlers.stop_benchmark_thread, args=(), daemon=True).start()
