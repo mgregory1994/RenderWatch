@@ -86,3 +86,6 @@ class CompletedRow(Gtk.ListBoxRow):
         # Gets a preview thumbnail of the ffmpeg setting's input file.
         thumbnail_file_path = preview.generate_crop_preview_file(ffmpeg, self.preferences, 96)
         GLib.idle_add(self.preview_thumbnail.set_from_file, thumbnail_file_path)
+
+    def signal_remove_button(self):
+        self.remove_signal.on_remove_button_clicked(self.remove_button)

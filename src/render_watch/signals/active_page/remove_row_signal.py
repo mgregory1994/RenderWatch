@@ -45,4 +45,7 @@ class RemoveRowSignal:
 
     @staticmethod
     def _is_row_finished(active_row):
-        return active_row is not None and active_row.finished and not active_row.failed
+        return active_row \
+               and active_row.finished \
+               and not active_row.stopped \
+               and not active_row.failed
