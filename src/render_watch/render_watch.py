@@ -60,7 +60,8 @@ def main(args=None):
     if args:
         sys.argv.extend(args)
 
-    #if AppRequirements.check_startup_requirements():
+    if AppRequirements.check_startup_requirements():
+        print('couldnt find ffmpeg')
     RenderWatch()
 
 

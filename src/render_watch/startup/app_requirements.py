@@ -64,7 +64,8 @@ class AppRequirements:
         # Creates and runs a process using the given ffmpeg arguments and checks if the process exits without errors.
         with subprocess.Popen(ffmpeg_args,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT) as process:
+                              stderr=subprocess.STDOUT,
+                              shell=True) as process:
             return process.wait() == 0
 
     @staticmethod
