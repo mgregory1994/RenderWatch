@@ -38,8 +38,7 @@ def run_preview_process(generate_preview_func):
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,
-                    bufsize=1,
-                    shell=True) as process:
+                    bufsize=1) as process:
                 rc = process.wait()
             if rc != 0:
                 output_args = ''
@@ -178,8 +177,7 @@ def set_info(ffmpeg):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
-            bufsize=1,
-            shell=True) as process:
+            bufsize=1) as process:
         while True:
             output = process.stdout.readline().strip()
 
@@ -360,8 +358,7 @@ def __run_auto_crop_process(args):
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT,
                           universal_newlines=True,
-                          bufsize=1,
-                          shell=True) as process:
+                          bufsize=1) as process:
         while True:
             stdout = process.stdout.readline().strip()
             if stdout == '':
@@ -518,8 +515,7 @@ def __run_vid_preview_ffmpeg_process(ffmpeg, duration, preview_page_handlers, st
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
-                bufsize=1,
-                shell=True) as process:
+                bufsize=1) as process:
             while True:
                 if stop():
                     process.terminate()
@@ -575,8 +571,7 @@ def __run_vid_preview_process(output_file, stop):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
-            bufsize=1,
-            shell=True) as process:
+            bufsize=1) as process:
         while process.poll() is None:
             if stop():
                 process.terminate()
@@ -660,8 +655,7 @@ def __run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
-                bufsize=1,
-                shell=True) as process:
+                bufsize=1) as process:
             while True:
                 with settings_sidebar_handlers.benchmark_thread_lock:
                     if settings_sidebar_handlers.benchmark_thread_stopping:
