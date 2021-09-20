@@ -60,8 +60,8 @@ def main(args=None):
     if args:
         sys.argv.extend(args)
 
-    if AppRequirements.check_startup_requirements():
-        RenderWatch()
+    #if AppRequirements.check_startup_requirements():
+    RenderWatch()
 
 
 if __name__ == '__main__':
