@@ -3,25 +3,19 @@
   <img src="https://github.com/mgregory1994/RenderWatch/blob/main/src/render_watch/render_watch_data/RenderWatch.png" alt="Render Watch Icon"/>
 </p>
 
-Render Watch is an open source professional video transcoder for Linux.
-
-Render Watch can be used to convert video files from one format to another
-in order to meet format specifications for devices, streaming, local playback, 
-etc. Render Watch can also be used as a video compression tool so that you 
-can make a lossy version of your video projects or make compressed backups 
-of your videos.
+Render Watch is an open source video transcoder for Linux.
 
 ## Compatibility
-Render Watch is compatible with Debian and Ubuntu based distros.
+Render Watch is compatible with Debian and Ubuntu based distributions.
 
-Other distros require manual installation (see below).
+Other distributions require manual installation (see below).
 
 ## Installation
 #### Debian or Ubuntu based distros:
 1. [Download](https://github.com/mgregory1994/RenderWatch/releases/tag/v0.1.0-beta) the .deb file
 2. Install by double-clicking the .deb file or by using apt
-    ```console
-    # apt install ./<name of file>.deb
+    ```bash
+    sudo apt install ./<name of file>.deb
     ```
    
 #### Other distros:
@@ -30,34 +24,34 @@ Other distros require manual installation (see below).
     * [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html)
     * pip
 2. Clone repository
-    ```console
-    $ git clone https://github.com/mgregory1994/RenderWatch.git
+    ```bash
+    git clone https://github.com/mgregory1994/RenderWatch.git
     ```
 3. Manually install Render Watch
-    ```console
-    $ cd RenderWatch
-    # python setup.py install
+    ```bash
+    cd RenderWatch
+    sudo python setup.py install
     ```
 4. Copy .desktop file and program icons
-    ```console
-    $ cp data/render-watch.desktop ~/.local/share/applications
-    $ cp -r data/icons/. ~/.icons
+    ```bash
+    cp data/render-watch.desktop ~/.local/share/applications
+    cp -r data/icons/. ~/.icons
     ```
 
 ## Uninstall
 #### Debian or Ubuntu based distros:
-```console
-# apt remove render-watch
+```bash
+sudo apt remove render-watch
 ```
 
 #### Other distros:
 1. Remove .desktop file
-    ```console
-    $ rm ~/.local/share/applications/render-watch.desktop
+    ```bash
+    rm ~/.local/share/applications/render-watch.desktop
     ```
 2. Remove Render Watch using pip
-    ```console
-    # pip uninstall render-watch
+    ```bash
+    sudo pip uninstall render-watch
     ```
 
 ## Usage
@@ -65,13 +59,13 @@ Once you have installed Render Watch, you can find it among your installed
 applications.
 
 You can also run Render Watch from the command line
-```console
-$ render-watch
+```bash
+render-watch
 ```
 
 You can also run Render Watch in debug mode
-```console
-$ render-watch-debug
+```bash
+render-watch-debug
 ```
 
 The log file can then be found in
