@@ -26,42 +26,48 @@ from render_watch.helpers.logging_helper import LoggingHelper
 
 
 class RenderWatch:
-    """Sets up and starts Render Watch"""
+    """
+    Configures and runs Render Watch.
+    """
 
-    def __init__(self):
+    @staticmethod
+    def setup_and_run():
+        """
+        Starts the logger, loads application preferences, checks status of NVENC, starts the encoder queue,
+        and starts the application's UI.
+        """
         LoggingHelper.setup_logging()
-        self.app_prefs = self._load_preferences()
-        AppRequirements.check_nvidia_requirements(self.app_prefs)
-        self.encoder_queue = EncoderQueue(self.app_prefs)
-        self._start_app()
+
+        app_preferences = RenderWatch._load_preferences()
+        AppRequirements.check_nvidia_requirements(app_preferences)
+        encoder_queue = EncoderQueue(app_preferences)
+
+        return RenderWatch._start_ui(encoder_queue, app_preferences)
 
     @staticmethod
     def _load_preferences():
         # Loads and returns the user preferences.
-        prefs = Preferences()
-        Preferences.load_preferences(prefs)
-        Preferences.create_temp_directory(prefs)
-        return prefs
+        app_preferences = Preferences()
+        Preferences.load_preferences(app_preferences)
+        Preferences.create_temp_directory(app_preferences)
+        return app_preferences
 
-    def _start_app(self):
+    @staticmethod
+    def _start_ui(encoder_queue, app_preferences):
         # Starts the application's UI.
-        self.app_ui = AppUI(self.encoder_queue, self.app_prefs)
-        self.app_ui.setup_and_run_application()
+        app_ui = AppUI(encoder_queue, app_preferences)
+        return app_ui.setup_and_run_application()
 
 
 def main(args=None):
-    """Adds any arguments and starts the application.
-
-    The application's minimum startup requirements are checked before starting the application.
-
-    :param args:
-        Application arguments.
+    """
+    Adds any application arguments and runs Render Watch if the startup requirements are met.
     """
     if args:
         sys.argv.extend(args)
 
     if AppRequirements.check_startup_requirements():
-        RenderWatch()
+        sys.exit(RenderWatch.setup_and_run())
 
 
 if __name__ == '__main__':

@@ -79,7 +79,7 @@ class AppUI:
                                                          self.encoder_queue,
                                                          self.preferences))
 
-        Gtk.main()
+        return Gtk.main()
 
     def __setup_prefs_dialog(self):
         # Runs all functions needed to set up the preferences dialog's widgets.
