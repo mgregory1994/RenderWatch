@@ -6,19 +6,15 @@
 Render Watch is an open source video transcoder for Linux.
 
 ## Compatibility
-Render Watch is compatible with Debian and Ubuntu based distributions.
-
-Other distributions require manual installation (see below).
+Render Watch is available as a flatpak(version 0.2.0) and can also be installed from source.
+Render Watch should theoretically work on any Linux distribution that has the ability to run Python, Gtk, PyGObject, and
+ffmpeg/ffinfo/ffplay.
 
 ## Installation
-#### Debian or Ubuntu based distros:
-1. [Download](https://github.com/mgregory1994/RenderWatch/releases/tag/v0.1.0-beta) the .deb file
-2. Install by double-clicking the .deb file or by using apt
-    ```bash
-    sudo apt install ./<name of file>.deb
-    ```
+#### Flatpak:
+###### Available starting version 0.2.0
    
-#### Other distros:
+#### From source:
 1. Install dependencies
     * ffmpeg
     * [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html)
@@ -39,12 +35,10 @@ Other distributions require manual installation (see below).
     ```
 
 ## Uninstall
-#### Debian or Ubuntu based distros:
-```bash
-sudo apt remove render-watch
-```
+#### Flatpak:
+###### Available starting version 0.2.0
 
-#### Other distros:
+#### From source:
 1. Remove .desktop file
     ```bash
     rm ~/.local/share/applications/render-watch.desktop
