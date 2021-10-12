@@ -23,29 +23,36 @@ from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.helpers.logging_helper import LoggingHelper
 
 
-class AppRequirements:
-    """Allows for checking all requirements needed for running Render Watch.
-
+class ApplicationRequirements:
+    """
+    Checks all requirements needed for running Render Watch.
     This includes dependencies for ffmpeg and the watchdog module.
     This also includes checking for Nvidia's NVENC functionality and whether or not it's accessible on this machine.
     """
 
     @staticmethod
     def check_startup_requirements():
-        """Check and return if both ffmpeg and the watchdog module is installed and accessible."""
-        return AppRequirements.is_ffmpeg_installed() and AppRequirements.is_watchdog_installed()
+        """
+        Check and return if both ffmpeg and the watchdog module is installed and accessible.
+        """
+        return ApplicationRequirements.check_ffmpeg_requirements() \
+            and ApplicationRequirements.check_watchdog_requirements()
 
     @staticmethod
-    def is_ffmpeg_installed():
-        """Checks if ffmpeg is installed and accessible. If not, then show a message to the user on what to do next."""
+    def check_ffmpeg_requirements():
+        """
+        Checks if ffmpeg is installed and accessible.
+        If not, then show a message to the user on what to do next.
+        """
         try:
-            return AppRequirements.__run_test_process(AppRequirements.__get_new_ffmpeg_test_args())
+            return ApplicationRequirements._run_test_process(ApplicationRequirements._get_ffmpeg_test_args())
         except:
             LoggingHelper.show_ffmpeg_not_found_message()
+
             return False
 
     @staticmethod
-    def __get_new_ffmpeg_test_args():
+    def _get_ffmpeg_test_args():
         # Setup a test ffmpeg settings object using a null source.
         ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
         ffmpeg_args.append('-f')
@@ -60,7 +67,7 @@ class AppRequirements:
         return ffmpeg_args
 
     @staticmethod
-    def __run_test_process(ffmpeg_args):
+    def _run_test_process(ffmpeg_args):
         # Creates and runs a process using the given ffmpeg arguments and checks if the process exits without errors.
         with subprocess.Popen(ffmpeg_args,
                               stdout=subprocess.PIPE,
@@ -68,25 +75,25 @@ class AppRequirements:
             return process.wait() == 0
 
     @staticmethod
-    def is_watchdog_installed():
-        """Checks if the watchdog module is installed and accessible.
-
-        If the module isn't installed or accessible, then show a message telling the user what to do next.
+    def check_watchdog_requirements():
+        """
+        Checks if the watchdog module is available.
+        If the module isn't available, show a message telling the user what to do next.
         """
         try:
             import watchdog
         except ModuleNotFoundError:
             LoggingHelper.show_watchdog_not_found_message()
+
             return False
         return True
 
     @staticmethod
-    def check_nvidia_requirements(preferences):
-        """Runs any functions needed to check if the system supports Nvidia's NVENC encoder.
-
-        This functions will check if NVENC works and, if so, how many NVENC process can be ran in parallel.
-
-        :param preferences:
-            Application's preferences object.
+    def check_nvidia_requirements(application_preferences):
         """
-        NvidiaHelper.setup_nvenc_max_workers(preferences)
+        Runs any tests needed to check if the system supports Nvidia's NVENC encoder.
+        This will check if NVENC works and, if so, how many NVENC processes can be ran in parallel.
+
+        :param application_preferences: Application's preferences.
+        """
+        NvidiaHelper.setup_nvenc_max_workers(application_preferences)
