@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.36.0 -->
+<!-- Generated with glade 3.38.2 -->
 <interface>
   <requires lib="gtk+" version="3.22"/>
-  <object class="GtkBox" id="chunk_row_container">
+  <object class="GtkBox" id="chunk_listbox_row_box">
     <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="border_width">5</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
     <property name="spacing">10</property>
     <child type="center">
       <object class="GtkLabel">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -19,20 +19,20 @@
       </packing>
     </child>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="chunk_info_box">
         <property name="visible">True</property>
         <property name="sensitive">False</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="halign">start</property>
         <property name="valign">center</property>
         <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="chunk_identifier_label">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Chunk: ##</property>
-            <property name="width_chars">8</property>
+            <property name="width-chars">8</property>
             <property name="xalign">0</property>
           </object>
           <packing>
@@ -42,12 +42,12 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="chunk_timespan_label">
+          <object class="GtkLabel" id="chunk_time_span_label">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <property name="halign">end</property>
             <property name="label" translatable="yes">(##:##:##. - ##:##:##.)</property>
-            <property name="width_chars">21</property>
+            <property name="width-chars">21</property>
             <property name="xalign">0</property>
           </object>
           <packing>
@@ -64,16 +64,16 @@
       </packing>
     </child>
     <child>
-      <object class="GtkProgressBar" id="chunk_progress_bar">
+      <object class="GtkProgressBar" id="chunk_progressbar">
         <property name="name">chunk_progress_bar</property>
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="valign">center</property>
       </object>
       <packing>
         <property name="expand">True</property>
         <property name="fill">True</property>
-        <property name="pack_type">end</property>
+        <property name="pack-type">end</property>
         <property name="position">1</property>
       </packing>
     </child>
