@@ -18,9 +18,9 @@
 
 import sys
 
-from render_watch.startup.app_ui import AppUI
+from render_watch.startup.application_ui import ApplicationUI
 from render_watch.startup.preferences import Preferences
-from render_watch.startup.app_requirements import AppRequirements
+from render_watch.startup.application_requirements import ApplicationRequirements
 from render_watch.encoding.encoder_queue import EncoderQueue
 from render_watch.helpers.logging_helper import LoggingHelper
 
@@ -33,30 +33,28 @@ class RenderWatch:
     @staticmethod
     def setup_and_run():
         """
-        Starts the logger, loads application preferences, checks status of NVENC, starts the encoder queue,
+        Starts the logger, loads application preferences, checks requirements for NVENC, starts the encoder queue,
         and starts the application's UI.
         """
         LoggingHelper.setup_logging()
 
-        app_preferences = RenderWatch._load_preferences()
-        AppRequirements.check_nvidia_requirements(app_preferences)
-        encoder_queue = EncoderQueue(app_preferences)
+        application_preferences = RenderWatch._load_preferences()
+        ApplicationRequirements.check_nvidia_requirements(application_preferences)
+        encoder_queue = EncoderQueue(application_preferences)
 
-        return RenderWatch._start_ui(encoder_queue, app_preferences)
+        return RenderWatch._run_ui(encoder_queue, application_preferences)
 
     @staticmethod
     def _load_preferences():
-        # Loads and returns the user preferences.
-        app_preferences = Preferences()
-        Preferences.load_preferences(app_preferences)
-        Preferences.create_temp_directory(app_preferences)
-        return app_preferences
+        application_preferences = Preferences()
+        Preferences.load_preferences(application_preferences)
+        Preferences.create_temp_directory(application_preferences)
+        return application_preferences
 
     @staticmethod
-    def _start_ui(encoder_queue, app_preferences):
-        # Starts the application's UI.
-        app_ui = AppUI(encoder_queue, app_preferences)
-        return app_ui.setup_and_run_application()
+    def _run_ui(encoder_queue, application_preferences):
+        application_ui = ApplicationUI(encoder_queue, application_preferences)
+        return application_ui.setup_and_run()
 
 
 def main(args=None):
@@ -66,7 +64,7 @@ def main(args=None):
     if args:
         sys.argv.extend(args)
 
-    if AppRequirements.check_startup_requirements():
+    if ApplicationRequirements.check_startup_requirements():
         sys.exit(RenderWatch.setup_and_run())
 
 
