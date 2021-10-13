@@ -53,7 +53,6 @@ class ApplicationRequirements:
 
     @staticmethod
     def _get_ffmpeg_test_args():
-        # Setup a test ffmpeg settings object using a null source.
         ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
         ffmpeg_args.append('-f')
         ffmpeg_args.append('lavfi')
@@ -68,7 +67,6 @@ class ApplicationRequirements:
 
     @staticmethod
     def _run_test_process(ffmpeg_args):
-        # Creates and runs a process using the given ffmpeg arguments and checks if the process exits without errors.
         with subprocess.Popen(ffmpeg_args,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT) as process:
