@@ -19,7 +19,7 @@
 import sys
 
 from render_watch.startup.application_ui import ApplicationUI
-from render_watch.startup.preferences import Preferences
+from render_watch.startup.application_preferences import ApplicationPreferences
 from render_watch.startup.application_requirements import ApplicationRequirements
 from render_watch.encoding.encoder_queue import EncoderQueue
 from render_watch.helpers.logging_helper import LoggingHelper
@@ -46,9 +46,9 @@ class RenderWatch:
 
     @staticmethod
     def _load_preferences():
-        application_preferences = Preferences()
-        Preferences.load_preferences(application_preferences)
-        Preferences.create_temp_directory(application_preferences)
+        application_preferences = ApplicationPreferences()
+        ApplicationPreferences.load_preferences(application_preferences)
+        ApplicationPreferences.create_temp_directory(application_preferences)
         return application_preferences
 
     @staticmethod

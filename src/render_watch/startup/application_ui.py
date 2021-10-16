@@ -28,7 +28,7 @@ from render_watch.ffmpeg.vp9 import VP9
 from render_watch.ffmpeg.aac import Aac
 from render_watch.ffmpeg.opus import Opus
 from render_watch.app_handlers.handlers_manager import HandlersManager
-from render_watch.startup.preferences import Preferences
+from render_watch.startup.application_preferences import ApplicationPreferences
 from render_watch.helpers.ui_helper import UIHelper
 from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.startup import Gtk
@@ -93,7 +93,7 @@ class ApplicationUI:
     def _setup_preferences_dialog_parallel_tasks_widgets(self):
         try:
             concurrent_tasks_combobox = self.gtk_builder.get_object('concurrent_tasks_combobox')
-            UIHelper.setup_combobox(concurrent_tasks_combobox, Preferences.parallel_tasks_values_list)
+            UIHelper.setup_combobox(concurrent_tasks_combobox, ApplicationPreferences.PARALLEL_TASKS_VALUES)
             concurrent_tasks_message_stack = self.gtk_builder.get_object('concurrent_tasks_message_stack')
             concurrent_tasks_message_8 = self.gtk_builder.get_object('concurrent_tasks_message_8')
             concurrent_tasks_message_12 = self.gtk_builder.get_object('concurrent_tasks_message_12')
@@ -102,7 +102,7 @@ class ApplicationUI:
             concurrent_tasks_message_max = self.gtk_builder.get_object('concurrent_tasks_message_max')
 
             parallel_tasks = self.application_preferences.parallel_tasks_as_string
-            concurrent_tasks_combobox.set_active(Preferences.parallel_tasks_values_list.index(parallel_tasks))
+            concurrent_tasks_combobox.set_active(ApplicationPreferences.PARALLEL_TASKS_VALUES.index(parallel_tasks))
             if parallel_tasks == '2':
                 concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_8)
             elif parallel_tasks == '3':
@@ -119,17 +119,19 @@ class ApplicationUI:
     def _setup_preferences_dialog_nvenc_concurrent_widgets(self):
         try:
             concurrent_nvenc_tasks_combobox = self.gtk_builder.get_object('concurrent_nvenc_tasks_combobox')
-            UIHelper.setup_combobox(concurrent_nvenc_tasks_combobox, Preferences.concurrent_nvenc_values_list)
+            UIHelper.setup_combobox(concurrent_nvenc_tasks_combobox, ApplicationPreferences.CONCURRENT_NVENC_VALUES)
             simultaneous_concurrent_nvenc_tasks_checkbox = self.gtk_builder.get_object(
                 'simultaneous_concurrent_nvenc_tasks_checkbox')
-            simultaneous_concurrent_nvenc_tasks_checkbox.set_active(self.application_preferences.concurrent_nvenc)
+            simultaneous_concurrent_nvenc_tasks_checkbox.set_active(
+                self.application_preferences.is_concurrent_nvenc_enabled)
             concurrent_nvenc_tasks_warning_stack = self.gtk_builder.get_object('concurrent_nvenc_tasks_warning_stack')
             concurrent_nvenc_tasks_warning_blank_label = self.gtk_builder.get_object(
                 'concurrent_nvenc_tasks_warning_blank_label')
             concurrent_nvenc_tasks_warning_icon = self.gtk_builder.get_object('concurrent_nvenc_tasks_warning_icon')
 
             concurrent_nvenc = self.application_preferences.concurrent_nvenc_value_as_string
-            concurrent_nvenc_tasks_combobox.set_active(Preferences.concurrent_nvenc_values_list.index(concurrent_nvenc))
+            concurrent_nvenc_tasks_combobox.set_active(
+                ApplicationPreferences.CONCURRENT_NVENC_VALUES.index(concurrent_nvenc))
             if concurrent_nvenc != 'auto':
                 concurrent_nvenc_tasks_warning_stack.set_visible_child(concurrent_nvenc_tasks_warning_icon)
             else:
@@ -143,28 +145,28 @@ class ApplicationUI:
 
     def _setup_preferences_dialog_clear_temp_widgets(self):
         clear_temporary_files_checkbox = self.gtk_builder.get_object('clear_temporary_files_checkbox')
-        clear_temporary_files_checkbox.set_active(self.application_preferences.clear_temp_directory_on_exit)
+        clear_temporary_files_checkbox.set_active(self.application_preferences.is_clearing_temp_directory)
 
     def _setup_preferences_dialog_overwrite_outputs_widgets(self):
         overwrite_outputs_checkbox = self.gtk_builder.get_object('overwrite_outputs_checkbox')
-        overwrite_outputs_checkbox.set_active(self.application_preferences.overwrite_outputs)
+        overwrite_outputs_checkbox.set_active(self.application_preferences.is_overwriting_outputs)
 
     def _setup_preferences_dialog_dark_mode_widgets(self):
         dark_mode_switch = self.gtk_builder.get_object('dark_mode_switch')
-        dark_mode_switch.set_active(self.application_preferences.use_dark_mode)
-        self.gtk_settings.set_property("gtk-application-prefer-dark-theme", self.application_preferences.use_dark_mode)
+        dark_mode_switch.set_active(self.application_preferences.is_dark_mode)
+        self.gtk_settings.set_property("gtk-application-prefer-dark-theme", self.application_preferences.is_dark_mode)
 
     def _setup_preferences_dialog_watch_folder_wait_for_tasks_widgets(self):
         wait_for_tasks_checkbox = self.gtk_builder.get_object('wait_for_tasks_checkbox')
-        wait_for_tasks_checkbox.set_active(self.application_preferences.watch_folder_wait_for_other_tasks)
+        wait_for_tasks_checkbox.set_active(self.application_preferences.is_watch_folder_wait_for_tasks_enabled)
 
     def _setup_preferences_dialog_watch_folder_concurrent_widgets(self):
         run_concurrently_checkbox = self.gtk_builder.get_object('run_concurrently_checkbox')
-        run_concurrently_checkbox.set_active(self.application_preferences.concurrent_watch_folder)
+        run_concurrently_checkbox.set_active(self.application_preferences.is_concurrent_watch_folder_enabled)
 
     def _setup_preferences_dialog_watch_folder_move_to_done_widgets(self):
         move_to_done_checkbox = self.gtk_builder.get_object('move_to_done_checkbox')
-        move_to_done_checkbox.set_active(self.application_preferences.watch_folder_move_finished_to_done)
+        move_to_done_checkbox.set_active(self.application_preferences.is_watch_folder_move_tasks_to_done_enabled)
 
     def _setup_general_settings_widgets(self):
         self._setup_video_container_widgets()
@@ -484,7 +486,7 @@ class ApplicationUI:
         main_window.set_size_request(800, 500)
         main_window.resize(window_dimensions[0], window_dimensions[1])
 
-        if self.application_preferences.window_maximized:
+        if self.application_preferences.is_window_maximized:
             main_window.maximize()
 
     def _on_main_window_size_allocate(self, application_window, allocation):  # Unused parameter needed for this signal.
@@ -500,7 +502,7 @@ class ApplicationUI:
         Gtk.main_quit()
 
     def _save_application_preferences(self, application_window):
-        self.application_preferences.window_maximized = application_window.is_maximized()
+        self.application_preferences.is_window_maximized = application_window.is_maximized()
 
-        Preferences.save_preferences(self.application_preferences)
-        Preferences.clear_temp_directory(self.application_preferences)
+        ApplicationPreferences.save_preferences(self.application_preferences)
+        ApplicationPreferences.clear_temp_directory(self.application_preferences)
