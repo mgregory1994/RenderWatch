@@ -25,77 +25,57 @@ from render_watch.helpers.nvidia_helper import NvidiaHelper
 
 
 def get_chunks(ffmpeg, preferences):
-    """Generates ffmpeg settings objects in chunks.
-
-    Takes the ffmpeg settings object and generates chunks using the amount in preferences.
-    These chunks will be homogeneous.
-
-    :param ffmpeg:
-        ffmpeg settings object.
-    :param preferences:
-        Application's preferences object.
     """
-    number_of_chunks = __get_valid_number_of_chunks(ffmpeg, preferences)
+    Splits ffmpeg settings object into homogeneous chunks.
 
-    if not is_ffmpeg_viable_for_chunking(ffmpeg, number_of_chunks):
-        return None
+    :param ffmpeg: ffmpeg settings.
+    :param preferences: Application preferences.
+    """
+    number_of_chunks = _get_number_of_chunks(ffmpeg, preferences)
 
-    return __generate_chunk_list(ffmpeg, number_of_chunks, preferences)
+    if is_ffmpeg_viable_for_chunking(ffmpeg, number_of_chunks):
+        return _get_chunks_list(ffmpeg, number_of_chunks, preferences)
+
+    return None
 
 
-def __get_valid_number_of_chunks(ffmpeg, preferences):
-    # Checks if ffmpeg settings uses NVENC and returns the amount of chunks
-    # depending on which codec is being used.
+def _get_number_of_chunks(ffmpeg, preferences):
     if ffmpeg.is_video_settings_nvenc():
         return NvidiaHelper.nvenc_max_workers
 
     return preferences.parallel_tasks
 
 
-def __generate_chunk_list(ffmpeg, number_of_chunks, preferences):
-    # Returns a list of ffmpeg settings objects for all generated chunks.
-    chunk_rows = []
-    for current_chunk in range(1, (number_of_chunks + 1)):
-        chunk_rows.append(__generate_chunk(ffmpeg, number_of_chunks, current_chunk, preferences))
-    chunk_rows.append(__generate_audio_chunk(ffmpeg, preferences))
-    return chunk_rows
+def _get_chunks_list(ffmpeg, number_of_chunks, preferences):
+    chunks = []
+
+    for chunk_index in range(1, (number_of_chunks + 1)):
+        chunks.append(_generate_video_chunk(ffmpeg, number_of_chunks, chunk_index, preferences))
+    chunks.append(_generate_audio_chunk(ffmpeg, preferences))
+
+    return chunks
 
 
-def __generate_chunk(ffmpeg, number_of_chunks, chunk, preferences):
-    # Creates a ffmpeg settings object chunk based on chunk/number_of_chunks.
-    ffmpeg_copy = ffmpeg.get_copy()
+def _generate_video_chunk(ffmpeg, number_of_chunks, chunk_index, application_preferences):
+    trim_settings = _get_chunk_trim_settings(ffmpeg, number_of_chunks, chunk_index)
 
-    trim_settings = __setup_chunk_trim_settings(ffmpeg, number_of_chunks, chunk)
-    if ffmpeg.is_video_settings_2_pass():
-        ffmpeg_copy.temp_file_name += ('_' + str(chunk))
-        ffmpeg_copy.video_settings.stats = preferences.temp_directory + '/' + ffmpeg_copy.temp_file_name + '.log'
-    ffmpeg_copy.audio_settings = None
-    ffmpeg_copy.no_audio = True
-    ffmpeg_copy.video_chunk = True
-    ffmpeg_copy.filename = ffmpeg_copy.temp_file_name + '_' + str(chunk)
-    ffmpeg_copy.output_directory = preferences.temp_directory + '/'
+    ffmpeg_copy = _get_video_chunk_ffmpeg_settings(ffmpeg, chunk_index, application_preferences)
     ffmpeg_copy.trim_settings = trim_settings
-    if ffmpeg_copy.is_video_settings_vp9():
-        ffmpeg_copy.output_container = '.webm'
-    else:
-        ffmpeg_copy.output_container = '.mp4'
-
     return ffmpeg_copy
 
 
-def __setup_chunk_trim_settings(ffmpeg, number_of_chunks, chunk):
-    # Trims the ffmpeg settings object in correspondence with which chunk it is.
+def _get_chunk_trim_settings(ffmpeg, number_of_chunks, chunk_index):
     trim_settings = TrimSettings()
 
-    if ffmpeg.trim_settings is not None:
+    if ffmpeg.trim_settings:
         trim_duration = ffmpeg.trim_settings.trim_duration
         trim_start_time = ffmpeg.trim_settings.start_time
         chunk_duration = (trim_duration / number_of_chunks)
-        chunk_start_time = trim_start_time + (chunk_duration * (chunk - 1))
-        if chunk == 1:
+        chunk_start_time = trim_start_time + (chunk_duration * (chunk_index - 1))
+        if chunk_index == 1:
             trim_settings.start_time = trim_start_time
             trim_settings.trim_duration = chunk_duration
-        elif chunk == number_of_chunks:
+        elif chunk_index == number_of_chunks:
             chunk_offset_duration = (trim_duration + trim_start_time) - chunk_start_time
             trim_settings.start_time = chunk_start_time
             trim_settings.trim_duration = chunk_offset_duration
@@ -105,11 +85,11 @@ def __setup_chunk_trim_settings(ffmpeg, number_of_chunks, chunk):
     else:
         duration = ffmpeg.duration_origin
         chunk_duration = (duration / number_of_chunks)
-        chunk_start_time = chunk_duration * (chunk - 1)
-        if chunk == 1:
+        chunk_start_time = chunk_duration * (chunk_index - 1)
+        if chunk_index == 1:
             trim_settings.start_time = 0
             trim_settings.trim_duration = chunk_duration
-        elif chunk == number_of_chunks:
+        elif chunk_index == number_of_chunks:
             trim_settings.start_time = chunk_start_time
             trim_settings.trim_duration = duration - chunk_start_time
         else:
@@ -119,32 +99,51 @@ def __setup_chunk_trim_settings(ffmpeg, number_of_chunks, chunk):
     return trim_settings
 
 
-def __generate_audio_chunk(ffmpeg, preferences):
-    # Returns an ffmpeg settings object based on outputting just the audio.
+def _get_video_chunk_ffmpeg_settings(ffmpeg, chunk_index, application_preferences):
     ffmpeg_copy = ffmpeg.get_copy()
 
-    ffmpeg_copy.no_video = True
-    ffmpeg_copy.video_settings = None
-    ffmpeg_copy.output_container = '.mkv'
-    ffmpeg_copy.filename = ffmpeg_copy.temp_file_name + '_audio'
-    ffmpeg_copy.output_directory = preferences.temp_directory + '/'
+    if ffmpeg.is_video_settings_2_pass():
+        ffmpeg_copy.temp_file_name += ('_' + str(chunk_index))
+        ffmpeg_copy.video_settings.stats = application_preferences.temp_directory \
+                                           + '/' \
+                                           + ffmpeg_copy.temp_file_name \
+                                           + '.log'
+
+    ffmpeg_copy.audio_settings = None
+    ffmpeg_copy.no_audio = True
+    ffmpeg_copy.video_chunk = True
+    ffmpeg_copy.filename = ffmpeg_copy.temp_file_name + '_' + str(chunk_index)
+    ffmpeg_copy.output_directory = application_preferences.temp_directory + '/'
+
+    if ffmpeg_copy.is_video_settings_vp9():
+        ffmpeg_copy.output_container = '.webm'
+    else:
+        ffmpeg_copy.output_container = '.mp4'
 
     return ffmpeg_copy
 
 
+def _generate_audio_chunk(ffmpeg, application_preferences):
+    ffmpeg_copy = ffmpeg.get_copy()
+    ffmpeg_copy.no_video = True
+    ffmpeg_copy.video_settings = None
+    ffmpeg_copy.output_container = '.mkv'
+    ffmpeg_copy.filename = ffmpeg_copy.temp_file_name + '_audio'
+    ffmpeg_copy.output_directory = application_preferences.temp_directory + '/'
+    return ffmpeg_copy
+
+
 def is_ffmpeg_viable_for_chunking(ffmpeg, number_of_chunks):
-    """Checks if ffmpeg settings object can be split into chunks.
-
-    Under 10 seconds is currently considered too short to be a chunk.
-
-    :param ffmpeg:
-        ffmpeg settings object.
-    :param number_of_chunks:
-        Number of chunks to split ffmpeg into.
     """
-    if ffmpeg.video_settings is not None:
-        if ffmpeg.trim_settings is not None:
-            if ffmpeg.audio_settings is not None and (ffmpeg.trim_settings.trim_duration / number_of_chunks) >= 10:
+    Checks if ffmpeg settings object can be split into chunks.
+    Under 10 seconds is considered too short to be a chunk.
+
+    :param ffmpeg: ffmpeg settings.
+    :param number_of_chunks: Number of chunks to split ffmpeg into.
+    """
+    if ffmpeg.video_settings:
+        if ffmpeg.trim_settings:
+            if ffmpeg.audio_settings and (ffmpeg.trim_settings.trim_duration / number_of_chunks) >= 10:
                 return True
         elif (ffmpeg.duration_origin / number_of_chunks) >= 10:
             return True
@@ -152,128 +151,121 @@ def is_ffmpeg_viable_for_chunking(ffmpeg, number_of_chunks):
     return False
 
 
-def concatenate_video_chunks(video_chunks_list, ffmpeg, preferences):
-    """Concatenates the completed chunk tasks into a single output.
-
-    Creates a concatention file that contains a list of all chunk files.
-    It then runs a process that uses ffmpeg to concatenate the chunk files.
-
-    :param video_chunks_list:
-        List of video chunk files.
-    :param ffmpeg:
-        ffmpeg settings object.
-    :param preferences:
-        Application's preferences object.
+def concatenate_video_chunks(video_chunks_list, ffmpeg, application_preferences):
     """
-    concat_option_file_path = preferences.temp_directory + '/' + ffmpeg.temp_file_name + '_concat'
-    concat_option_text = __generate_video_concat_option_text(video_chunks_list)
-    if not __write_concat_option_file(ffmpeg, concat_option_file_path, concat_option_text):
+    Concatenates video chunks into a single output.
+
+    :param video_chunks_list: List of video chunk files.
+    :param ffmpeg: ffmpeg settings object.
+    :param application_preferences: Application's preferences object.
+    """
+    concatenation_file_path = application_preferences.temp_directory + '/' + ffmpeg.temp_file_name + '_concat'
+    concatenation_args = _get_video_concatenation_args(video_chunks_list)
+    if not _write_concatenation_args(ffmpeg, concatenation_file_path, concatenation_args):
         return
 
-    ffmpeg_args = __generate_video_concat_ffmpeg_args(ffmpeg, concat_option_file_path, preferences)
-    __run_video_concat_process(ffmpeg, ffmpeg_args)
+    ffmpeg_args = _get_ffmpeg_concatenation_args(ffmpeg, concatenation_file_path, application_preferences)
+    _run_concatenation_process(ffmpeg, ffmpeg_args)
 
 
-def __generate_video_concat_option_text(video_chunks_row_list):
-    # Returns a list of chunk files to be concatenated.
-    concatenation_lines = []
-    for video_chunk_row in video_chunks_row_list:
-        video_chunk_file_name = video_chunk_row.ffmpeg.filename
-        video_chunk_output_container = video_chunk_row.ffmpeg.output_container
-        concatenation_lines.append('file \'' + video_chunk_file_name + video_chunk_output_container + '\'\n')
-    return concatenation_lines
+def _get_video_concatenation_args(video_chunks_list):
+    concatenation_args = []
+
+    for video_chunk in video_chunks_list:
+        video_chunk_file_name = video_chunk.ffmpeg.filename
+        video_chunk_output_container = video_chunk.ffmpeg.output_container
+        concatenation_args.append('file \'' + video_chunk_file_name + video_chunk_output_container + '\'\n')
+
+    return concatenation_args
 
 
-def __write_concat_option_file(ffmpeg, concat_option_file_path, concat_options):
-    # Writes the concatenation options into the concatenation file.
-    with open(concat_option_file_path, 'w') as concatenation_file:
-        try:
-            concatenation_file.writelines(concat_options)
-        except:
-            logging.error('--- FAILED TO CONCAT VIDEO CHUNKS: ' + ffmpeg.filename + ' ---')
-            return False
-        else:
-            return True
+def _write_concatenation_args(ffmpeg, concatenation_file_path, concatenation_args):
+    try:
+        with open(concatenation_file_path, 'w') as concatenation_file:
+            concatenation_file.writelines(concatenation_args)
+
+        return True
+    except OSError:
+        logging.error('--- FAILED TO CONCAT VIDEO CHUNKS: ' + ffmpeg.filename + ' ---')
+
+        return False
 
 
-def __generate_video_concat_ffmpeg_args(ffmpeg, concatenation_output_file, preferences):
-    # Returns ffmpeg arguments for concatenating chunk files.
+def _get_ffmpeg_concatenation_args(ffmpeg, concatenation_file_path, application_preferences):
     ffmpeg_args = ffmpeg.FFMPEG_CONCATENATION_INIT_ARGS.copy()
-    ffmpeg_args.append(concatenation_output_file)
+    ffmpeg_args.append(concatenation_file_path)
     ffmpeg_args.append('-c')
     ffmpeg_args.append('copy')
-    ffmpeg_args.append(preferences.temp_directory + '/' + ffmpeg.temp_file_name + ffmpeg.output_container)
+    ffmpeg_args.append(application_preferences.temp_directory + '/' + ffmpeg.temp_file_name + ffmpeg.output_container)
     return ffmpeg_args
 
 
-def __run_video_concat_process(ffmpeg, ffmpeg_args):
-    # Runs a process using the ffmpeg arguments to concatenate chunk files.
+def _run_concatenation_process(ffmpeg, ffmpeg_args):
     with subprocess.Popen(ffmpeg_args,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT,
                           universal_newlines=True,
                           bufsize=1) as process:
         stdout_log = ''
+
         while True:
             stdout = process.stdout.readline().strip()
+
             if stdout == '':
                 break
+
             stdout_log += stdout + '\n'
 
-        rc = process.wait()
+    process_return_code = process.wait()
 
-    if rc != 0:
+    if process_return_code:
         logging.error('--- FAILED TO CONCAT VIDEO CHUNKS: ' + ffmpeg.filename + ' ---\n' + stdout_log)
 
 
-def mux_chunks(audio_chunk_row, ffmpeg, preferences):
-    # Generates ffmpeg arguments and runs a process to mux the
-    # video and audio streams after a chunk encode completes.
-    ffmpeg_args = __generate_mux_video_chunks_ffmpeg_args(ffmpeg, audio_chunk_row, preferences)
-    __run_mux_video_chunks_process(ffmpeg, ffmpeg_args)
+def mux_audio_chunk(audio_chunk, ffmpeg, application_preferences):
+    ffmpeg_args = _get_mux_audio_chunk_ffmpeg_args(audio_chunk, ffmpeg, application_preferences)
+    _run_mux_audio_chunk_process(ffmpeg, ffmpeg_args)
 
 
-def __generate_mux_video_chunks_ffmpeg_args(ffmpeg, audio_chunk_row, preferences):
-    # Generates ffmpeg arguments for muxing video and audio files after a chunk encode completes.
+def _get_mux_audio_chunk_ffmpeg_args(audio_chunk, ffmpeg, application_preferences):
+    video_file_name = ffmpeg.temp_file_name + ffmpeg.output_container
+    video_file_path = application_preferences.temp_directory + '/' + video_file_name
+    audio_file_name = audio_chunk.ffmpeg.filename + audio_chunk.ffmpeg.output_container
+    audio_file_path = application_preferences.temp_directory + '/' + audio_file_name
+
     ffmpeg_args = ffmpeg.FFMPEG_INIT_ARGS.copy()
-
-    video_input_file_name = ffmpeg.temp_file_name + ffmpeg.output_container
-    video_input_file_path = preferences.temp_directory + '/' + video_input_file_name
-    audio_input_file_name = audio_chunk_row.ffmpeg.filename + audio_chunk_row.ffmpeg.output_container
-    audio_input_file_path = preferences.temp_directory + '/' + audio_input_file_name
-
     ffmpeg_args.append('-i')
-    ffmpeg_args.append(video_input_file_path)
+    ffmpeg_args.append(video_file_path)
     ffmpeg_args.append('-i')
-    ffmpeg_args.append(audio_input_file_path)
+    ffmpeg_args.append(audio_file_path)
     ffmpeg_args.append('-c')
     ffmpeg_args.append('copy')
     ffmpeg_args.append(ffmpeg.output_directory + ffmpeg.filename + ffmpeg.output_container)
     return ffmpeg_args
 
 
-def __run_mux_video_chunks_process(ffmpeg, ffmpeg_args):
-    # Runs a process using ffmoeg arguments to mux the video and audio files
-    # after a chunk encode completes.
+def _run_mux_audio_chunk_process(ffmpeg, ffmpeg_args):
     with subprocess.Popen(ffmpeg_args,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT,
                           universal_newlines=True,
                           bufsize=1) as process:
         stdout_log = ''
+
         while True:
             stdout = process.stdout.readline().strip()
+
             if not stdout:
                 break
+
             stdout_log += stdout
 
-        rc = process.wait()
+    process_return_code = process.wait()
 
-    if rc != 0:
+    if process_return_code:
         logging.error('--- FAILED TO MUX VIDEO AND AUDIO: ' + ffmpeg.filename + ' ---\n' + stdout_log)
 
 
-def is_extension_valid(file_path):
-    # Checks if file has an extension listed in valid_input_containers.
+def is_file_extension_valid(file_path):
     container = file_path.split('.')[-1]
     return container in Settings.VALID_INPUT_CONTAINERS
