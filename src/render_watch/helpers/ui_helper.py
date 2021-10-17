@@ -17,36 +17,35 @@
 
 
 class UIHelper:
-    """Contains methods for setting up Gtk widgets."""
+    """
+    Useful functions for setting up Gtk widgets.
+    """
 
     @staticmethod
     def setup_combobox(combobox, entries_list):
-        """Builds the given combobox by adding the given entries to the combobox.
-
+        """
+        Builds the given combobox using the given entries.
         The combobox is set up to select the first item in the entries list.
 
-        :param combobox:
-            Gtk.Combobox widget.
-        :param entries_list:
-            List of entries for combobox.
+        :param combobox: Gtk.Combobox widget.
+        :param entries_list: List of entries for the combobox.
         """
-        for value in entries_list:
-            combobox.append_text(value)
+        for entry in entries_list:
+            combobox.append_text(entry)
         combobox.set_entry_text_column(0)
         combobox.set_active(0)
 
     @staticmethod
     def rebuild_combobox(combobox, entries_list):
-        """Rebuilds an already built combobox using the given entries list.
+        """
+        Rebuilds the combobox using the given entries list.
+        The original entries are removed and then the new entries are added.
 
-        The original entires for the combobox are remove first before adding the new entries list.
-
-        :param combobox:
-            Gtk.Combobox widget.
-        :param entries_list:
-            List of entries for combobox.
+        :param combobox: Gtk.Combobox widget.
+        :param entries_list: List of entries for combobox.
         """
         combobox.remove_all()
+
         for entry in entries_list:
             combobox.append_text(entry)
         combobox.set_entry_text_column(0)
