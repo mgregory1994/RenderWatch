@@ -50,8 +50,8 @@ class ApplicationPreferences:
         self.is_window_maximized = False
         self.settings_sidebar_position = -1
 
-        directory_helper.create_config_directory(ApplicationPreferences.DEFAULT_APPLICATION_DATA_DIRECTORY,
-                                                 self._temp_directory)
+        directory_helper.create_application_config_directory(ApplicationPreferences.DEFAULT_APPLICATION_DATA_DIRECTORY,
+                                                             self._temp_directory)
 
     @property
     def temp_directory(self):
