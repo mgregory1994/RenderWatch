@@ -27,131 +27,122 @@ from watchdog.events import PatternMatchingEventHandler
 
 
 class WatchFolder:
-    """Creates and manages watch folder instances."""
+    """
+    Creates and manages watch folder instances.
+    """
 
     def __init__(self):
-        self.__watch_folder_instances = {}
-        self.__watch_folder_observer = Observer()
-        self.__watch_folder_observer.start()
+        self._watch_folder_instances = {}
+        self._watch_folder_observer = Observer()
+        self._watch_folder_observer.start()
 
     def add_folder_path(self, folder_path):
-        """Sets up a watch folder instance using the folder path.
+        """
+        Sets up a watch folder instance using the folder path.
 
-        :param folder_path:
-            The absolute path of the folder.
+        :param folder_path: The absolute path of the folder.
         """
         watch_folder_instance = WatchFolderInstance(folder_path)
-        self.__watch_folder_instances[folder_path] = watch_folder_instance
-        watch_folder_instance.watch = self.__watch_folder_observer.schedule(watch_folder_instance.event_handler,
-                                                                            folder_path,
-                                                                            recursive=False)
+        self._watch_folder_instances[folder_path] = watch_folder_instance
+        watch_folder_instance.watch = self._watch_folder_observer.schedule(watch_folder_instance.event_handler,
+                                                                           folder_path,
+                                                                           recursive=False)
 
     def get_instance(self, folder_path):
-        """Returns the watch folder instance for the folder path.
+        """
+        Returns the watch folder instance for the folder path.
 
-        :param folder_path:
-            The absolute path of the folder.
+        :param folder_path: The absolute path of the folder.
         """
         try:
-            return self.__watch_folder_instances[folder_path].queue.get()
+            return self._watch_folder_instances[folder_path].queue.get()
         except KeyError:
             return None
 
     def is_instance_empty(self, folder_path):
-        """Checks if the watch folder instance for the folder path has found any new files.
+        """
+        Checks if the watch folder instance for the folder path has found any new files.
 
-        :param folder_path:
-            The absolute path of the folder.
+        :param folder_path: The absolute path of the folder.
         """
         try:
-            watch_folder_instance = self.__watch_folder_instances[folder_path]
+            watch_folder_instance = self._watch_folder_instances[folder_path]
             return watch_folder_instance.queue.empty()
         except KeyError:
             return True
 
     def stop_and_remove_instance(self, folder_path):
-        """Stops the watch folder instance for the folder path and removes it.
+        """
+        Stops the watch folder instance for the folder path and removes it.
 
-        :param folder_path:
-            The absolute path of the folder.
+        :param folder_path: The absolute path of the folder.
         """
         try:
-            watch_folder_instance = self.__watch_folder_instances[folder_path]
+            watch_folder_instance = self._watch_folder_instances[folder_path]
             watch_folder_instance.queue.put(False)
-            self.__watch_folder_observer.unschedule(watch_folder_instance.watch)
+            self._watch_folder_observer.unschedule(watch_folder_instance.watch)
+
             return True
         except KeyError:
             logging.exception('--- FAILED TO STOP AND REMOVE WATCH FOLDER INSTANCE ---')
+
             return False
 
 
 class WatchFolderInstance:
-    """Watches a folder directory for contents changed."""
+    """
+    Watches a folder directory for changed contents.
+    """
 
     def __init__(self, folder_path):
-        self.__folder_path = folder_path
-        self.__watch_folder_queue = queue.Queue()
-        self.__files_in_folder_list = []
-        self.__event_handler = PatternMatchingEventHandler('*', '', True, True)
-        self.__event_handler.on_created = self.__on_folder_contents_changed
-        self.__event_handler.on_deleted = self.__check_for_deleted_files
+        self._folder_path = folder_path
+        self._watch_folder_queue = queue.Queue()
+        self._files_found_in_folder = []
+        self.event_handler = PatternMatchingEventHandler('*', '', True, True)
+        self.event_handler.on_created = self._on_folder_contents_changed
+        self.event_handler.on_deleted = self._remove_deleted_files
         self.watch = None
-        self.__check_and_add_files_in_folder()
+        self._add_new_files()
 
     @property
     def queue(self):
-        return self.__watch_folder_queue
+        return self._watch_folder_queue
 
     @property
     def path(self):
-        return self.__folder_path
+        return self._folder_path
 
-    @property
-    def event_handler(self):
-        return self.__event_handler
-
-    def __on_folder_contents_changed(self, event):  # Unused parameter needed
-        # Starts a thread to add any new files in the folder's directory.
-        threading.Thread(target=self.__check_and_add_files_in_folder, args=(), daemon=True).start()
+    def _on_folder_contents_changed(self, event):  # Unused parameter needed
+        threading.Thread(target=self._add_new_files, args=(), daemon=True).start()
 
         logging.info('--- WATCH FOLDER CONTENTS CHANGED: ' + self.path + ' ---')
 
-    def __check_and_add_files_in_folder(self):
-        # Gets list of files in the folder's directory
-        # and checks if there are any new files.
-        files_in_folder = os.listdir(self.__folder_path)
-        self.__add_new_files(files_in_folder)
-
-    def __add_new_files(self, files_in_folder):
-        # Checks if there are any new files in our list of known files.
-        for file in files_in_folder:
-            if file not in self.__files_in_folder_list:
-                file_path = os.path.join(self.__folder_path, file)
+    def _add_new_files(self):
+        for file in os.listdir(self._folder_path):
+            if file not in self._files_found_in_folder:
+                file_path = os.path.join(self._folder_path, file)
                 file_size = os.path.getsize(file_path)
 
                 time.sleep(1)
 
-                self.__wait_for_file_size_changing(file_path, file_size)
-                self.__add_new_file_to_instance(file, file_path)
+                self._wait_on_file_size_changing(file_path, file_size)
+                self._add_new_file_to_instance(file, file_path)
 
     @staticmethod
-    def __wait_for_file_size_changing(file_path, file_size):
-        # Wait until the file is done copying
+    def _wait_on_file_size_changing(file_path, file_size):
         while file_size != os.path.getsize(file_path):
             file_size = os.path.getsize(file_path)
 
             time.sleep(1)
 
-    def __add_new_file_to_instance(self, file, file_path):
-        self.__files_in_folder_list.append(file)
-        self.__watch_folder_queue.put(file_path)
+    def _add_new_file_to_instance(self, file, file_path):
+        self._files_found_in_folder.append(file)
+        self._watch_folder_queue.put(file_path)
 
-    def __check_for_deleted_files(self, event):  # Unused parameter needed
-        # When a file is removed from the folder's directory,
-        # remove it from our list of known files.
-        for file in self.__files_in_folder_list:
-            file_path = os.path.join(self.__folder_path, file)
+    def _remove_deleted_files(self, event):  # Unused parameter needed
+        for file in self._files_found_in_folder:
+            file_path = os.path.join(self._folder_path, file)
             if not os.path.exists(file_path):
-                self.__files_in_folder_list.remove(file)
+                self._files_found_in_folder.remove(file)
 
                 logging.info('--- WATCH FOLDER FILE REMOVED: ' + file_path + ' ---')
