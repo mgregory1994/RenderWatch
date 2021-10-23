@@ -122,3 +122,10 @@ def _get_megabytes_from_bytes(bytes_value):
 def _get_kilobytes_from_bytes(bytes_value):
     kilobytes = round(bytes_value / KILOBYTE_IN_BYTES, 1)
     return str(kilobytes) + 'KB'
+
+
+def convert_kilobytes_to_bytes(kilobytes):
+    """
+    Converts kilobytes to bytes.
+    """
+    return kilobytes * KILOBYTE_IN_BYTES
