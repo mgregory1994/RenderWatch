@@ -20,6 +20,7 @@ import subprocess
 import logging
 
 from render_watch.app_formatting import format_converter
+from render_watch.helpers import ffmpeg_helper
 from render_watch.ffmpeg.trim_settings import TrimSettings
 from render_watch.startup import GLib
 
@@ -88,7 +89,7 @@ def _set_benchmark_widgets_start_state(settings_sidebar_handlers):
 
 
 def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_duration):
-    ffmpeg_args = _get_benchmark_ffmpeg_settings_args(ffmpeg)
+    ffmpeg_args = ffmpeg_helper.get_parsed_ffmpeg_args(ffmpeg)
     speed_value = None
     file_size_value = None
 
@@ -153,17 +154,6 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
             else:
                 logging.error('--- BENCHMARK PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
     return process_return_code == 0
-
-
-def _get_benchmark_ffmpeg_settings_args(ffmpeg):
-    ffmpeg_args = [ffmpeg.get_args()]
-
-    if '&&' in ffmpeg_args[0]:
-        first_pass_args = ffmpeg_args[0][:ffmpeg_args[0].index('&&')]
-        second_pass_args = ffmpeg_args[0][(ffmpeg_args[0].index('&&') + 1):]
-        ffmpeg_args = first_pass_args, second_pass_args
-
-    return ffmpeg_args
 
 
 # Replace code below with regex
