@@ -83,7 +83,7 @@ class InputInformation:
 
         InputInformation._set_file_size_item(ffmpeg)
         InputInformation._set_processed_streams(ffmpeg, input_information)
-        InputInformation._set_non_critical_ffmpeg_information(ffmpeg)
+        InputInformation._set_non_critical_input_information(ffmpeg)
 
         logging.info('--- INPUT FILE INFO ---\n' + str(ffmpeg.input_file_info))
         return InputInformation._is_information_valid(ffmpeg)
@@ -248,7 +248,7 @@ class InputInformation:
         ffmpeg.input_file_info['audio_streams'] = input_information.audio_streams
 
     @staticmethod
-    def _set_non_critical_ffmpeg_information(ffmpeg):
+    def _set_non_critical_input_information(ffmpeg):
         if ffmpeg.codec_video_origin is None:
             ffmpeg.codec_video_origin = 'N/A'
 
