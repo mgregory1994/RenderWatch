@@ -17,7 +17,9 @@
 
 
 class Aac:
-    """Manages all settings for the AAC codec."""
+    """
+    Stores all settings for the AAC codec.
+    """
 
     CHANNELS_UI_LIST = ('auto', '1', '2', '2.1', '4', '5.1', '7.1')
     CHANNELS_ARGS_LIST = ('auto', '1', '2', '3', '4', '6', '8')
@@ -35,21 +37,27 @@ class Aac:
 
     @property
     def bitrate(self):
-        """Returns bitrate argument as an int."""
+        """
+        Returns bitrate as an int.
+        """
         bitrate_arg = self.ffmpeg_args['-b:a']
         return int(bitrate_arg.split('k')[0])
 
     @bitrate.setter
-    def bitrate(self, bitrate_value):
-        """Stores bitrate value as a string argument."""
-        if bitrate_value is None or bitrate_value < 64 or bitrate_value > 999:
+    def bitrate(self, bitrate):
+        """
+        Stores bitrate as a string.
+        """
+        if bitrate is None or bitrate < 64 or bitrate > 999:
             self.ffmpeg_args['-b:a'] = '128k'
         else:
-            self.ffmpeg_args['-b:a'] = str(bitrate_value) + 'k'
+            self.ffmpeg_args['-b:a'] = str(bitrate) + 'k'
 
     @property
     def channels(self):
-        """Returns channels argument as an index."""
+        """
+        Returns channels as an index.
+        """
         if '-ac' in self.ffmpeg_args:
             channels_arg = self.ffmpeg_args['-ac']
             return self.CHANNELS_ARGS_LIST.index(channels_arg)
@@ -57,7 +65,9 @@ class Aac:
 
     @property
     def channels_str(self):
-        """Returns channels argument as a UI string."""
+        """
+        Returns channels as a string.
+        """
         channels_index = self.channels
         if channels_index:
             return self.CHANNELS_UI_LIST[channels_index]
@@ -65,7 +75,9 @@ class Aac:
 
     @channels.setter
     def channels(self, channels_index):
-        """Stores index as a channels argument."""
+        """
+        Stores channels index as a string.
+        """
         if channels_index is None or not 0 < channels_index < Aac.CHANNELS_LIST_LENGTH:
             self.ffmpeg_args.pop('-ac', 0)
         else:
