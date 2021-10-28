@@ -17,37 +17,47 @@
 
 
 class TrimSettings:
-    """Manages all trim ffmpeg settings."""
+    """
+    Stores all trim settings.
+    """
 
     def __init__(self):
         self.ffmpeg_args = {}
 
     @property
     def start_time(self):
-        """Returns start time argument as a float."""
+        """
+        Returns start time as a float.
+        """
         if '-ss' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-ss'])
         return None
 
     @start_time.setter
-    def start_time(self, start_time_value):
-        """Stores start time value as a string argument."""
-        if start_time_value is None or start_time_value < 0:
+    def start_time(self, start_time):
+        """
+        Stores start time as a string.
+        """
+        if start_time is None or start_time < 0:
             self.ffmpeg_args.pop('-ss', 0)
         else:
-            self.ffmpeg_args['-ss'] = str(start_time_value)
+            self.ffmpeg_args['-ss'] = str(start_time)
 
     @property
     def trim_duration(self):
-        """Returns trim duration argument as a float."""
+        """
+        Returns trim duration as a float.
+        """
         if '-to' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-to'])
         return None
 
     @trim_duration.setter
-    def trim_duration(self, trim_duration_value):
-        """Stores trim duration value as a string argument."""
-        if trim_duration_value is None:
+    def trim_duration(self, trim_duration):
+        """
+        Stores trim duration as a string.
+        """
+        if trim_duration is None:
             self.ffmpeg_args.pop('-to', 0)
         else:
-            self.ffmpeg_args['-to'] = str(trim_duration_value)
+            self.ffmpeg_args['-to'] = str(trim_duration)
