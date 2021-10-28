@@ -18,28 +18,22 @@
 
 class GeneralSettings:
     """
-    Stores all settings for general ffmpeg settings.
+    Stores all settings for general settings.
     """
 
     FRAME_RATE_ARGS_LIST = ('23.98', '24', '25', '29.97', '30', '50', '59.94', '60')
 
     VIDEO_CODEC_MP4_NVENC_UI_LIST = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265')
     VIDEO_CODEC_MP4_UI_LIST = ('copy', 'H264', 'H265')
-
     VIDEO_CODEC_MKV_NVENC_UI_LIST = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265', 'VP9')
     VIDEO_CODEC_MKV_UI_LIST = ('copy', 'H264', 'H265', 'VP9')
-
     VIDEO_CODEC_TS_NVENC_UI_LIST = ('copy', 'H264', 'NVENC H264')
     VIDEO_CODEC_TS_UI_LIST = ('copy', 'H264')
-
     VIDEO_CODEC_WEBM_UI_LIST = ('copy', 'VP9')
 
     AUDIO_CODEC_MP4_UI_LIST = ('copy', 'aac')
-
     AUDIO_CODEC_MKV_UI_LIST = ('copy', 'aac', 'opus')
-
     AUDIO_CODEC_TS_UI_LIST = ('copy', 'aac')
-
     AUDIO_CODEC_WEBM_UI_LIST = ('copy', 'opus')
 
     CONTAINERS_UI_LIST = ('.mp4', '.mkv', '.ts', '.webm')
