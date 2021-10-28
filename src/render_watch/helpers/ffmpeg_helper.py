@@ -31,3 +31,20 @@ def get_parsed_ffmpeg_args(ffmpeg):
         return first_pass_args, second_pass_args
 
     return ffmpeg_args
+
+
+def parse_input_file_name(input_file_path):
+    file_name_splits = input_file_path.split('/')[-1].split('.')[:-1]
+    file_name = ''
+    for name_split in file_name_splits:
+        file_name += name_split
+    return file_name
+
+
+def parse_input_file_extension(input_file_path):
+    try:
+        file_container = input_file_path.split('/')[-1].split('.')[-1]
+    except:
+        return 'N/A'
+    else:
+        return file_container

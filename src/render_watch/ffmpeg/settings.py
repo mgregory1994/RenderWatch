@@ -21,34 +21,40 @@ import logging
 
 from render_watch.ffmpeg.general_settings import GeneralSettings
 from render_watch.ffmpeg.picture_settings import PictureSettings
+from render_watch.helpers import ffmpeg_helper
 from render_watch.helpers.nvidia_helper import NvidiaHelper
 
 
 class Settings:
-    """Manages all ffmpeg settings.
-
-    This includes input file, output file, picture settings, trim settings,
-    video codec settings, and audio codec settings.
+    """
+    Stores all ffmpeg settings.
     """
 
     VALID_INPUT_CONTAINERS = ('mp4', 'mkv', 'm4v', 'avi', 'ts', 'm2ts', 'mpg', 'vob', 'VOB', 'mov', 'webm', 'wmv')
+
     FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-loglevel', 'quiet', '-stats', "-y"]
     FFMPEG_INIT_AUTO_CROP_ARGS = ['ffmpeg', '-hide_banner', '-y']
+    FFMPEG_CONCATENATION_INIT_ARGS = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i']
+
     FFPROBE_ARGS = [
         'ffprobe', '-hide_banner', '-loglevel', 'warning', '-show_entries',
         'stream=codec_name,codec_type,width,height,r_frame_rate,bit_rate,channels,sample_rate,index:format=duration'
     ]
+
     FFPLAY_INIT_ARGS = ['ffplay']
-    FFMPEG_CONCATENATION_INIT_ARGS = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i']
+
     VIDEO_COPY_ARGS = ('-c:v', 'copy')
     AUDIO_COPY_ARGS = ('-c:a', 'copy')
+
     AUDIO_NONE_ARG = '-an'
     VIDEO_NONE_ARG = '-vn'
+
     RAW_VIDEO_ARGS = ('-f', 'rawvideo')
+
     VSYNC_ARGS = ('-vsync', '0')
+
     NVDEC_ARGS = ('-hwaccel', 'nvdec')
-    # NVDEC_OUT_FORMAT_ARGS = ('-hwaccel_output_format', 'cuda')
-    NVDEC_OUT_FORMAT_ARGS = ()
+    NVDEC_OUT_FORMAT_ARGS = ('-hwaccel_output_format', 'cuda')
 
     def __init__(self):
         self.input_file_info = {
@@ -89,42 +95,30 @@ class Settings:
 
     @property
     def input_file(self):
-        """Returns input's absolute file path."""
+        """
+        Returns the input file's absolute path.
+        """
         return self._input_file_path
 
     @input_file.setter
-    def input_file(self, input_file):
-        """Sets input's file path and configures the file name and input container variables."""
-        self._input_file_path = input_file
-        self.filename = self._parse_input_file_name(input_file)
-        self.input_container = self._parse_input_file_extension(input_file)
-
-    @staticmethod
-    def _parse_input_file_name(input_file_path):
-        # Gets the file name from the given file path
-        file_name_splits = input_file_path.split('/')[-1].split('.')[:-1]
-        file_name = ''
-        for name_split in file_name_splits:
-            file_name += name_split
-        return file_name
-
-    @staticmethod
-    def _parse_input_file_extension(input_file_path):
-        # Gets the input's file extension from the given file path.
-        file_container = 'N/A'
-        try:
-            file_container = input_file_path.split('/')[-1].split('.')[-1]
-        finally:
-            return file_container
-
-    def input_folder(self, input_dir):
-        """Sets a folder as the input instead of a file.
-
-        :param input_dir:
-            Input's absolute path.
+    def input_file(self, input_file_path):
         """
-        self._input_file_path = input_dir
-        self.filename = input_dir.split('/')[-1]
+        Sets input file's absolute path and configures the file name and input container.
+
+        :param input_file_path: Input file's absolute path.
+        """
+        self._input_file_path = input_file_path
+        self.filename = ffmpeg_helper.parse_input_file_name(input_file_path)
+        self.input_container = ffmpeg_helper.parse_input_file_extension(input_file_path)
+
+    def input_folder(self, input_folder_path):
+        """
+        Sets a folder as the input file path instead of a file.
+
+        :param input_folder_path: Input folder's absolute path.
+        """
+        self._input_file_path = input_folder_path
+        self.filename = input_folder_path.split('/')[-1]
         self.input_container = 'N/A'
         self._folder_state = True
 
@@ -146,11 +140,11 @@ class Settings:
 
     @picture_settings.setter
     def picture_settings(self, settings):
-        if not settings:
-            logging.error('--- CANNOT SET PICTURE SETTINGS TO NONE ---')
-            raise ValueError()
+        if settings:
+            self._picture_settings = settings
 
-        self._picture_settings = settings
+        logging.error('--- CANNOT SET PICTURE SETTINGS TO NONE ---')
+        raise ValueError()
 
     @property
     def general_settings(self):
@@ -158,18 +152,17 @@ class Settings:
 
     @general_settings.setter
     def general_settings(self, settings):
-        if not settings:
-            logging.error('--- CANNOT SET GENERAL SETTINGS TO NONE ---')
-            raise ValueError()
+        if settings:
+            self._general_settings = settings
 
-        self._general_settings = settings
+        logging.error('--- CANNOT SET GENERAL SETTINGS TO NONE ---')
+        raise ValueError()
 
     @property
     def output_container(self):
-        if self._output_container is None:
-            return '.' + self.input_container
-        else:
+        if self._output_container:
             return self._output_container
+        return '.' + self.input_container
 
     @output_container.setter
     def output_container(self, container):
@@ -268,10 +261,11 @@ class Settings:
         self.input_file_info['sample_rate'] = value
 
     def get_args(self, cmd_args_enabled=False):
-        """Returns ffmpeg arguments with all settings applied.
+        """
+        Returns ffmpeg arguments for all settings applied.
 
-        :param cmd_args_enabled:
-            (Default False) Generates arguments that can be directly copy/pasted into a terminal.
+        :param cmd_args_enabled: (Default False) Generates arguments formatted to be
+        directly copy/pasted into a terminal.
         """
         ffmpeg_args = self.FFMPEG_INIT_ARGS.copy()
 
@@ -290,7 +284,6 @@ class Settings:
         return ffmpeg_args
 
     def _apply_map_args(self, ffmpeg_args):
-        # Applies the ffmpeg "-map" option.
         if self.video_stream_index is not None:
             ffmpeg_args.append('-map')
             ffmpeg_args.append('0:' + str(self.video_stream_index))
@@ -300,20 +293,18 @@ class Settings:
             ffmpeg_args.append('0:' + str(self.audio_stream_index))
 
     def _apply_trim_start_args(self, ffmpeg_args):
-        # Applies the ffmpeg "-ss" option.
         if self.trim_settings is not None:
             ffmpeg_args.append('-ss')
             ffmpeg_args.append(self.trim_settings.ffmpeg_args['-ss'])
 
     def _apply_nvdec_args(self, ffmpeg_args):
-        # Applies the NVDEC options.
         if self.is_video_settings_nvenc() and NvidiaHelper.is_nvdec_supported():
             ffmpeg_args.extend(self.NVDEC_ARGS)
+
             if self.picture_settings.crop is None:
                 ffmpeg_args.extend(self.NVDEC_OUT_FORMAT_ARGS)
 
     def _apply_input_file_args(self, ffmpeg_args, cmd_args_enabled):
-        # Applies the ffmpeg "-i" option.
         ffmpeg_args.append('-i')
 
         input_file_path = self.input_file
@@ -322,8 +313,7 @@ class Settings:
         ffmpeg_args.append(input_file_path)
 
     def _apply_video_settings_args(self, ffmpeg_args):
-        # Applies the video codec's ffmpeg settings
-        if self.video_settings is not None:
+        if self.video_settings:
             ffmpeg_args.extend(self._generate_video_settings_args())
             ffmpeg_args.extend(self._generate_advanced_video_settings_args())
         elif self.no_video:
@@ -348,7 +338,6 @@ class Settings:
         return args
 
     def _apply_audio_settings_args(self, ffmpeg_args):
-        # Applies the audio codec's ffmpeg options
         if self.audio_settings is not None and not self.is_video_settings_2_pass():
             ffmpeg_args.extend(self._generate_audio_settings_args())
         elif self.no_audio or self.is_video_settings_2_pass():
@@ -365,12 +354,15 @@ class Settings:
         return args
 
     def _apply_picture_settings_args(self, ffmpeg_args):
-        # Applies all ffmpeg picture options.
-        if self.video_settings is not None and not self.no_video:
+        if self.no_video:
+            return
+
+        if self.video_settings:
             ffmpeg_args.extend(self._generate_picture_settings_args())
 
     def _generate_picture_settings_args(self):
         args = []
+
         if self.is_video_settings_nvenc() and NvidiaHelper.is_npp_supported() and self.picture_settings.crop is None:
             args.extend(self.picture_settings.get_scale_nvenc_args())
         else:
@@ -378,12 +370,14 @@ class Settings:
                 if arg is not None:
                     args.append(setting)
                     args.append(arg)
+
         return args
 
     def _apply_general_settings_args(self, ffmpeg_args):
-        # Applies all general ffmpeg options for container settings and frame rate settings.
-        if not self.no_video:
-            ffmpeg_args.extend(self._generate_general_settings_args())
+        if self.no_video:
+            return
+
+        ffmpeg_args.extend(self._generate_general_settings_args())
 
     def _generate_general_settings_args(self):
         args = []
@@ -394,13 +388,11 @@ class Settings:
         return args
 
     def _apply_trim_settings_args(self, ffmpeg_args):
-        # Applies the trim relates ffmpeg options.
-        if self.trim_settings is not None:
+        if self.trim_settings:
             ffmpeg_args.append('-to')
             ffmpeg_args.append(self.trim_settings.ffmpeg_args['-to'])
 
     def _apply_output_file_args(self, ffmpeg_args, cmd_args_enabled):
-        # Applies the ffmpeg options for setting the output file.
         if self.video_chunk:
             for arg in self.VSYNC_ARGS:
                 ffmpeg_args.append(arg)
@@ -409,15 +401,17 @@ class Settings:
             output_file_path = self.output_directory
         else:
             output_file_path = self.output_directory + self.filename + self.output_container
+
         if cmd_args_enabled:
             output_file_path = '\"' + output_file_path + '\"'
+
         ffmpeg_args.append(output_file_path)
 
     def _apply_2pass_args(self, ffmpeg_args):
-        # Applies the 2nd pass ffmpeg arguments.
         if self.is_video_settings_2_pass():
             ffmpeg_copy = self.get_copy()
             ffmpeg_copy.video_settings.encode_pass = 2
+
             ffmpeg_args.append('&&')
             ffmpeg_args.extend(ffmpeg_copy.get_args())
 
@@ -431,16 +425,19 @@ class Settings:
         return self.video_settings is not None and self.video_settings.codec_name == 'libvpx-vp9'
 
     def is_video_settings_nvenc(self):
-        return self.video_settings is not None and not self.no_video and 'nvenc' in self.video_settings.codec_name
+        video_enabled = not self.no_video
+        is_using_nvenc = self.video_settings and 'nvenc' in self.video_settings.codec_name
+        return video_enabled and is_using_nvenc
 
     def is_video_settings_2_pass(self):
-        if self.video_settings is not None:
-            if self.video_settings.encode_pass is not None and self.video_settings.encode_pass == 1:
-                return True
+        if self.video_settings:
+            return self.video_settings.encode_pass == 1
         return False
 
     def get_copy(self):
-        """Get separate copy of this ffmpeg settings object."""
+        """
+        Get separate copy of this ffmpeg settings object.
+        """
         ffmpeg_copy = Settings()
 
         try:
@@ -456,12 +453,16 @@ class Settings:
             ffmpeg_copy.no_video = self.no_video
             ffmpeg_copy.no_audio = self.no_audio
             ffmpeg_copy.video_chunk = self.video_chunk
+
             if self.is_output_container_set():
                 ffmpeg_copy.output_container = self.output_container
+
             if self.video_settings is not None:
                 ffmpeg_copy.video_settings = copy.deepcopy(self.video_settings)
+
             if self.audio_settings is not None:
                 ffmpeg_copy.audio_settings = copy.deepcopy(self.audio_settings)
+                
             if self.trim_settings is not None:
                 ffmpeg_copy.trim_settings = copy.deepcopy(self.trim_settings)
         except:
