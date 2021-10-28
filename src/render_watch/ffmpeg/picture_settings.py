@@ -17,9 +17,8 @@
 
 
 class PictureSettings:
-    """Manages all ffmpeg picture settings.
-
-    This includes crop and scale.
+    """
+    Stores all picture settings.
     """
 
     def __init__(self):
@@ -28,7 +27,9 @@ class PictureSettings:
 
     @property
     def scale(self):
-        """Returns scale argument as a tuple of ints."""
+        """
+        Returns scale as a tuple of ints.
+        """
         if '-s' in self.ffmpeg_args:
             width, height = self.ffmpeg_args['-s'].split('x')
             return int(width), int(height)
@@ -36,7 +37,9 @@ class PictureSettings:
 
     @scale.setter
     def scale(self, dimensions):
-        """Stores dimensions value tuple as a string argument."""
+        """
+        Stores dimensions tuple as a string.
+        """
         if dimensions is None:
             self.ffmpeg_args.pop('-s', 0)
         else:
@@ -44,7 +47,9 @@ class PictureSettings:
             self.ffmpeg_args['-s'] = str(width) + 'x' + str(height)
 
     def get_scale_nvenc_args(self):
-        """Returns npp scale argument as an arguments list."""
+        """
+        Returns npp scale args as a list.
+        """
         if '-s' in self.ffmpeg_args:
             width, height = self.scale
             nvenc_scale_arg = 'scale_npp=' + str(width) + ':' + str(height)
@@ -53,7 +58,9 @@ class PictureSettings:
 
     @property
     def crop(self):
-        """Returns crop argument as a tuple of ints."""
+        """
+        Returns crop as a tuple of ints.
+        """
         if '-filter:v' in self.ffmpeg_args:
             crop = self.ffmpeg_args['-filter:v']
             width, height, x, y = crop.split('=')[1].split(':')
@@ -62,7 +69,9 @@ class PictureSettings:
 
     @crop.setter
     def crop(self, crop_parameters):
-        """Stores crop parameters tuple as a string argument."""
+        """
+        Stores crop parameters tuple as a string.
+        """
         if crop_parameters is None:
             self.ffmpeg_args.pop('-filter:v', 0)
         else:
