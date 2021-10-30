@@ -22,11 +22,14 @@ from urllib.parse import unquote, urlparse
 
 from render_watch.helpers import directory_helper
 
+
 TARGET_TYPE_URI_LIST = 80
 
 
 class DragAndDropSignal:
-    """Handles the signal emitted when a user drags files over the inputs listbox."""
+    """
+    Handles the signal emitted when a user drags files over the inputs page.
+    """
 
     def __init__(self, main_window_handlers):
         self.main_window_handlers = main_window_handlers
@@ -40,19 +43,34 @@ class DragAndDropSignal:
                                           data,
                                           target_type,
                                           timestamp):
-        """Takes valid files or folders and adds them to the inputs page."""
+        """
+        Takes valid files or folders and adds them to the inputs page.
+
+        :param inputs_page_listbox: Gtk.ListboxRow from the inputs page.
+        :param drag_context: Signal drag context.
+        :param x: X coordinate of dragged content.
+        :param y: Y coordinate of dragged content.
+        :param data: Signal data.
+        :param target_type: Signal target type.
+        :param timestamp: Signal timestamp
+        """
         if target_type == TARGET_TYPE_URI_LIST:
             inputs = []
+
             inputs_uri = data.get_data().decode()
             for file_path_uri in inputs_uri.split():
-                input_path = unquote(urlparse(file_path_uri).path)
-                if self.main_window_handlers.is_file_inputs_enabled():
-                    if os.path.isfile(input_path):
-                        inputs.append(input_path)
-                    else:
-                        inputs.extend(directory_helper.get_files_in_directory(input_path, recursive=True))
-                else:
-                    if os.path.isdir(input_path):
-                        inputs.append(input_path)
+                input_file_path = unquote(urlparse(file_path_uri).path)
+                self._parse_input(input_file_path, inputs)
+
             if inputs:
                 self.main_window_handlers.on_add_button_clicked(self.main_window_handlers.add_button, inputs=inputs)
+
+    def _parse_input(self, input_file_path, inputs):
+        if self.main_window_handlers.is_file_inputs_enabled():
+            if os.path.isfile(input_file_path):
+                inputs.append(input_file_path)
+            else:
+                inputs.extend(directory_helper.get_files_in_directory(input_file_path, recursive=True))
+        else:
+            if os.path.isdir(input_file_path):
+                inputs.append(input_file_path)

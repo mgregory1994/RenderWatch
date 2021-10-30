@@ -22,7 +22,9 @@ from render_watch.startup import GLib
 
 
 class SelectRowSignal:
-    """Handles the signal emitted when an inputs row becomes selected."""
+    """
+    Handles the signal emitted when an input becomes selected.
+    """
 
     def __init__(self, inputs_page_handlers, settings_sidebar_handlers, main_window_handlers):
         self.inputs_page_handlers = inputs_page_handlers
@@ -30,25 +32,32 @@ class SelectRowSignal:
         self.main_window_handlers = main_window_handlers
 
     def on_inputs_list_row_selected(self, inputs_page_listbox, inputs_row):  # Unused parameters needed for this signal
-        """When selected, allows for accessing the settings sidebar.
-        When deselected, removes accessibility of the settings sidebar unless apply to all is enabled.
+        """
+        When selected, allows for accessing the settings sidebar.
+        When deselected, removes accessibility of the settings sidebar unless the "apply to all" setting is enabled.
 
-        :param inputs_page_listbox:
-            Gtk.Listbox holding the inputs rows.
-        :param inputs_row:
-            Gtk.Listboxrow that's being selected/deselected.
+        :param inputs_page_listbox: Gtk.Listbox containing the input.
+        :param inputs_row: Gtk.ListboxRow that's being selected/deselected.
         """
         if inputs_row:
-            self.inputs_page_handlers.set_input_settings_state(True)
-            self.settings_sidebar_handlers.set_extra_settings_state(not inputs_row.ffmpeg.folder_state)
-            threading.Thread(target=self._update_settings_sidebar, args=()).start()
+            self._set_selected_row_state(inputs_row)
         else:
-            self.settings_sidebar_handlers.set_extra_settings_state(False)
-            if self.inputs_page_handlers.is_apply_all_selected():
-                return
-            self.inputs_page_handlers.set_input_settings_state(False)
-            self.main_window_handlers.show_settings_sidebar(False)
+            self._set_deselected_row_state()
+
+    def _set_selected_row_state(self, inputs_row):
+        self.inputs_page_handlers.set_input_settings_state(True)
+
+        self.settings_sidebar_handlers.set_extra_settings_state(not inputs_row.ffmpeg.folder_state)
+        threading.Thread(target=self._update_settings_sidebar, args=()).start()
+
+    def _set_deselected_row_state(self):
+        self.settings_sidebar_handlers.set_extra_settings_state(False)
+
+        if self.inputs_page_handlers.is_apply_all_selected():
+            return
+
+        self.inputs_page_handlers.set_input_settings_state(False)
+        self.main_window_handlers.show_settings_sidebar(False)
 
     def _update_settings_sidebar(self):
-        # Sets the settings sidebar widgets to match the selected inputs row's settings.
         GLib.idle_add(self.settings_sidebar_handlers.set_settings)

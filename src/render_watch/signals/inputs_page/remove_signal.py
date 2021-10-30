@@ -17,7 +17,9 @@
 
 
 class RemoveSignal:
-    """Handles the signal emitted from the remove button on an input's row."""
+    """
+    Handles the signal emitted by the remove button from an input task.
+    """
 
     def __init__(self, inputs_page_handlers, active_page_handlers, main_window_handlers):
         self.inputs_page_handlers = inputs_page_handlers
@@ -25,15 +27,15 @@ class RemoveSignal:
         self.main_window_handlers = main_window_handlers
 
     def on_inputs_list_remove(self, inputs_page_listbox, inputs_row):  # Unused parameters needed for this signal
-        """Sets the inputs page's options menu if there are no inputs
-        and switches to the active page if there's any tasks running.
-
-        :param inputs_page_listbox:
-            Gtk.Listbox that lost a row.
-        :param inputs_row:
-            Gtk.Listboxrow that's being removed.
         """
-        if not self.inputs_page_handlers.get_rows():
+        Updates the inputs page's options menu if there are no inputs and switches to the active page if there's any
+        tasks running.
+
+        :param inputs_page_listbox: Gtk.Listbox that lost a row.
+        :param inputs_row: Gtk.Listboxrow that's being removed.
+        """
+        if self.inputs_page_handlers.get_rows() is None:
             self.inputs_page_handlers.set_remove_all_state()
+
             if self.active_page_handlers.get_rows():
                 self.main_window_handlers.switch_to_active_page()

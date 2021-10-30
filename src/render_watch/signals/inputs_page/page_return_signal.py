@@ -22,8 +22,8 @@ from render_watch.startup import GLib
 
 
 class PageReturnSignal:
-    """Handles the signal emitted when the user returns to the inputs page from either the
-    crop page, trim page, or preview page.
+    """
+    Handles the signal emitted when the user returns to the inputs page from one of the extra settings pages.
     """
 
     def __init__(self, inputs_page_handlers, trim_page_handlers, crop_page_handlers, preview_page_handlers):
@@ -32,16 +32,20 @@ class PageReturnSignal:
         self.crop_page_handlers = crop_page_handlers
         self.preview_page_handlers = preview_page_handlers
 
-    def on_return_to_inputs_button_clicked(self, return_to_inputs_button):  # Unused parameters needed for this signal
-        """Shows the inputs page and resets the other option pages."""
+    # Unused parameters needed for this signal
+    def on_return_to_inputs_list_button_clicked(self, return_to_inputs_list_button):
+        """
+        Shows the inputs page and resets the extra settings pages.
+        """
         self.inputs_page_handlers.set_inputs_state()
+
         self.trim_page_handlers.reset_trim_page()
         self.crop_page_handlers.reset_crop_page()
         self.preview_page_handlers.reset_preview_page()
+
         threading.Thread(target=self._update_selected_row, args=()).start()
 
     def _update_selected_row(self):
-        # Updates the row's information.
         row = self.inputs_page_handlers.get_selected_row()
         GLib.idle_add(row.setup_labels)
         row.setup_preview_thumbnail()
