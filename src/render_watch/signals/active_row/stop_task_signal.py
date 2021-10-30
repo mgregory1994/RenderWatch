@@ -16,18 +16,21 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PauseSignal:
-    """Handles the signal emitted from the active row's pause widget."""
+import threading
+
+
+class StopTaskSignal:
+    """
+    Handles the signal emitted from the active row's stop button.
+    """
 
     def __init__(self, active_row):
         self.active_row = active_row
 
-    def on_pause_button_clicked(self, pause_button):  # Unused parameters needed for this signal
-        """Pauses this task.
-
-        :param pause_button:
-            Button that emitted the signal.
+    def on_stop_button_clicked(self, active_listbox_row_stop_button):  # Unused parameters needed for this signal
         """
-        self.active_row.paused = True
-        self.active_row.task_threading_event.clear()
-        self.active_row.set_paused_state()
+        Stops this task and removes it from the active page.
+
+        :param active_listbox_row_stop_button: Button that emitted the signal.
+        """
+        threading.Thread(target=self.active_row.stop_and_remove_row, args=()).start()

@@ -16,17 +16,19 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class StartSignal:
-    """Handles the signal emitted from the active row's start widget."""
+class ResumeTaskSignal:
+    """
+    Handles the signal emitted from the active row's start button.
+    """
 
     def __init__(self, active_row):
         self.active_row = active_row
 
-    def on_start_button_clicked(self, start_button):  # Unused parameters needed for this signal
-        """Starts this task.
+    def on_start_button_clicked(self, active_listbox_row_start_button):  # Unused parameters needed for this signal
+        """
+        Resumes this task on the active page.
 
-        :param start_button:
-            Button that emitted the signal.
+        :param active_listbox_row_start_button: Button that emitted the signal.
         """
         self.active_row.paused = False
         self.active_row.task_threading_event.set()
