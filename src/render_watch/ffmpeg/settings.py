@@ -462,7 +462,7 @@ class Settings:
 
             if self.audio_settings is not None:
                 ffmpeg_copy.audio_settings = copy.deepcopy(self.audio_settings)
-                
+
             if self.trim_settings is not None:
                 ffmpeg_copy.trim_settings = copy.deepcopy(self.trim_settings)
         except:
