@@ -17,17 +17,19 @@
 
 
 class AacChannelsSignal:
-    """Handles the signals emitted from the AAC channels widget."""
+    """
+    Handles the signals emitted from the AAC channels widget.
+    """
 
     def __init__(self, aac_handlers, inputs_page_handlers):
         self.aac_handlers = aac_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
     def on_aac_channels_combobox_changed(self, channels_combobox):
-        """Updates all selected rows on the inputs page with the new audio channels option.
+        """
+        Updates all selected rows on the inputs page with the new audio channels option.
 
-        :param channels_combobox:
-            Combobox that emitted the signal.
+        :param channels_combobox: Combobox that emitted the signal.
         """
         if self.aac_handlers.is_widgets_setting_up:
             return
@@ -36,4 +38,5 @@ class AacChannelsSignal:
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.audio_settings.channels = channels_index
+
             row.setup_labels()
