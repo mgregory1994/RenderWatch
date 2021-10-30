@@ -16,20 +16,21 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class ResumeAllSignal:
-    """Handles the signal emitted from the resume all button on the active page's options menu."""
+class PreviewEncodeSignal:
+    """
+    Handles the signal emitted from the preview encode switch on the active page's options menu.
+    """
 
-    def __init__(self, active_page_handlers, main_window_handlers):
+    def __init__(self, active_page_handlers):
         self.active_page_handlers = active_page_handlers
-        self.main_window_handlers = main_window_handlers
 
-    def on_resume_all_proc_button_clicked(self, resume_all_tasks_button):  # Unused parameters needed for this signal
-        """Resumes all tasks on the active page.
-
-        :param resume_all_tasks_button:
-            Button that emitted the signal.
+    # Unused parameters needed for this signal
+    def on_preview_encode_switch_state_set(self, preview_encode_switch, user_data):
         """
-        self.main_window_handlers.popdown_app_preferences_popover()
+        Toggles the encode preview for all tasks on the active page.
 
+        :param preview_encode_switch: Switch button that's emitting the signal.
+        :param user_data: Unused parameter.
+        """
         for row in self.active_page_handlers.get_rows():
-            row.on_start_button_clicked(None)
+            row.live_thumbnail = preview_encode_switch.get_active()

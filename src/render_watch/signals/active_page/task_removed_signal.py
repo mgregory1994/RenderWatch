@@ -19,22 +19,26 @@
 from render_watch.app_handlers.completed_row import CompletedRow
 
 
-class RemoveRowSignal:
+class TaskRemovedSignal:
+    """
+    Handles the signal emitted when a task is removed from the active page.
+    """
+
     def __init__(self, active_page_handlers, completed_page_handlers, preferences):
         self.active_page_handlers = active_page_handlers
         self.completed_page_handlers = completed_page_handlers
         self.preferences = preferences
 
     def on_active_list_remove(self, active_page_listbox, active_page_listbox_row):
-        """Moves task to the completed page and updates the active page.
+        """
+        Moves task to the completed page and updates the active page.
 
-        :param active_page_listbox:
-            Gtk.Listbox that's losing a row.
-        :param active_page_listbox_row:
-            Gtk.Listboxrow that's being removed.
+        :param active_page_listbox: Gtk.Listbox that's losing a row.
+        :param active_page_listbox_row: Gtk.Listboxrow that's being removed.
         """
         self._add_row_to_completed_page(active_page_listbox_row)
-        if not active_page_listbox.get_children():
+
+        if active_page_listbox.get_children() is None:
             self.active_page_handlers.set_page_options_state(False)
 
     def _add_row_to_completed_page(self, active_row):

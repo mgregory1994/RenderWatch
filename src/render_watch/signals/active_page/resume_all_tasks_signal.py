@@ -16,20 +16,22 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class LiveThumbnailsSignal:
-    """Handles the signals emitted from the live thumbnails switch on the active page's options menu."""
+class ResumeAllTasksSignal:
+    """
+    Handles the signal emitted from the resume all tasks button on the active page's options menu.
+    """
 
-    def __init__(self, active_page_handlers):
+    def __init__(self, active_page_handlers, main_window_handlers):
         self.active_page_handlers = active_page_handlers
+        self.main_window_handlers = main_window_handlers
 
-    # Unused parameters needed for this signal
-    def on_live_thumbnails_switch_state_set(self, live_thumbnails_switch, user_data):
-        """Toggles the live preview for all Gtk.Listboxrow items on the active page.
-
-        :param live_thumbnails_switch:
-            Switch button that's emitting the signal.
-        :param user_data:
-            Unused parameter.
+    def on_resume_all_tasks_button_clicked(self, resume_all_tasks_button):  # Unused parameters needed for this signal
         """
+        Resumes all tasks on the active page.
+
+        :param resume_all_tasks_button: Button that emitted the signal.
+        """
+        self.main_window_handlers.popdown_app_preferences_popover()
+
         for row in self.active_page_handlers.get_rows():
-            row.live_thumbnail = live_thumbnails_switch.get_active()
+            row.on_start_button_clicked(None)

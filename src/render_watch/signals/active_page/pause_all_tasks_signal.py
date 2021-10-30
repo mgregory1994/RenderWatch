@@ -16,18 +16,20 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PauseAllSignal:
-    """Handles the signals emitted from the active page's pause all button in the options menu."""
+class PauseAllTasksSignal:
+    """
+    Handles the signal emitted by the pause all tasks button on the active page's options menu.
+    """
 
     def __init__(self, active_page_handlers, main_window_handlers):
         self.active_page_handlers = active_page_handlers
         self.main_window_handlers = main_window_handlers
 
-    def on_pause_all_proc_button_clicked(self, pause_all_tasks_button):  # Unused parameters needed for this signal
-        """Pauses all tasks on the active page.
+    def on_pause_all_tasks_button_clicked(self, pause_all_tasks_button):  # Unused parameters needed for this signal
+        """
+        Pauses all tasks on the active page.
 
-        :param pause_all_tasks_button:
-            Button that emitted the signal.
+        :param pause_all_tasks_button: Button that emitted the signal.
         """
         self.main_window_handlers.popdown_app_preferences_popover()
 

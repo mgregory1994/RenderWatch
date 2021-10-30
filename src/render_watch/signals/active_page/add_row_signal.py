@@ -17,18 +17,20 @@
 
 
 class AddRowSignal:
-    """Handles the signal emitted from adding a Gtk.Listboxrow to the active page's Gtk.Listbox."""
+    """
+    Handles the signal emitted from adding a task to the active page.
+    """
 
     def __init__(self, active_page_handlers):
         self.active_page_handlers = active_page_handlers
 
     def on_active_list_add(self, active_page_listbox, active_row):  # Unused parameters needed for this signal
-        """Configures the new active page Gtk.Listboxrow and updates the active page's options menu.
+        """
+        Configures the new task's active row and updates the active page's options menu.
 
-        :param active_page_listbox:
-            Gtk.Listbox that's being added to.
-        :param active_row:
-            Gtk.Listboxrow being added.
+        :param active_page_listbox: Gtk.Listbox that's being added to.
+        :param active_row: Gtk.Listboxrow being added.
         """
         active_row.live_thumbnail = self.active_page_handlers.is_live_thumbnails_enabled()
+
         self.active_page_handlers.set_page_options_state(True)
