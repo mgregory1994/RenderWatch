@@ -16,7 +16,7 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class AddRowSignal:
+class AddTaskSignal:
     """
     Handles the signal emitted from adding a task to the active page.
     """

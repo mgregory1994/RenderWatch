@@ -17,20 +17,21 @@
 
 
 class RemoveTaskSignal:
-    """Handles the signal emitted from remove button on a completed page's listbox row."""
+    """
+    Handles the signal emitted from remove button on a completed task.
+    """
 
     def __init__(self, completed_page_handlers):
         self.completed_page_handlers = completed_page_handlers
 
     def on_completed_list_remove(self, completed_page_listbox, completed_page_listbox_row):
-        """Updates the completed page's menu options when a row is removed.
-
-        :param completed_page_listbox:
-            Gtk.Listbox that's losing a listbox row.
-        :param completed_page_listbox_row:
-            Gtk.Listboxrow that's being removed.
         """
-        if not completed_page_listbox.get_children():
+        Updates the completed page's menu options when a row is removed.
+
+        :param completed_page_listbox: Gtk.Listbox that's losing a listbox row.
+        :param completed_page_listbox_row: Gtk.Listboxrow that's being removed.
+        """
+        if completed_page_listbox.get_children() is None:
             self.completed_page_handlers.set_clear_all_state(False)
 
         completed_page_listbox_row.destroy()

@@ -17,17 +17,18 @@
 
 
 class AddTaskSignal:
-    """Handles the signal emitted from the completed page's Gtk.Listbox when a row is added."""
+    """
+    Handles the signal emitted when a completed task is added to the completed page.
+    """
 
     def __init__(self, completed_page_handlers):
         self.completed_page_handlers = completed_page_handlers
 
-    def on_completed_list_add(self, completed_page_listbox, row):  # Unused parameters needed for this signal
-        """Updates the completed page's options menu when a new row is added.
+    def on_completed_list_add(self, completed_page_listbox, completed_row):  # Unused parameters needed for this signal
+        """
+        Updates the completed page's options menu when a new row is added.
 
-        :param completed_page_listbox:
-            Gtk.Listbox that was added to.
-        :param row:
-            Gtk.Listboxrow that was added.
+        :param completed_page_listbox: Gtk.Listbox that a completed row was added to.
+        :param completed_row: Gtk.Listboxrow that was added.
         """
         self.completed_page_handlers.set_clear_all_state(True)
