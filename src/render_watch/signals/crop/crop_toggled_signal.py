@@ -19,21 +19,25 @@
 import threading
 
 
-class CropSignal:
-    """Handles the signal emitted when the crop settings are enabled."""
+class CropToggledSignal:
+    """
+    Handles the signal emitted when crop settings are toggled.
+    """
 
     def __init__(self, crop_page_handlers):
         self.crop_page_handlers = crop_page_handlers
 
-    def on_crop_enabled_button_toggled(self, crop_enabled_checkbox):
-        """Updates the crop page's widgets, applies the crop settings, and updates the crop preview.
-
-        :param crop_enabled_checkbox:
-            Checkbox that emitted the signal.
+    def on_crop_enabled_checkbutton_toggled(self, crop_enabled_checkbutton):
         """
-        self.crop_page_handlers.set_crop_state(crop_enabled_checkbox.get_active())
+        Applies crop settings, updates the crop page's widgets, and updates the crop preview.
+
+        :param crop_enabled_checkbutton: Checkbutton that emitted the signal.
+        """
+        self.crop_page_handlers.set_crop_state(crop_enabled_checkbutton.get_active())
+
         if self.crop_page_handlers.is_widgets_setting_up:
             return
 
         self.crop_page_handlers.apply_crop_settings()
+
         threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()
