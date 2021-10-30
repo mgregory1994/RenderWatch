@@ -20,15 +20,17 @@ import threading
 
 
 class StartSignal:
-    """Handles the signal emitted from the start button on an inputs row."""
+    """
+    Handles the signal emitted from the start task button on an input task.
+    """
 
-    def __init__(self, inputs_row):
-        self.inputs_row = inputs_row
+    def __init__(self, input_task):
+        self.input_task = input_task
 
     def on_start_button_clicked(self, start_button):  # Unused parameters needed for this signal
-        """Moves the inputs row to the active page as an active row.
-
-        :param start_button:
-            Button that emitted the signal.
         """
-        threading.Thread(target=self.inputs_row.process_row_input, args=()).start()
+        Moves the input task to the active page as an active task.
+
+        :param start_button: Button that emitted the signal.
+        """
+        threading.Thread(target=self.input_task.process_row_input, args=()).start()

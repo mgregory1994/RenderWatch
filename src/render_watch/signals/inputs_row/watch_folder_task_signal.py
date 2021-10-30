@@ -16,16 +16,18 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class FolderWatchSignal:
-    """Handles the signal emitted when the watch folder option is selected on an inputs row."""
+class WatchFolderTaskSignal:
+    """
+    Handles the signal emitted when the watch folder option is selected on an input task.
+    """
 
-    def __init__(self, inputs_row):
-        self.inputs_row = inputs_row
+    def __init__(self, input_task):
+        self.input_task = input_task
 
-    def on_inputs_folder_watch_radiobutton_toggled(self, folder_watch_radiobutton):
-        """Sets the watch folder option for the ffmpeg settings object.
-
-        :param folder_watch_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_watch_folder_task_radiobutton_toggled(self, watch_folder_task_radiobutton):
         """
-        self.inputs_row.ffmpeg.watch_folder = folder_watch_radiobutton.get_active()
+        Sets the watch folder option for the input task.
+
+        :param watch_folder_task_radiobutton: Radiobutton that emitted the signal.
+        """
+        self.input_task.ffmpeg.watch_folder = watch_folder_task_radiobutton.get_active()

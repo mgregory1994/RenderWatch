@@ -2233,8 +2233,8 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                             <property name="input-purpose">digits</property>
                                                             <property name="adjustment">crop_width_adjustment</property>
                                                             <property name="numeric">True</property>
-                                                            <signal name="activate" handler="on_crop_width_spinbutton_value_changed" swapped="no"/>
-                                                            <signal name="button-release-event" handler="on_crop_width_spinbutton_value_changed" swapped="no"/>
+                                                            <signal name="activate" handler="on_crop_width_spinbutton_activate" swapped="no"/>
+                                                            <signal name="button-release-event" handler="on_crop_width_spinbutton_button_release_event" swapped="no"/>
                                                           </object>
                                                           <packing>
                                                             <property name="expand">False</property>
@@ -2275,8 +2275,8 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                             <property name="input-purpose">digits</property>
                                                             <property name="adjustment">crop_height_adjustment</property>
                                                             <property name="numeric">True</property>
-                                                            <signal name="activate" handler="on_crop_height_spinbutton_value_changed" swapped="no"/>
-                                                            <signal name="button-release-event" handler="on_crop_height_spinbutton_value_changed" swapped="no"/>
+                                                            <signal name="activate" handler="on_crop_height_spinbutton_activate" swapped="no"/>
+                                                            <signal name="button-release-event" handler="on_crop_height_spinbutton_button_release_event" swapped="no"/>
                                                           </object>
                                                           <packing>
                                                             <property name="expand">False</property>

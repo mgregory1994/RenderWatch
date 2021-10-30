@@ -16,16 +16,19 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class FolderRecursiveSignal:
-    """Handles the signal emitted when the recursive folder option is selected on an inputs row."""
+class RemoveTaskSignal:
+    """
+    Handles the signal emitted from the remove task button on an input task.
+    """
 
-    def __init__(self, inputs_row):
-        self.inputs_row = inputs_row
+    def __init__(self, input_task, inputs_page_handlers):
+        self.input_task = input_task
+        self.inputs_page_handlers = inputs_page_handlers
 
-    def on_inputs_folder_recursive_radiobutton_toggled(self, folder_recursive_radiobutton):
-        """Sets the recursive folder option for the ffmpeg settings object.
-
-        :param folder_recursive_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_remove_input_task_button_clicked(self, remove_task_button):  # Unused parameters needed for this signal
         """
-        self.inputs_row.ffmpeg.recursive_folder = folder_recursive_radiobutton.get_active()
+        Removes the task from the inputs page.
+
+        :param remove_task_button: Button that emitted the signal.
+        """
+        self.inputs_page_handlers.remove_row(self.input_task)
