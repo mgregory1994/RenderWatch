@@ -57,7 +57,7 @@ class SelectRowSignal:
             return
 
         self.inputs_page_handlers.set_input_settings_state(False)
-        self.main_window_handlers.show_settings_sidebar(False)
+        self.main_window_handlers.toggle_settings_sidebar(False)
 
     def _update_settings_sidebar(self):
         GLib.idle_add(self.settings_sidebar_handlers.set_settings)

@@ -16,16 +16,18 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PreferencesSignal:
-    """Handles the signal emitted when the preferences option is selected in the options menu."""
+class AboutApplicationSignal:
+    """
+    Handles the signal emitted when the about application button is clicked in the options menu.
+    """
 
     def __init__(self, main_window_handlers):
         self.main_window_handlers = main_window_handlers
 
-    def on_prefs_button_clicked(self, prefs_button):  # Unused parameters needed for this signal
-        """Shows the preferences dialog.
-
-        :param prefs_button:
-            Button that emitted the signal.
+    def on_about_application_button_clicked(self, about_application_button):  # Unused parameters needed for this signal
         """
-        self.main_window_handlers.show_preferences_dialog()
+        Shows the about Render Watch dialog.
+
+        :param about_application_button: Button that emitted the signal.
+        """
+        self.main_window_handlers.show_about_dialog()

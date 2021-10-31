@@ -1296,7 +1296,7 @@
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                     <property name="group">standard_folder_task_radiobutton</property>
-                                    <signal name="toggled" handler="on_inputs_folder_recursive_radiobutton_toggled" swapped="no"/>
+                                    <signal name="toggled" handler="on_recursive_folder_task_radiobutton_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
@@ -1313,7 +1313,7 @@
                                     <property name="halign">start</property>
                                     <property name="draw-indicator">True</property>
                                     <property name="group">standard_folder_task_radiobutton</property>
-                                    <signal name="toggled" handler="on_inputs_folder_watch_radiobutton_toggled" swapped="no"/>
+                                    <signal name="toggled" handler="on_watch_folder_task_radiobutton_toggled" swapped="no"/>
                                   </object>
                                   <packing>
                                     <property name="expand">True</property>
