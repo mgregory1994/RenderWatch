@@ -17,25 +17,29 @@
 
 
 class NvencLevelSignal:
-    """Handles the signal emitted when the NVENC Level option is changed."""
+    """
+    Handles the signal emitted when the NVENC Level option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_level_combobox_changed(self, level_combobox):
-        """Applies the Level option and updates the preview page.
+    def on_nvenc_level_combobox_changed(self, nvenc_level_combobox):
+        """
+        Applies the Level option and updates the preview page.
 
-        :param level_combobox:
-            Combobox that emitted the signal.
+        :param nvenc_level_combobox: Combobox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        level_index = level_combobox.get_active()
+        level_index = nvenc_level_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.level = level_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

@@ -17,25 +17,29 @@
 
 
 class NvencNonRefPFramesSignal:
-    """Handles the signal emitted when the NVENC Non-Ref P-Frames option is changed."""
+    """
+    Handles the signal emitted when the NVENC Non-Ref P-Frames option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_nonref_pframes_checkbox_toggled(self, nonref_pframes_checkbox):
-        """Applies the Non-Ref P-Frames option and updates the preview page.
+    def on_nvenc_nonref_p_frames_checkbutton_toggled(self, nvenc_nonref_p_frames_checkbutton):
+        """
+        Applies the Non-Ref P-Frames option and updates the preview page.
 
-        :param nonref_pframes_checkbox:
-            Checkbox that emitted the signal.
+        :param nvenc_nonref_p_frames_checkbutton: Checkbox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        nonref_pframes_enabled = nonref_pframes_checkbox.get_active()
+        nonref_pframes_enabled = nvenc_nonref_p_frames_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.non_ref_p = nonref_pframes_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

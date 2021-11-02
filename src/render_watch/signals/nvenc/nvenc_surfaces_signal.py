@@ -17,25 +17,29 @@
 
 
 class NvencSurfacesSignal:
-    """Handles the signal emitted when the NVENC Surfaces option is changed."""
+    """
+    Handles the signal emitted when the NVENC Surfaces option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_surfaces_spinbutton_value_changed(self, surfaces_spinbutton):
-        """Applies the Surfaces option and updates the preview page.
+    def on_nvenc_surfaces_spinbutton_value_changed(self, nvenc_surfaces_spinbutton):
+        """
+        Applies the Surfaces option and updates the preview page.
 
-        :param surfaces_spinbutton:
-            Spinbutton that emitted the signal.
+        :param nvenc_surfaces_spinbutton: Spinbutton that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        surfaces_value = surfaces_spinbutton.get_value_as_int()
+        surfaces_value = nvenc_surfaces_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.surfaces = surfaces_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

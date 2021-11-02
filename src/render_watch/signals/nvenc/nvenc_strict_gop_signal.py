@@ -17,25 +17,29 @@
 
 
 class NvencStrictGOPSignal:
-    """Handles the signal emitted when the NVENC Strict GOP option is changed."""
+    """
+    Handles the signal emitted when the NVENC Strict GOP option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_strict_gop_checkbox_toggled(self, strict_gop_checkbox):
-        """Applies the Strict GOP option and updates the preview page.
+    def on_nvenc_strict_gop_checkbutton_toggled(self, nvenc_strict_gop_checkbutton):
+        """
+        Applies the Strict GOP option and updates the preview page.
 
-        :param strict_gop_checkbox:
-            Checkbox that emitted the signal.
+        :param nvenc_strict_gop_checkbutton: Checkbox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        strict_gop_enabled = strict_gop_checkbox.get_active()
+        strict_gop_enabled = nvenc_strict_gop_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.strict_gop = strict_gop_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

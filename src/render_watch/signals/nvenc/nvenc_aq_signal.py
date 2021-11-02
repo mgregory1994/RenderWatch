@@ -17,49 +17,56 @@
 
 
 class NvencAQSignal:
-    """Handles the signals emitted when NVENC AQ related settings are changed."""
+    """
+    Handles the signals emitted when NVENC AQ related settings are changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_spatial_radiobutton_toggled(self, spatial_radiobutton):
-        """Applies the spatial AQ option and updates the preview page.
-
-        :param spatial_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_nvenc_spatial_radiobutton_toggled(self, nvenc_spatial_radiobutton):
         """
-        self.nvenc_handlers.set_aq_strength_state(spatial_radiobutton.get_active())
+        Applies the spatial AQ option and updates the preview page.
+
+        :param nvenc_spatial_radiobutton: Radiobutton that emitted the signal.
+        """
+        self.nvenc_handlers.set_aq_strength_state(nvenc_spatial_radiobutton.get_active())
 
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        spatial_enabled = spatial_radiobutton.get_active()
+        spatial_enabled = nvenc_spatial_radiobutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.spatial_aq = spatial_enabled
             ffmpeg.video_settings.temporal_aq = not spatial_enabled
+
             if spatial_enabled:
                 self.nvenc_handlers.signal_aq_strength_spinbutton()
             else:
                 ffmpeg.video_settings.aq_strength = None
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_nvenc_aqstrength_spinbutton_value_changed(self, aqstrength_spinbutton):
-        """Applies the AQ Strength option and updates the preview page.
+    def on_nvenc_aq_strength_spinbutton_value_changed(self, nvenc_aq_strength_spinbutton):
+        """
+        Applies the AQ Strength option and updates the preview page.
 
-        :param aqstrength_spinbutton:
-            Spinbutton that emitted the signal.
+        :param nvenc_aq_strength_spinbutton: Spinbutton that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        aq_strength_value = aqstrength_spinbutton.get_value_as_int()
+        aq_strength_value = nvenc_aq_strength_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.aq_strength = aq_strength_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

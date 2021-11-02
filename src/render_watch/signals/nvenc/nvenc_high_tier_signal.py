@@ -17,25 +17,29 @@
 
 
 class NvencHighTierSignal:
-    """Handles the signal emitted when the NVENC High Tier option is changed."""
+    """
+    Handles the signal emitted when the NVENC High Tier option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_tier_high_radiobutton_toggled(self, tier_high_radiobutton):
-        """Applies the High Tier option and updates the preview page.
+    def on_nvenc_tier_high_radiobutton_toggled(self, nvenc_tier_high_radiobutton):
+        """
+        Applies the High Tier option and updates the preview page.
 
-        :param tier_high_radiobutton:
-            Checkbox that emitted the signal.
+        :param nvenc_tier_high_radiobutton: Radiobutton that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        tier_high_enabled = tier_high_radiobutton.get_active()
+        tier_high_enabled = nvenc_tier_high_radiobutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.tier = tier_high_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

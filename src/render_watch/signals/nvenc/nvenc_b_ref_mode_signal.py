@@ -17,25 +17,29 @@
 
 
 class NvencBRefModeSignal:
-    """Handles the signal emitted when the NVENC BRefMode option is changed."""
+    """
+    Handles the signal emitted when the NVENC B-Ref Mode option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_bref_mode_combobox_changed(self, bref_mode_combobox):
-        """Applies the BRefMode option and updates the preview page.
+    def on_nvenc_b_ref_mode_combobox_changed(self, nvenc_b_ref_mode_combobox):
+        """
+        Applies the B-Ref Mode option and updates the preview page.
 
-        :param bref_mode_combobox:
-            Combobox that emitted the signal.
+        :param nvenc_b_ref_mode_combobox: Combobox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        bref_mode_index = bref_mode_combobox.get_active()
+        bref_mode_index = nvenc_b_ref_mode_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.b_ref_mode = bref_mode_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

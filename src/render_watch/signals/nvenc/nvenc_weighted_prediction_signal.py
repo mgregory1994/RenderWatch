@@ -17,25 +17,29 @@
 
 
 class NvencWeightedPredictionSignal:
-    """Handles the signal emitted when the NVENC Weighted Prediction option is changed."""
+    """
+    Handles the signal emitted when the NVENC Weighted Prediction option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_weighted_prediction_checkbox_toggled(self, weighted_prediction_checkbox):
-        """Applies the Weighted Prediction option and updates the preview page.
+    def on_nvenc_weighted_prediction_checkbutton_toggled(self, nvenc_weighted_prediction_checkbutton):
+        """
+        Applies the Weighted Prediction option and updates the preview page.
 
-        :param weighted_prediction_checkbox:
-            Checkbox that emitted the signal.
+        :param nvenc_weighted_prediction_checkbutton: Checkbox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        weighted_prediction_enabled = weighted_prediction_checkbox.get_active()
+        weighted_prediction_enabled = nvenc_weighted_prediction_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.weighted_pred = weighted_prediction_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

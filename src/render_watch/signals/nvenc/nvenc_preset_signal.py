@@ -17,25 +17,29 @@
 
 
 class NvencPresetSignal:
-    """Handles the signal emitted when the NVENC Preset option is changed."""
+    """
+    Handles the signal emitted when the NVENC Preset option is changed.
+    """
 
     def __init__(self, nvenc_handlers, inputs_page_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_nvenc_preset_combobox_changed(self, preset_combobox):
-        """Applies the Preset option and updates the preview page.
+    def on_nvenc_preset_combobox_changed(self, nvenc_preset_combobox):
+        """
+        Applies the Preset option and updates the preview page.
 
-        :param preset_combobox:
-            Combobox that emitted the signal.
+        :param nvenc_preset_combobox: Combobox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        preset_index = preset_combobox.get_active()
+        preset_index = nvenc_preset_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.preset = preset_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
