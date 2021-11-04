@@ -16,22 +16,23 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PrefsDarkThemeSignal:
-    """Handles the signal emitted when the Dark Theme option is changed in the preferences dialog."""
+class DarkModeSignal:
+    """
+    Handles the signal emitted when the Dark Mode option is toggled in the preferences dialog.
+    """
 
-    def __init__(self, gtk_settings, preferences):
+    def __init__(self, gtk_settings, application_preferences):
         self.gtk_settings = gtk_settings
-        self.preferences = preferences
+        self.application_preferences = application_preferences
 
     # Unused parameters needed for this signal
-    def on_prefs_dark_theme_switch_state_set(self, dark_theme_switch, user_data):
-        """Applies the Dark Mode option in the application's preferences and applies the dark mode UI immediately.
-
-        :param dark_theme_switch:
-            Switch that emitted the signal.
-        :param user_data:
-            Unused paramter.
+    def on_dark_mode_switch_state_set(self, dark_mode_switch, user_data=None):
         """
-        dark_mode = dark_theme_switch.get_active()
-        self.preferences.use_dark_mode = dark_mode
+        Toggles the Dark Mode option in the application's preferences and Toggles the dark mode UI immediately.
+
+        :param dark_mode_switch: Switch that emitted the signal.
+        :param user_data: Signal user data.
+        """
+        dark_mode = dark_mode_switch.get_active()
+        self.application_preferences.is_dark_mode = dark_mode
         self.gtk_settings.set_property('gtk-application-prefer-dark-theme', dark_mode)

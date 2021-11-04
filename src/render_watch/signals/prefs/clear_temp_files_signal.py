@@ -19,28 +19,30 @@
 from render_watch.startup import Gtk
 
 
-class PrefsClearSignal:
-    """Handles the signal emitted when the Clear Temporary Files option is changed in the preferences dialog."""
+class ClearTempFilesSignal:
+    """
+    Handles the signal emitted when the Clear Temporary Files option is changed in the preferences dialog.
+    """
 
-    def __init__(self, prefs_handlers, main_window_handlers, preferences, original_temp_directory):
+    def __init__(self, prefs_handlers, main_window_handlers, application_preferences, original_temp_directory):
         self.prefs_handlers = prefs_handlers
         self.main_window_handlers = main_window_handlers
-        self.preferences = preferences
+        self.application_preferences = application_preferences
         self.original_temp_directory = original_temp_directory
 
-    def on_prefs_clear_checkbox_toggled(self, clear_temp_directory_checkbox):
-        """Applies the Clear Temporary Files option in the application's preferences.
-
-        :param clear_temp_directory_checkbox:
-            Checkbox that emitted the signal.
+    def on_clear_temporary_files_checkbutton_toggled(self, clear_temporary_files_checkbutton):
         """
-        clear_temp_directory_enabled = clear_temp_directory_checkbox.get_active()
-        if clear_temp_directory_enabled:
-            self._show_clear_temp_warning_dialog()
-        self.preferences.clear_temp_directory_on_exit = clear_temp_directory_enabled
+        Applies the Clear Temporary Files option to the application's preferences.
 
-    def _show_clear_temp_warning_dialog(self):
-        # Warns the user that the Clear Temporary Files option can be dangerous.
+        :param clear_temporary_files_checkbutton: Checkbox that emitted the signal.
+        """
+        clear_temp_directory_enabled = clear_temporary_files_checkbutton.get_active()
+        if clear_temp_directory_enabled:
+            self._show_clear_temp_files_warning_dialog()
+
+        self.application_preferences.is_clearing_temp_directory = clear_temp_directory_enabled
+
+    def _show_clear_temp_files_warning_dialog(self):
         message_dialog = Gtk.MessageDialog(self.main_window_handlers.main_window,
                                            Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                            Gtk.MessageType.WARNING,

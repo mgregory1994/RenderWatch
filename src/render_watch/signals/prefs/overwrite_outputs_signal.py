@@ -16,16 +16,18 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PrefsOverwriteOutputsSignal:
-    """Handles the signal emitted when the Overwrite Existing Outputs option is changed in the preferences dialog."""
+class OverwriteOutputsSignal:
+    """
+    Handles the signal emitted when the Overwrite Existing Outputs option is changed in the preferences dialog.
+    """
 
-    def __init__(self, preferences):
-        self.preferences = preferences
+    def __init__(self, application_preferences):
+        self.application_preferences = application_preferences
 
-    def on_prefs_overwrite_outputs_checkbox_toggled(self, overwrite_outputs_checkbox):
-        """Applies the Overwrite Existing Outputs option in the application's preferences.
-
-        :param overwrite_outputs_checkbox:
-            Checkbox that emitted the signal.
+    def on_overwrite_outputs_checkbutton_toggled(self, overwrite_outputs_checkbutton):
         """
-        self.preferences.overwrite_outputs = overwrite_outputs_checkbox.get_active()
+        Applies the Overwrite Existing Outputs option in the application's preferences.
+
+        :param overwrite_outputs_checkbutton: Checkbox that emitted the signal.
+        """
+        self.application_preferences.is_overwriting_outputs = overwrite_outputs_checkbutton.get_active()

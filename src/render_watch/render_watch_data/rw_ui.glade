@@ -650,7 +650,7 @@ Author: Michael Gregory
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkRadioButton" id="parallel_tasks_type_radiobutton">
+                          <object class="GtkRadioButton" id="toggle_parallel_tasks_radiobutton">
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">False</property>
@@ -1007,7 +1007,7 @@ The parallel task type selected below will be used</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="clear_temporary_files_checkbox">
+                      <object class="GtkCheckButton" id="clear_temporary_files_checkbutton">
                         <property name="label" translatable="yes">Clear Temp Folder on Exit</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1017,7 +1017,7 @@ The parallel task type selected below will be used</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_clear_temporary_files_checkbox_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_clear_temporary_files_checkbutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1461,7 +1461,7 @@ Restart Render Watch for changes to take effect</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="simultaneous_concurrent_nvenc_tasks_checkbox">
+                      <object class="GtkCheckButton" id="simultaneous_concurrent_nvenc_tasks_checkbutton">
                         <property name="label" translatable="yes">Run NVENC alongside other tasks</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1471,7 +1471,7 @@ Restart Render Watch for changes to take effect</property>
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_simultaneous_concurrent_nvenc_tasks_checkbox_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_simultaneous_concurrent_nvenc_tasks_checkbutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1509,7 +1509,7 @@ Restart Render Watch for changes to take effect</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="overwrite_outputs_checkbox">
+                      <object class="GtkCheckButton" id="overwrite_outputs_checkbutton">
                         <property name="label" translatable="yes">Overwrite Existing Outputs</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1521,7 +1521,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_overwrite_outputs_checkbox_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_overwrite_outputs_checkbutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1573,7 +1573,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="wait_for_tasks_checkbox">
+                      <object class="GtkCheckButton" id="wait_for_tasks_checkbutton">
                         <property name="label" translatable="yes">Wait For Other Queued Tasks</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1583,7 +1583,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_wait_for_tasks_checkbox_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_wait_for_tasks_checkbutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1592,7 +1592,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="run_concurrently_checkbox">
+                      <object class="GtkCheckButton" id="run_watch_folders_concurrently_checkbutton">
                         <property name="label" translatable="yes">Run Concurrently</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1601,7 +1601,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                         <property name="halign">start</property>
                         <property name="margin-start">10</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_run_concurrently_checkbox_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_run_watch_folders_concurrently_checkbutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1639,7 +1639,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkCheckButton" id="move_to_done_checkbox">
+                      <object class="GtkCheckButton" id="move_watch_folder_tasks_to_done_checkbutton">
                         <property name="label" translatable="yes">Move Finished Tasks to a "done" Folder</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -1649,7 +1649,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                         <property name="margin-start">10</property>
                         <property name="active">True</property>
                         <property name="draw-indicator">True</property>
-                        <signal name="toggled" handler="on_move_to_done_checkbox_toggled" swapped="no"/>
+                        <signal name="toggled" handler="on_move_watch_folder_tasks_to_done_checkbutton_toggled" swapped="no"/>
                       </object>
                       <packing>
                         <property name="expand">False</property>

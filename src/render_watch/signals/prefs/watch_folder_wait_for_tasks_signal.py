@@ -16,16 +16,18 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PrefsMoveToDoneSignal:
-    """Handles the signal emitted when the Watch Folder Move Completed Tasks to the Done Folder option
-    is changed in the preferences dialog.
+class WatchFolderWaitForTasksSignal:
+    """
+    Handles the signal emitted when the Watch Folder Wait For Other Tasks option is changed in the preferences dialog.
     """
 
-    def __init__(self, preferences):
-        self.preferences = preferences
+    def __init__(self, application_preferences):
+        self.application_preferences = application_preferences
 
-    def on_prefs_move_to_done_checkbox_toggled(self, watch_folder_move_finished_to_done_checkbox):
-        """Applies the Watch Folder Move Completed Tasks to the Done Folder option
-         in the application's preferences.
-         """
-        self.preferences.watch_folder_move_finished_to_done = watch_folder_move_finished_to_done_checkbox.get_active()
+    def on_wait_for_tasks_checkbutton_toggled(self, wait_for_tasks_checkbutton):
+        """
+        Applies the Watch Folder Wait For Other Tasks option in the application's preferences.
+
+        :param wait_for_tasks_checkbutton: Checkbutton that emitted the signal.
+        """
+        self.application_preferences.is_watch_folder_wait_for_tasks_enabled = wait_for_tasks_checkbutton.get_active()
