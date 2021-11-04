@@ -16,17 +16,19 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PreviewDurationSignal:
-    """Handles the signal emitted when a Preview Duration option is changed on the preview page."""
+class DurationSignal:
+    """
+    Handles the signal emitted when the Preview Duration option is changed.
+    """
 
     def __init__(self, preview_page_handlers):
         self.preview_page_handlers = preview_page_handlers
 
-    def on_preview_duration_toggled(self, preview_duration_radiobutton):
-        """Runs a preview for the selected duration.
+    def _run_preview_duration(self, preview_duration_radiobutton):
+        """
+        Runs a preview for the selected duration.
 
-        :param preview_duration_radiobutton:
-            Radiobutton that emitted the signal.
+        :param preview_duration_radiobutton: Radiobutton that emitted the signal.
         """
         if not preview_duration_radiobutton.get_active():
             return
@@ -38,3 +40,15 @@ class PreviewDurationSignal:
         preview_duration = self.preview_page_handlers.get_preview_duration()
         self.preview_page_handlers.set_preview_duration_state()
         self.preview_page_handlers.run_preview_thumbnail_thread(start_time, preview_duration)
+
+    def on_preview_30s_radiobutton_toggled(self, preview_30s_radiobutton):
+        self._run_preview_duration(preview_30s_radiobutton)
+
+    def on_preview_20s_radiobutton_toggled(self, preview_20s_radiobutton):
+        self._run_preview_duration(preview_20s_radiobutton)
+
+    def on_preview_10s_radiobutton_toggled(self, preview_10s_radiobutton):
+        self._run_preview_duration(preview_10s_radiobutton)
+
+    def on_preview_5s_radiobutton_toggled(self, preview_5s_radiobutton):
+        self._run_preview_duration(preview_5s_radiobutton)

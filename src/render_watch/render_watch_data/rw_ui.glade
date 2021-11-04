@@ -2594,7 +2594,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                           <object class="GtkViewport" id="preview_viewport">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <signal name="size-allocate" handler="on_preview_preview_viewport_size_allocate" swapped="no"/>
+                                            <signal name="size-allocate" handler="on_preview_viewport_size_allocate" swapped="no"/>
                                             <child>
                                               <object class="GtkStack" id="preview_stack">
                                                 <property name="visible">True</property>
@@ -2726,7 +2726,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                               </packing>
                                             </child>
                                             <child>
-                                              <object class="GtkScale" id="preview_time_selection_scale">
+                                              <object class="GtkScale" id="preview_position_scale">
                                                 <property name="visible">True</property>
                                                 <property name="can-focus">True</property>
                                                 <property name="tooltip-text" translatable="yes">Adjust the current position to preview</property>
@@ -2734,9 +2734,9 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="digits">3</property>
                                                 <property name="draw-value">False</property>
                                                 <property name="value-pos">bottom</property>
-                                                <signal name="button-release-event" handler="on_preview_time_selection_scale_button_release_event" swapped="no"/>
-                                                <signal name="key-release-event" handler="on_preview_time_selection_scale_key_release_event" swapped="no"/>
-                                                <signal name="value-changed" handler="on_preview_time_selection_scale_value_changed" swapped="no"/>
+                                                <signal name="button-release-event" handler="on_preview_position_scale_button_release_event" swapped="no"/>
+                                                <signal name="key-release-event" handler="on_preview_position_scale_key_release_event" swapped="no"/>
+                                                <signal name="value-changed" handler="on_preview_position_scale_value_changed" swapped="no"/>
                                               </object>
                                               <packing>
                                                 <property name="expand">False</property>
@@ -2784,7 +2784,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_live_radiobutton</property>
-                                                <signal name="toggled" handler="on_preview_duration_toggled" swapped="no"/>
+                                                <signal name="toggled" handler="on_preview_5s_radiobutton_toggled" swapped="no"/>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -2802,7 +2802,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_live_radiobutton</property>
-                                                <signal name="toggled" handler="on_preview_duration_toggled" swapped="no"/>
+                                                <signal name="toggled" handler="on_preview_10s_radiobutton_toggled" swapped="no"/>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -2820,7 +2820,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_live_radiobutton</property>
-                                                <signal name="toggled" handler="on_preview_duration_toggled" swapped="no"/>
+                                                <signal name="toggled" handler="on_preview_20s_radiobutton_toggled" swapped="no"/>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>
@@ -2838,7 +2838,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="halign">center</property>
                                                 <property name="draw-indicator">True</property>
                                                 <property name="group">preview_live_radiobutton</property>
-                                                <signal name="toggled" handler="on_preview_duration_toggled" swapped="no"/>
+                                                <signal name="toggled" handler="on_preview_30s_radiobutton_toggled" swapped="no"/>
                                               </object>
                                               <packing>
                                                 <property name="expand">True</property>

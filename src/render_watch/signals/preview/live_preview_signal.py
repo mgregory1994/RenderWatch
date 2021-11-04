@@ -16,12 +16,14 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PreviewLiveSignal:
-    """Handles the signal emitted when the Live Preview option is toggled on the preview page."""
+class LivePreviewSignal:
+    """
+    Handles the signal emitted when the Live Preview option is toggled.
+    """
 
     def __init__(self, preview_page_handlers):
         self.preview_page_handlers = preview_page_handlers
 
-    def on_preview_still_button_toggled(self, preview_still_radiobutton):
-        if preview_still_radiobutton.get_active():
+    def on_preview_live_radiobutton_toggled(self, preview_live_radiobutton):
+        if preview_live_radiobutton.get_active():
             self.preview_page_handlers.set_preview_live_state()

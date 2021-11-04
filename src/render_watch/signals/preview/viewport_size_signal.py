@@ -16,27 +16,30 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class PreviewSizeSignal:
-    """Handles the signal emitted when the Preview size changes on the preview page."""
+class ViewportSizeSignal:
+    """
+    Handles the signal emitted when the Preview's viewport size changes.
+    """
 
     def __init__(self, preview_page_handlers):
         self.preview_page_handlers = preview_page_handlers
 
     # Unused parameters needed for this signal
-    def on_preview_preview_viewport_size_allocate(self, preview_preview_viewport, allocation):
-        """Resizes the preview to fit the viewport's dimensions.
+    def on_preview_viewport_size_allocate(self, preview_viewport, allocation=None):
+        """
+        Resizes the preview image to fit the viewport's dimensions.
 
-        :param preview_preview_viewport:
-            Viewport that emitted the signal.
-        :param allocation:
-            Unused parameter.
+        :param preview_viewport: Viewport that emitted the signal.
+        :param allocation: (Default: None) Viewport's allocation.
         """
         if self.preview_page_handlers.get_preview_encode_state():
             return
-        widget_width = preview_preview_viewport.get_allocated_width()
-        widget_height = preview_preview_viewport.get_allocated_height()
-        if not self.preview_page_handlers.get_preview_viewport_width() == widget_width \
-                or not self.preview_page_handlers.get_preview_viewport_height() == widget_height:
+
+        widget_width = preview_viewport.get_allocated_width()
+        widget_height = preview_viewport.get_allocated_height()
+        has_width_changed = not self.preview_page_handlers.get_preview_viewport_width() == widget_width
+        has_height_changed = not self.preview_page_handlers.get_preview_viewport_height() == widget_height
+        if has_width_changed or has_height_changed:
             self.preview_page_handlers.set_thumbnail_size(widget_width, widget_height)
             self.preview_page_handlers.set_preview_viewport_width(widget_width)
             self.preview_page_handlers.set_preview_viewport_height(widget_height)
