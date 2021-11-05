@@ -17,17 +17,19 @@
 
 
 class TrimSignal:
-    """Handles the signal emitted when the Trim Page button is pressed in the settings sidebar."""
+    """
+    Handles the signal emitted when the Trim Page button is pressed.
+    """
 
     def __init__(self, trim_page_handlers, inputs_page_handlers):
         self.trim_page_handlers = trim_page_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
     def on_trim_button_clicked(self, trim_button):  # Unused parameters needed for this signal
-        """Configures and shows the Trim Page.
+        """
+        Configures and shows the Trim Page.
 
-        :param trim_button:
-            Button that emitted the signal.
+        :param trim_button: Button that emitted the signal.
         """
         if not self.inputs_page_handlers.is_trim_state():
             self.inputs_page_handlers.set_trim_state()

@@ -18,37 +18,37 @@
 
 import threading
 
-from render_watch.encoding import preview
+from render_watch.encoding import benchmark
 
 
-class BenchmarkStartSignal:
-    """Handles the signal emitted when the user starts the benchmark utility in the settings sidebar."""
+class StartBenchmarkSignal:
+    """
+    Handles the signal emitted when the user starts the benchmark utility in the settings sidebar.
+    """
 
-    def __init__(self, settings_sidebar_handlers, inputs_page_handlers, preferences):
+    def __init__(self, settings_sidebar_handlers, inputs_page_handlers, application_preferences):
         self.settings_sidebar_handlers = settings_sidebar_handlers
         self.inputs_page_handlers = inputs_page_handlers
-        self.preferences = preferences
+        self.application_preferences = application_preferences
 
-    def on_benchmark_start_button_clicked(self, benchmark_start_button):  # Unused parameters needed for this signal
-        """Runs a benchmark of the selected input's ffmpeg settings object.
+    def on_benchmark_run_button_clicked(self, benchmark_run_button):  # Unused parameters needed for this signal
+        """
+        Runs a benchmark using the currently selected input's settings.
 
-        :param benchmark_start_button:
-            Button that emitted the signal.
+        :param benchmark_run_button: Button that emitted the signal.
         """
         ffmpeg = self.inputs_page_handlers.get_selected_row().ffmpeg
-
         if ffmpeg is None:
             return
 
         threading.Thread(target=self._start_benchmark_thread, args=(ffmpeg,), daemon=True).start()
 
     def _start_benchmark_thread(self, ffmpeg):
-        # Stops currently running benchmark, then runs a new benchmark.
         self.settings_sidebar_handlers.stop_benchmark_thread()
 
         with self.settings_sidebar_handlers.benchmark_thread_lock:
-            self.settings_sidebar_handlers.benchmark_thread = threading.Thread(target=preview.start_benchmark,
+            self.settings_sidebar_handlers.benchmark_thread = threading.Thread(target=benchmark.start_benchmark,
                                                                                args=(ffmpeg,
                                                                                      self.settings_sidebar_handlers,
-                                                                                     self.preferences))
+                                                                                     self.application_preferences))
             self.settings_sidebar_handlers.benchmark_thread.start()

@@ -16,25 +16,28 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class StreamingSignal:
-    """Handles the signal emitted when the user toggles the streaming optimized option in the settings sidebar."""
+class StreamingOptimizedSignal:
+    """
+    Handles the signal emitted when the user toggles the streaming optimized option.
+    """
 
     def __init__(self, settings_sidebar_handlers, inputs_page_handlers):
         self.settings_sidebar_handlers = settings_sidebar_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_streaming_checkbox_toggled(self, streaming_checkbox):
-        """Applies the Optimize for Streaming option.
+    def on_streaming_optimized_checkbutton_toggled(self, streaming_optimized_checkbutton):
+        """
+        Applies the Streaming Optimized option for the mp4 container.
 
-        :param streaming_checkbox:
-            Checkbox that emitted the signal.
+        :param streaming_optimized_checkbutton: Checkbox that emitted the signal.
         """
         if self.settings_sidebar_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.general_settings.fast_start = streaming_checkbox.get_active()
+            ffmpeg.general_settings.fast_start = streaming_optimized_checkbutton.get_active()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

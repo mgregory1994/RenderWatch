@@ -19,17 +19,18 @@
 import threading
 
 
-class BenchmarkStopSignal:
-    """Handles the signal emitted when the user stops a currently running benchmark."""
+class StopBenchmarkSignal:
+    """
+    Handles the signal emitted when the user stops the currently running benchmark.
+    """
 
-    def __init__(self, settings_sidebar_handlers, inputs_page_handlers):
+    def __init__(self, settings_sidebar_handlers):
         self.settings_sidebar_handlers = settings_sidebar_handlers
-        # self.inputs_page_handlers = inputs_page_handlers
 
     def on_benchmark_stop_button_clicked(self, benchmark_stop_button):  # Unused parameters needed for this signal
-        """Stops the currently running benchmark task.
+        """
+        Stops the currently running benchmark.
 
-        :param benchmark_stop_button:
-            Button that emitted the signal.
+        :param benchmark_stop_button: Button that emitted the signal.
         """
         threading.Thread(target=self.settings_sidebar_handlers.stop_benchmark_thread, args=(), daemon=True).start()
