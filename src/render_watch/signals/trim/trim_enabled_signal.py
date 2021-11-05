@@ -17,19 +17,20 @@
 
 
 class TrimEnabledSignal:
-    """Handles the signal emitted by toggling the Enable Trim option in the trim page."""
+    """
+    Handles the signal emitted by toggling the Enable Trim option in the trim page.
+    """
 
-    def __init__(self, trim_page_handlers, inputs_page_handlers):
+    def __init__(self, trim_page_handlers):
         self.trim_page_handlers = trim_page_handlers
-        self.inputs_page_handlers = inputs_page_handlers
 
-    def on_trim_enabled_checkbox_toggled(self, trim_enabled_checkbox):
-        """Configures the trim page and updates the trim options.
-
-        :param trim_enabled_checkbox:
-            Checkbox that emitted the signal.
+    def on_trim_enabled_checkbutton_toggled(self, trim_enabled_checkbutton):
         """
-        self.trim_page_handlers.set_trim_state(trim_enabled_checkbox.get_active())
+        Configures the trim page and toggles the trim option's availability.
+
+        :param trim_enabled_checkbutton: Checkbutton that emitted the signal.
+        """
+        self.trim_page_handlers.set_trim_state(trim_enabled_checkbutton.get_active())
 
         if self.trim_page_handlers.is_widgets_setting_up:
             return
