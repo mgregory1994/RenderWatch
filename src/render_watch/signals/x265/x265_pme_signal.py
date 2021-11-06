@@ -17,25 +17,29 @@
 
 
 class X265PmeSignal:
-    """Handles the signal emitted when the x265 PME option is changed."""
+    """
+    Handles the signal emitted when the x265 PME option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_pme_checkbox_toggled(self, pme_checkbox):
-        """Toggles the PME option and updates the preview page.
+    def on_x265_pme_checkbox_toggled(self, x265_pme_checkbutton):
+        """
+        Toggles the PME option and updates the preview page.
 
-        :param pme_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_pme_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        pme_enabled = pme_checkbox.get_active()
+        is_pme_enabled = x265_pme_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.pme = pme_enabled
+            ffmpeg.video_settings.pme = is_pme_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

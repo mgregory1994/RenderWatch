@@ -17,42 +17,48 @@
 
 
 class X265KeyframeSignal:
-    """Handles the signals emitted when the x265 Keyframe related options are changed."""
+    """
+    Handles the signals emitted when x265 Keyframe related options are changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_keyint_spinbutton_value_changed(self, keyint_spinbutton):
-        """Applies the Keyframe Interval option and updates the preview page.
+    def on_x265_keyint_spinbutton_value_changed(self, x265_keyint_spinbutton):
+        """
+        Applies the Keyframe Interval option and updates the preview page.
 
-        :param keyint_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_keyint_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        keyint_value = keyint_spinbutton.get_value_as_int()
+        keyint_value = x265_keyint_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.keyint = keyint_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_min_keyint_spinbutton_value_changed(self, min_keyint_spinbutton):
-        """Applies the Minimum Keyframe Interval option and updates the preview page.
+    def on_x265_min_keyint_spinbutton_value_changed(self, x265_min_keyint_spinbutton):
+        """
+        Applies the Minimum Keyframe Interval option and updates the preview page.
 
-        :param min_keyint_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_min_keyint_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        min_keyint_value = min_keyint_spinbutton.get_value_as_int()
+        min_keyint_value = x265_min_keyint_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.min_keyint = min_keyint_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

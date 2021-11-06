@@ -16,26 +16,49 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X265NoWeightPSignal:
-    """Handles the signal emitted when the x265 No Weight-P option is changed."""
+class X265PsyRdSignal:
+    """
+    Handles the signals emitted when x265 PsyRD related options are changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_no_weightp_checkbox_toggled(self, no_weightp_checkbox):
-        """Toggles the No Weight-P option and updates the preview page.
+    def on_x265_psy_rd_spinbutton_value_changed(self, x265_psy_rd_spinbutton):
+        """
+        Applies the Psy RD option and updates the preview page.
 
-        :param no_weightp_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_psy_rd_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        no_weightp_enabled = no_weightp_checkbox.get_active()
+        psy_rd_value = round(x265_psy_rd_spinbutton.get_value(), 1)
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_weightp = no_weightp_enabled
+            ffmpeg.video_settings.psy_rd = psy_rd_value
+
+            row.setup_labels()
+
+        self.inputs_page_handlers.update_preview_page()
+
+    def on_x265_psy_rdoq_spinbutton_value_changed(self, x265_psy_rdoq_spinbutton):
+        """
+        Applies the Psy RDOQ option and updates the preview page.
+
+        :param x265_psy_rdoq_spinbutton: Spinbutton the emitted the signal.
+        """
+        if self.x265_handlers.is_widgets_setting_up:
+            return
+
+        psy_rdoq_value = round(x265_psy_rdoq_spinbutton.get_value(), 1)
+
+        for row in self.inputs_page_handlers.get_selected_rows():
+            ffmpeg = row.ffmpeg
+            ffmpeg.video_settings.psy_rdoq = psy_rdoq_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

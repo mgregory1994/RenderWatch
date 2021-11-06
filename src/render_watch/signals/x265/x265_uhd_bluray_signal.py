@@ -17,25 +17,29 @@
 
 
 class X265UhdBluraySignal:
-    """Handles the signal emitted when the x265 UHD Blu-ray Compatibility option is changed."""
+    """
+    Handles the signal emitted when the x265 UHD Blu-ray Compatibility option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_uhd_bluray_checkbox_toggled(self, uhd_bluray_checkbox):
-        """Toggles the UHD Blu-ray Compatibility option and updates the preview page.
+    def on_x265_uhd_bluray_checkbutton_toggled(self, x265_uhd_bluray_checkbutton):
+        """
+        Toggles the UHD Blu-ray Compatibility option and updates the preview page.
 
-        :param uhd_bluray_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_uhd_bluray_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        uhd_bluray_enabled = uhd_bluray_checkbox.get_active()
+        is_uhd_bluray_enabled = x265_uhd_bluray_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.uhd_bd = uhd_bluray_enabled
+            ffmpeg.video_settings.uhd_bd = is_uhd_bluray_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

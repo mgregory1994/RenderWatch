@@ -17,25 +17,29 @@
 
 
 class X265AmpSignal:
-    """Handles the signal emitted when the x265 AMP option is changed."""
+    """
+    Handles the signal emitted when the x265 AMP option is toggled.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_amp_checkbox_toggled(self, amp_checkbox):
-        """Applies the AMP option and updates the preview page.
+    def on_x265_amp_checkbutton_toggled(self, x265_amp_checkbutton):
+        """
+        Applies the AMP option and updates the preview page.
 
-        :param amp_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_amp_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        amp_enabled = amp_checkbox.get_active()
+        amp_enabled = x265_amp_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.amp = amp_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

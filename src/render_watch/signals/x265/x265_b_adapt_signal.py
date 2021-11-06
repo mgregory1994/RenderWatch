@@ -16,43 +16,30 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X265PsyRdSignal:
-    """Handles the signals emitted when the x265 PsyRD related options are changed."""
+class X265BAdaptSignal:
+    """
+    Handles the signal emitted when the x265 BAdapt option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_psyrd_spinbutton_value_changed(self, psy_rd_spinbutton):
-        """Applies the PsyRD option and updates the preview page.
+    def on_x265_badapt_combobox_changed(self, x265_b_adapt_combobox):
+        """
+        Applies the B Adapt option and updates the preview page.
 
-        :param psy_rd_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_b_adapt_combobox: Combobox that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        psy_rd_value = round(psy_rd_spinbutton.get_value(), 1)
+        b_adapt_index = x265_b_adapt_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.psy_rd = psy_rd_value
-            row.setup_labels()
+            ffmpeg.video_settings.b_adapt = b_adapt_index
 
-        self.inputs_page_handlers.update_preview_page()
-
-    def on_x265_psyrdoq_spinbutton_value_changed(self, psy_rdoq_spinbutton):
-        """Applies the PsyRDOQ option and updates the preview page.
-
-        :param psy_rdoq_spinbutton:
-            Spinbutton the emitted the signal.
-        """
-        if self.x265_handlers.is_widgets_setting_up:
-            return
-
-        psy_rdoq_value = round(psy_rdoq_spinbutton.get_value(), 1)
-        for row in self.inputs_page_handlers.get_selected_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.psy_rdoq = psy_rdoq_value
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

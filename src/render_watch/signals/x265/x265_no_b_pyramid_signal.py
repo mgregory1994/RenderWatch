@@ -17,25 +17,29 @@
 
 
 class X265NoBPyramidSignal:
-    """Handles the signal emitted when the No B-Pyramid option is changed."""
+    """
+    Handles the signal emitted when the No B-Pyramid option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_no_bpyramid_checkbox_toggled(self, no_b_pyramid_checkbox):
-        """Toggles the No B-Pyramid option and updates the preview page.
+    def on_x265_no_b_pyramid_checkbutton_toggled(self, x265_no_b_pyramid_checkbutton):
+        """
+        Toggles the No B-Pyramid option and updates the preview page.
 
-        :param no_b_pyramid_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_no_b_pyramid_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        no_b_pyramid_enabled = no_b_pyramid_checkbox.get_active()
+        is_no_b_pyramid_enabled = x265_no_b_pyramid_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_b_pyramid = no_b_pyramid_enabled
+            ffmpeg.video_settings.no_b_pyramid = is_no_b_pyramid_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

@@ -16,26 +16,30 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X265BAdaptSignal:
-    """Handles the signal emitted when the x265 BAdapt option is changed."""
+class X265NoWeightPSignal:
+    """
+    Handles the signal emitted when the x265 No Weight-P option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_badapt_combobox_changed(self, b_adapt_combobox):
-        """Applies the BAdapt option and updates the preview page.
+    def on_x265_no_weight_p_checkbutton_toggled(self, x265_no_weight_p_checkbutton):
+        """
+        Toggles the No Weight-P option and updates the preview page.
 
-        :param b_adapt_combobox:
-            Combobox that emitted the signal.
+        :param x265_no_weight_p_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        b_adapt_index = b_adapt_combobox.get_active()
+        is_no_weight_p_enabled = x265_no_weight_p_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.b_adapt = b_adapt_index
+            ffmpeg.video_settings.no_weightp = is_no_weight_p_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

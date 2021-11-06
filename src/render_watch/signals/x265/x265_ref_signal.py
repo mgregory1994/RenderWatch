@@ -17,25 +17,29 @@
 
 
 class X265RefSignal:
-    """Handles the signal emitted when the x265 Reference Frames option is changed."""
+    """
+    Handles the signal emitted when the x265 Reference Frames option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_ref_spinbutton_value_changed(self, ref_spinbutton):
-        """Applies the Reference Frames value option and updates the preview page.
+    def on_x265_ref_spinbutton_value_changed(self, x265_ref_spinbutton):
+        """
+        Applies the Reference Frames value option and updates the preview page.
 
-        :param ref_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_ref_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        ref_value = ref_spinbutton.get_value_as_int()
+        ref_value = x265_ref_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.ref = ref_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

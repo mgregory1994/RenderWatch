@@ -17,25 +17,29 @@
 
 
 class X265ClosedGopSignal:
-    """Handles the signal emitted when the x265 Closed GOP option is changed."""
+    """
+    Handles the signal emitted when the x265 Closed GOP option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_closed_gop_checkbox_toggled(self, closed_gop_checkbox):
-        """Applies the Closed GOP option and updates the preview page.
+    def on_x265_closed_gop_checkbutton_toggled(self, x265_closed_gop_checkbutton):
+        """
+        Applies the Closed GOP option and updates the preview page.
 
-        :param closed_gop_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_closed_gop_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        closed_gop_enabled = closed_gop_checkbox.get_active()
+        closed_gop_enabled = x265_closed_gop_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.no_open_gop = closed_gop_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

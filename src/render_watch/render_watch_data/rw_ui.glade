@@ -5512,7 +5512,7 @@ Other: Use only if you know what you're doing</property>
                                           <object class="GtkButtonBox" id="x265_rate_type_buttonbox">
                                             <property name="visible">True</property>
                                             <property name="can-focus">False</property>
-                                            <property name="halign">start</property>
+                                            <property name="halign">center</property>
                                             <property name="layout-style">spread</property>
                                             <child>
                                               <object class="GtkRadioButton" id="x265_crf_radiobutton">
@@ -5662,14 +5662,14 @@ Average: The encoder will try to make the output's average bitrate equal the bit
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkRadioButton" id="x265_2pass_radiobutton">
+                                                      <object class="GtkRadioButton" id="x265_2_pass_radiobutton">
                                                         <property name="label" translatable="yes">2-Pass</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="receives-default">False</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">x265_average_radiobutton</property>
-                                                        <signal name="toggled" handler="on_x265_2pass_radiobutton_toggled" swapped="no"/>
+                                                        <signal name="toggled" handler="on_x265_2_pass_radiobutton_toggled" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>
@@ -6409,14 +6409,14 @@ Average: The encoder will try to make the output's average bitrate equal the bit
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkSpinButton" id="x265_psyrd_spinbutton">
+                                                      <object class="GtkSpinButton" id="x265_psy_rd_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="input-purpose">digits</property>
                                                         <property name="adjustment">x265_psyrd_adjustment</property>
                                                         <property name="digits">1</property>
                                                         <property name="numeric">True</property>
-                                                        <signal name="value-changed" handler="on_x265_psyrd_spinbutton_value_changed" swapped="no"/>
+                                                        <signal name="value-changed" handler="on_x265_psy_rd_spinbutton_value_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>
@@ -6460,14 +6460,14 @@ Average: The encoder will try to make the output's average bitrate equal the bit
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkSpinButton" id="x265_psyrdoq_spinbutton">
+                                                      <object class="GtkSpinButton" id="x265_psy_rdoq_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="input-purpose">digits</property>
                                                         <property name="adjustment">x265_psyrdoq_adjustment</property>
                                                         <property name="digits">1</property>
                                                         <property name="numeric">True</property>
-                                                        <signal name="value-changed" handler="on_x265_psyrdoq_spinbutton_value_changed" swapped="no"/>
+                                                        <signal name="value-changed" handler="on_x265_psy_rdoq_spinbutton_value_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>

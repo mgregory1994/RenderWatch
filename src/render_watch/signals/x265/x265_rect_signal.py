@@ -17,25 +17,29 @@
 
 
 class X265RectSignal:
-    """Handles the signal emitted when the x265 Rect option is changed."""
+    """
+    Handles the signal emitted when the x265 Rect option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_rect_checkbox_toggled(self, rect_checkbox):
-        """Toggles the Rect option and updates the preview page.
+    def on_x265_rect_checkbutton_toggled(self, x265_rect_checkbutton):
+        """
+        Toggles the Rect option and updates the preview page.
 
-        :param rect_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_rect_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        rect_enabled = rect_checkbox.get_active()
+        is_rect_enabled = x265_rect_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.rect = rect_enabled
+            ffmpeg.video_settings.rect = is_rect_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

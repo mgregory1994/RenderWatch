@@ -20,21 +20,22 @@ import threading
 
 
 class X265AdvancedSettingsSignal:
-    """Handles the signal emitted when the x265 Advanced Settings option is changed."""
+    """
+    Handles the signal emitted when the x265 Advanced Settings options are toggled.
+    """
 
     def __init__(self, x265_handlers):
         self.x265_handlers = x265_handlers
 
     # Unused parameters needed for this signal
-    def on_x265_advanced_settings_switch_state_set(self, advanced_settings_switch, user_data):
-        """Toggles the advanced settings widgets and applies the advanced settings.
-
-        :param advanced_settings_switch:
-            Switch that emitted the signal.
-        :param user_data:
-            Unused parameter.
+    def on_x265_advanced_settings_switch_state_set(self, x265_advanced_settings_switch, user_data=None):
         """
-        self.x265_handlers.set_advanced_settings_state(advanced_settings_switch.get_active())
+        Toggles the advanced settings widgets and applies the advanced settings.
+
+        :param x265_advanced_settings_switch: Switch that emitted the signal.
+        :param user_data: Unused parameter.
+        """
+        self.x265_handlers.set_advanced_settings_state(x265_advanced_settings_switch.get_active())
 
         if self.x265_handlers.is_widgets_setting_up:
             return

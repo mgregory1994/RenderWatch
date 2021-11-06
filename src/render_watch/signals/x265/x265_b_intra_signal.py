@@ -17,25 +17,29 @@
 
 
 class X265BIntraSignal:
-    """Handles the signal emitted when the x265 BIntra option is changed."""
+    """
+    Handles the signal emitted when the x265 BIntra option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_b_intra_checkbox_toggled(self, b_intra_checkbox):
-        """Applies the BIntra option and updates the preview page.
+    def on_x265_b_intra_checkbutton_toggled(self, x265_b_intra_checkbutton):
+        """
+        Applies the B Intra option and updates the preview page.
 
-        :param b_intra_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_b_intra_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        b_intra_enabled = b_intra_checkbox.get_active()
+        b_intra_enabled = x265_b_intra_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.b_intra = b_intra_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
