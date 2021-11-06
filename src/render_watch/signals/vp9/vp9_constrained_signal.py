@@ -17,20 +17,22 @@
 
 
 class Vp9ConstrainedSignal:
-    """Handles the signal emitted when the VP9 Constrained rate type option is changed."""
+    """
+    Handles the signal emitted when the VP9 Constrained rate type option is toggled.
+    """
 
     def __init__(self, vp9_handlers, inputs_page_handlers):
         self.vp9_handlers = vp9_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_vp9_constrained_radiobutton_toggled(self, constrained_radiobutton):
-        """Configures the VP9 widgets for Constrained rate type,
-        applies the Constrained option, and updates the preview page.
-
-        :param constrained_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_vp9_constrained_radiobutton_toggled(self, vp9_constrained_radiobutton):
         """
-        if not constrained_radiobutton.get_active():
+        Applies the constrained option, configure the vp9 widgets for constrained rate type, and updates the preview
+        page.
+
+        :param vp9_constrained_radiobutton: Radiobutton that emitted the signal.
+        """
+        if not vp9_constrained_radiobutton.get_active():
             return
 
         self.vp9_handlers.set_constrained_state()
@@ -39,9 +41,11 @@ class Vp9ConstrainedSignal:
             return
 
         crf_value = self.vp9_handlers.get_crf_value()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.crf = crf_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

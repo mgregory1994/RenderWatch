@@ -17,31 +17,39 @@
 
 
 class Vp92PassSignal:
-    """Handles the signal emitted when the VP9 2-pass option is changed."""
+    """
+    Handles the signal emitted when the VP9 2-pass option is toggled.
+    """
 
-    def __init__(self, vp9_handlers, inputs_page_handlers, preferences):
+    def __init__(self, vp9_handlers, inputs_page_handlers, application_preferences):
         self.vp9_handlers = vp9_handlers
         self.inputs_page_handlers = inputs_page_handlers
-        self.preferences = preferences
+        self.application_preferences = application_preferences
 
-    def on_vp9_2_pass_checkbox_toggled(self, encode_2_pass_checkbox):
-        """Applies the 2-pass option and updates the preview page.
+    def on_vp9_2_pass_checkbutton_toggled(self, vp9_2_pass_checkbutton):
+        """
+        Applies the 2-pass option and updates the preview page.
 
-        :param encode_2_pass_checkbox:
-            Checkbox that emitted the signal.
+        :param vp9_2_pass_checkbutton: Checkbutton that emitted the signal.
         """
         if self.vp9_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
-            ffmpeg = row.ffmpeg
-            stats_file_path = self.preferences.temp_directory + '/' + ffmpeg.temp_file_name + '.log'
-            if encode_2_pass_checkbox.get_active():
-                ffmpeg.video_settings.encode_pass = 1
-                ffmpeg.video_settings.stats = stats_file_path
-            else:
-                ffmpeg.video_settings.encode_pass = None
-                ffmpeg.video_settings.stats = None
+            self._apply_ffmpeg_vp9_2_pass_settings(vp9_2_pass_checkbutton, row)
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
+
+    def _apply_ffmpeg_vp9_2_pass_settings(self, vp9_2_pass_checkbutton, row):
+        ffmpeg = row.ffmpeg
+
+        if vp9_2_pass_checkbutton.get_active():
+            ffmpeg.video_settings.encode_pass = 1
+
+            stats_file_path = self.application_preferences.temp_directory + '/' + ffmpeg.temp_file_name + '.log'
+            ffmpeg.video_settings.stats = stats_file_path
+        else:
+            ffmpeg.video_settings.encode_pass = None
+            ffmpeg.video_settings.stats = None
