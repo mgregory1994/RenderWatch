@@ -17,24 +17,27 @@
 
 
 class X264WeightBSignal:
-    """Handles the signal emitted when the x264 WeightB option is changed."""
+    """
+    Handles the signal emitted when the x264 WeightB option is toggled.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_weight_b_checkbox_toggled(self, weight_b_checkbox):
-        """Applies the WeightB option and updates the preview page.
+    def on_x264_weight_b_checkbutton_toggled(self, x264_weight_b_checkbutton):
+        """
+        Applies the WeightB option and updates the preview page.
 
-        :param weight_b_checkbox:
-            Checkbox that emitted the signal.
+        :param x264_weight_b_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.weightb = weight_b_checkbox.get_active()
+            ffmpeg.video_settings.weightb = x264_weight_b_checkbutton.get_active()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

@@ -17,24 +17,27 @@
 
 
 class X2648x8DctSignal:
-    """Handles the signal emitted when the x264 8x8DCT option is changed."""
+    """
+    Handles the signal emitted when the x264 8x8DCT option is toggled.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_8x8dct_checkbox_toggled(self, dct8x8_checkbox):
-        """Applies the 8x8DCT option and updates the preview page.
+    def on_x264_8x8dct_checkbutton_toggled(self, x264_dct8x8_checkbutton):
+        """
+        Applies the 8x8DCT option and updates the preview page.
 
-        :param dct8x8_checkbox:
-            Checkbox that emitted the signal.
+        :param x264_dct8x8_checkbutton: Checkbox that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.dct8x8 = dct8x8_checkbox.get_active()
+            ffmpeg.video_settings.dct8x8 = x264_dct8x8_checkbutton.get_active()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

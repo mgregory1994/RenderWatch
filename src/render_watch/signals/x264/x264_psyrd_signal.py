@@ -17,44 +17,50 @@
 
 
 class X264PsyRDSignal:
-    """Handles the signals emitted when the x264 PsyRD related options are changed."""
+    """
+    Handles the signals emitted when x264 PsyRD related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_psy_rd_spinbutton_value_changed(self, psy_rd_spinbutton):
-        """Applies the PsyRD options and updates the preview page.
+    def on_x264_psy_rd_spinbutton_value_changed(self, x264_psy_rd_spinbutton):
+        """
+        Applies the PsyRD options and updates the preview page.
 
-        :param psy_rd_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_psy_rd_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        psy_rd_value = round(psy_rd_spinbutton.get_value(), 1)
+        psy_rd_value = round(x264_psy_rd_spinbutton.get_value(), 1)
         psy_rd_trellis_value = round(self.x264_handlers.get_psy_rd_trellis_value(), 2)
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.psy_rd = psy_rd_value, psy_rd_trellis_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_psy_rd_trellis_spinbutton_value_changed(self, psy_rd_trellis_spinbutton):
-        """Applies the PsyRD options and updates the preview page.
+    def on_x264_psy_rd_trellis_spinbutton_value_changed(self, x264_psy_rd_trellis_spinbutton):
+        """
+        Applies the PsyRD options and updates the preview page.
 
-        :param psy_rd_trellis_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_psy_rd_trellis_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         psy_rd_value = round(self.x264_handlers.get_psy_rd_value(), 1)
-        psy_rd_trellis_value = round(psy_rd_trellis_spinbutton.get_value(), 2)
+        psy_rd_trellis_value = round(x264_psy_rd_trellis_spinbutton.get_value(), 2)
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.psy_rd = psy_rd_value, psy_rd_trellis_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

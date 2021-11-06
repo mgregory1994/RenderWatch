@@ -17,58 +17,65 @@
 
 
 class X264MeSignal:
-    """Handles the signals emitted when the x264 Motion Estimation related options are changed."""
+    """
+    Handles the signals emitted when x264 Motion Estimation related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_motion_estimation_combobox_changed(self, me_combobox):
-        """Applies the Motion Estimation option and updates the preview page.
+    def on_x264_motion_estimation_combobox_changed(self, x264_me_combobox):
+        """
+        Applies the Motion Estimation option and updates the preview page.
 
-        :param me_combobox:
-            Combobox that emitted the signal.
+        :param x264_me_combobox: Combobox that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        me_index = me_combobox.get_active()
+        me_index = x264_me_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.me = me_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_sub_motion_estimation_combobox_changed(self, subme_combobox):
-        """Applies the Sub-Motion Estimation option and updates the preview page.
+    def on_x264_sub_motion_estimation_combobox_changed(self, x264_subme_combobox):
+        """
+        Applies the Sub-Motion Estimation option and updates the preview page.
 
-        :param subme_combobox:
-            Combobox that emitted the signal.
+        :param x264_subme_combobox: Combobox that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        subme_index = subme_combobox.get_active()
+        subme_index = x264_subme_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.subme = subme_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_me_range_spinbutton_value_changed(self, me_range_spinbutton):
-        """Applies the Motion Estimation Range option and updates the preview page.
+    def on_x264_me_range_spinbutton_value_changed(self, x264_me_range_spinbutton):
+        """
+        Applies the Motion Estimation Range option and updates the preview page.
 
-        :param me_range_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_me_range_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.me_range = me_range_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.me_range = x264_me_range_spinbutton.get_value_as_int()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

@@ -17,19 +17,21 @@
 
 
 class X264PartitionsSignal:
-    """Handles the signals emitted when the x264 Partitions related options are changed."""
+    """
+    Handles the signals emitted when x264 Partitions related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_partitions_auto_radiobutton_toggled(self, partitions_auto_radiobutton):
-        """Removes the Custom Partitions option and updates the preview page.
-
-        :param partitions_auto_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_x264_partitions_auto_radiobutton_toggled(self, x264_partitions_auto_radiobutton):
         """
-        if not partitions_auto_radiobutton.get_active():
+        Removes the Custom Partitions option and updates the preview page.
+
+        :param x264_partitions_auto_radiobutton: Radiobutton that emitted the signal.
+        """
+        if not x264_partitions_auto_radiobutton.get_active():
             return
         if self.x264_handlers.is_widgets_setting_up:
             return
@@ -37,45 +39,50 @@ class X264PartitionsSignal:
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.partitions = None
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_partitions_custom_radiobutton_toggled(self, partitions_custom_radiobutton):
-        """Applies the Custom Partitions option and updates the preview page.
-
-        :param partitions_custom_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_x264_partitions_custom_radiobutton_toggled(self, x264_partitions_custom_radiobutton):
         """
-        self.x264_handlers.set_partitions_custom_state(partitions_custom_radiobutton.get_active())
+        Applies the Custom Partitions option and updates the preview page.
 
-        if not partitions_custom_radiobutton.get_active():
+        :param x264_partitions_custom_radiobutton: Radiobutton that emitted the signal.
+        """
+        self.x264_handlers.set_partitions_custom_state(x264_partitions_custom_radiobutton.get_active())
+
+        if not x264_partitions_custom_radiobutton.get_active():
             return
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         partitions_setting = self.x264_handlers.get_partitions_settings()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.partitions = partitions_setting
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
     # Unused parameters needed for this signal
-    def on_x264_partitions_type_checkbox_toggled(self, partitions_type_checkbox):
-        """Applies the Custom Partition Type option and updates the preview page.
+    def on_x264_partitions_type_checkbutton_toggled(self, x264_partitions_type_checkbutton):
+        """
+        Applies the Custom Partition Type option and updates the preview page.
 
-        :param partitions_type_checkbox:
-            Checkbox that emitted the signal.
+        :param x264_partitions_type_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         partitions_setting = self.x264_handlers.get_partitions_settings()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.partitions = partitions_setting
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

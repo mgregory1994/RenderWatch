@@ -17,17 +17,19 @@
 
 
 class X264VbvSignal:
-    """Handles the signals emitted when the x264 Variable Bitrate related options are changed."""
+    """
+    Handles the signals emitted when x264 Variable Bitrate related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_vbv_max_rate_spinbutton_value_changed(self, vbv_maxrate_spinbutton):
-        """Applies the VBV Maxrate option and updates the preview page.
+    def on_x264_vbv_max_rate_spinbutton_value_changed(self, x264_vbv_maxrate_spinbutton):
+        """
+        Applies the VBV Maxrate option and updates the preview page.
 
-        :param vbv_maxrate_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_vbv_maxrate_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
@@ -38,16 +40,17 @@ class X264VbvSignal:
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.vbv_maxrate = vbv_maxrate_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.vbv_maxrate = x264_vbv_maxrate_spinbutton.get_value_as_int()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_vbv_bufsize_spinbutton_value_changed(self, vbv_bufsize_spinbutton):
-        """Applies the VBV Bufsize option and updates the preview page.
+    def on_x264_vbv_bufsize_spinbutton_value_changed(self, x264_vbv_bufsize_spinbutton):
+        """
+        Applies the VBV Bufsize option and updates the preview page.
 
-        :param vbv_bufsize_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_vbv_bufsize_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
@@ -56,7 +59,8 @@ class X264VbvSignal:
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.vbv_bufsize = vbv_bufsize_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.vbv_bufsize = x264_vbv_bufsize_spinbutton.get_value_as_int()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

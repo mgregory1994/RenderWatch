@@ -17,24 +17,27 @@
 
 
 class X264BFramesSignal:
-    """Handles the signal emitted when the x264 BFrames option is changed."""
+    """
+    Handles the signal emitted when the x264 BFrames option is changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_bframes_spinbutton_value_changed(self, bframes_spinbutton):
-        """Applies the BFrames option and updates the preview page.
+    def on_x264_bframes_spinbutton_value_changed(self, x264_bframes_spinbutton):
+        """
+        Applies the BFrames option and updates the preview page.
 
-        :param bframes_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_bframes_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.bframes = bframes_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.bframes = x264_bframes_spinbutton.get_value_as_int()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

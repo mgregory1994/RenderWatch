@@ -17,65 +17,73 @@
 
 
 class X264DeblockSignal:
-    """Handles the signals emitted when the x264 Deblock related options are changed."""
+    """
+    Handles the signals emitted when x264 Deblock related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_no_deblock_checkbox_toggled(self, no_deblock_checkbox):
-        """Applies the No Deblock option and updates the preview page.
-
-        :param no_deblock_checkbox:
-            Checkbox that emitted the signal.
+    def on_x264_no_deblock_checkbutton_toggled(self, x264_no_deblock_checkbutton):
         """
-        self.x264_handlers.set_deblock_state(not no_deblock_checkbox.get_active())
+        Applies the No Deblock option and updates the preview page.
+
+        :param x264_no_deblock_checkbutton: Checkbox that emitted the signal.
+        """
+        self.x264_handlers.set_deblock_state(not x264_no_deblock_checkbutton.get_active())
 
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        no_deblock_enabled = no_deblock_checkbox.get_active()
+        no_deblock_enabled = x264_no_deblock_checkbutton.get_active()
         deblock_settings = self.x264_handlers.get_deblock_settings()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.no_deblock = no_deblock_enabled
             ffmpeg.video_settings.deblock = deblock_settings
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
     # Unused parameters needed for this signal
-    def on_x264_deblock_alpha_spinbutton_value_changed(self, deblock_alpha_spinbutton):
-        """Applies the Deblock option and updates the preview page.
+    def on_x264_deblock_alpha_spinbutton_value_changed(self, x264_deblock_alpha_spinbutton):
+        """
+        Applies the Deblock option and updates the preview page.
 
-        :param deblock_alpha_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_deblock_alpha_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         deblock_settings = self.x264_handlers.get_deblock_settings()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.deblock = deblock_settings
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
     # Unused parameters needed for this signal
-    def on_x264_deblock_beta_spinbutton_value_changed(self, deblock_beta_spinbutton):
-        """Applies the Deblock option and updates the preview page.
+    def on_x264_deblock_beta_spinbutton_value_changed(self, x264_deblock_beta_spinbutton):
+        """
+        Applies the Deblock option and updates the preview page.
 
-        :param deblock_beta_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_deblock_beta_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         deblock_settings = self.x264_handlers.get_deblock_settings()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.deblock = deblock_settings
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
