@@ -99,15 +99,15 @@ class NvencBitrateSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_nvenc_2pass_radiobutton_toggled(self, nvenc_2pass_radiobutton):
+    def on_nvenc_2_pass_radiobutton_toggled(self, nvenc_2_pass_radiobutton):
         """
         Applies the 2-Pass Bitrate option and updates the preview page.
 
-        :param nvenc_2pass_radiobutton: Radiobutton that emitted the signal.
+        :param nvenc_2_pass_radiobutton: Radiobutton that emitted the signal.
         """
-        self.nvenc_handlers.set_multi_pass_state(nvenc_2pass_radiobutton.get_active())
+        self.nvenc_handlers.set_multi_pass_state(nvenc_2_pass_radiobutton.get_active())
 
-        if not nvenc_2pass_radiobutton.get_active():
+        if not nvenc_2_pass_radiobutton.get_active():
             return
 
         self.nvenc_handlers.update_rc_from_2pass_bitrate()

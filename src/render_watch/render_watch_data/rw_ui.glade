@@ -8163,7 +8163,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkRadioButton" id="nvenc_2pass_radiobutton">
+                                                      <object class="GtkRadioButton" id="nvenc_2_pass_radiobutton">
                                                         <property name="label" translatable="yes">2-Pass</property>
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
@@ -8171,7 +8171,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                         <property name="halign">start</property>
                                                         <property name="draw-indicator">True</property>
                                                         <property name="group">nvenc_average_radiobutton</property>
-                                                        <signal name="toggled" handler="on_nvenc_2pass_radiobutton_toggled" swapped="no"/>
+                                                        <signal name="toggled" handler="on_nvenc_2_pass_radiobutton_toggled" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>
@@ -8733,14 +8733,14 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkCheckButton" id="nvenc_nonref_p_frames_checkbutton">
+                                                  <object class="GtkCheckButton" id="nvenc_non_ref_p_frames_checkbutton">
                                                     <property name="label" translatable="yes">Non-Ref P-Frames</property>
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">True</property>
                                                     <property name="receives-default">False</property>
                                                     <property name="halign">start</property>
                                                     <property name="draw-indicator">True</property>
-                                                    <signal name="toggled" handler="on_nvenc_nonref_p_frames_checkbutton_toggled" swapped="no"/>
+                                                    <signal name="toggled" handler="on_nvenc_non_ref_p_frames_checkbutton_toggled" swapped="no"/>
                                                   </object>
                                                   <packing>
                                                     <property name="expand">False</property>
