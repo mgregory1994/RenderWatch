@@ -16,29 +16,27 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X264BPyramidSignal:
+class X264WeightBSignal:
     """
-    Handles the signal emitted when the x264 BPyramid option is changed.
+    Handles the signal emitted when the x264 Weight B option is toggled.
     """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_bpyramid_combobox_changed(self, x264_b_pyramid_combobox):
+    def on_x264_weight_b_checkbutton_toggled(self, x264_weight_b_checkbutton):
         """
-        Applies the B Pyramid option and updates the preview page.
+        Applies the Weight B option and updates the preview page.
 
-        :param x264_b_pyramid_combobox: Combobox that emitted the signal.
+        :param x264_weight_b_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        b_pyramid_index = x264_b_pyramid_combobox.get_active()
-
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.b_pyramid = b_pyramid_index
+            ffmpeg.video_settings.weightb = x264_weight_b_checkbutton.get_active()
 
             row.setup_labels()
 

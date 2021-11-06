@@ -18,7 +18,7 @@
 
 class X264PsyRDSignal:
     """
-    Handles the signals emitted when x264 PsyRD related options are changed.
+    Handles the signals emitted when x264 Psy RD related options are changed.
     """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
@@ -27,7 +27,7 @@ class X264PsyRDSignal:
 
     def on_x264_psy_rd_spinbutton_value_changed(self, x264_psy_rd_spinbutton):
         """
-        Applies the PsyRD options and updates the preview page.
+        Applies the Psy RD options and updates the preview page.
 
         :param x264_psy_rd_spinbutton: Spinbutton that emitted the signal.
         """
@@ -47,7 +47,7 @@ class X264PsyRDSignal:
 
     def on_x264_psy_rd_trellis_spinbutton_value_changed(self, x264_psy_rd_trellis_spinbutton):
         """
-        Applies the PsyRD options and updates the preview page.
+        Applies the Psy RD options and updates the preview page.
 
         :param x264_psy_rd_trellis_spinbutton: Spinbutton that emitted the signal.
         """

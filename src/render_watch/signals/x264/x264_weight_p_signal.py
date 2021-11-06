@@ -16,27 +16,29 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X264BFramesSignal:
+class X264WeightPSignal:
     """
-    Handles the signal emitted when the x264 BFrames option is changed.
+    Handles the signal emitted when the x264 Weight P option is changed.
     """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_bframes_spinbutton_value_changed(self, x264_bframes_spinbutton):
+    def on_x264_weight_p_combobox_changed(self, x264_weight_p_combobox):
         """
-        Applies the BFrames option and updates the preview page.
+        Applies the Weight P option and updates the preview page.
 
-        :param x264_bframes_spinbutton: Spinbutton that emitted the signal.
+        :param x264_weight_p_combobox: Combobox that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
+        weight_p_index = x264_weight_p_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.bframes = x264_bframes_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.weightp = weight_p_index
 
             row.setup_labels()
 

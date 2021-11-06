@@ -16,27 +16,29 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X264WeightBSignal:
+class X264BAdaptSignal:
     """
-    Handles the signal emitted when the x264 WeightB option is toggled.
+    Handles the signal emitted when the x264 B Adapt option is changed.
     """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_weight_b_checkbutton_toggled(self, x264_weight_b_checkbutton):
+    def on_x264_b_adapt_combobox_changed(self, x264_b_adapt_combobox):
         """
-        Applies the WeightB option and updates the preview page.
+        Applies the B Adapt option and updates the preview page.
 
-        :param x264_weight_b_checkbutton: Checkbutton that emitted the signal.
+        :param x264_b_adapt_combobox: Combobox that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
+        b_adapt_index = x264_b_adapt_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.weightb = x264_weight_b_checkbutton.get_active()
+            ffmpeg.video_settings.b_adapt = b_adapt_index
 
             row.setup_labels()
 
