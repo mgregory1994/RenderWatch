@@ -22,24 +22,26 @@ from render_watch.signals.aac.aac_channels_signal import AacChannelsSignal
 
 
 class AacHandlers:
-    """Handles all widget changes for the AAC codec."""
+    """
+    Handles all widget changes for the AAC codec.
+    """
 
     def __init__(self, gtk_builder, inputs_page_handlers):
         self.inputs_page_handlers = inputs_page_handlers
         self.is_widgets_setting_up = False
+
         self.aac_bitrate_signal = AacBitrateSignal(self, inputs_page_handlers)
         self.aac_channels_signal = AacChannelsSignal(self, inputs_page_handlers)
         self.signals_list = (self.aac_bitrate_signal, self.aac_channels_signal)
+
         self.aac_channels_combobox = gtk_builder.get_object('aac_channels_combobox')
         self.aac_bitrate_spinbutton = gtk_builder.get_object('aac_bitrate_spinbutton')
 
-    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
-        """Returns the list of signals this class uses.
+    def __getattr__(self, signal_name):
+        """
+        If found, return the signal name's function from the list of signals.
 
-        Used for Gtk.Builder.get_signals().
-
-        :param signal_name:
-            The signal function name being looked for.
+        :param signal_name: The signal function name being looked for.
         """
         for signal in self.signals_list:
             if hasattr(signal, signal_name):
@@ -47,21 +49,22 @@ class AacHandlers:
         raise AttributeError
 
     def get_settings(self, ffmpeg):
-        """Applies settings from the widgets to the ffmpeg settings object.
+        """
+        Applies settings from the aac widgets to ffmpeg settings.
 
-        :param ffmpeg:
-            The ffmpeg settings object.
+        :param ffmpeg: ffmpeg settings.
         """
         audio_settings = Aac()
         audio_settings.bitrate = self.aac_bitrate_spinbutton.get_value_as_int()
         audio_settings.channels = self.aac_channels_combobox.get_active()
+
         ffmpeg.audio_settings = audio_settings
 
     def set_settings(self, custom_ffmpeg=None):
-        """Applies settings from the ffmpeg settings object to the widgets.
+        """
+        Configures the aac widgets to match the selected task's ffmpeg settings.
         
-        :param custom_ffmpeg:
-            (Default None) Use a custom ffmpeg settings object.
+        :param custom_ffmpeg: (Default None) Use custom ffmpeg settings.
         """
         if custom_ffmpeg:
             ffmpeg = custom_ffmpeg
@@ -71,9 +74,9 @@ class AacHandlers:
         self._setup_aac_settings_widgets(ffmpeg)
 
     def _setup_aac_settings_widgets(self, ffmpeg):
-        # Uses the ffmpeg settings object to set up the widgets.
         audio_settings = ffmpeg.audio_settings
-        if audio_settings is not None and audio_settings.codec_name == 'aac':
+
+        if audio_settings and audio_settings.codec_name == 'aac':
             self.is_widgets_setting_up = True
             self.aac_bitrate_spinbutton.set_value(audio_settings.bitrate)
             self.aac_channels_combobox.set_active(audio_settings.channels)
@@ -82,7 +85,9 @@ class AacHandlers:
             self.reset_settings()
 
     def reset_settings(self):
-        """Resets the widgets to their default values."""
+        """
+        Resets the aac widgets to their default values.
+        """
         self.is_widgets_setting_up = True
         self.aac_channels_combobox.set_active(0)
         self.aac_bitrate_spinbutton.set_value(128)
