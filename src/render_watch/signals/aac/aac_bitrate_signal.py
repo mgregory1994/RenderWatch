@@ -25,17 +25,17 @@ class AacBitrateSignal:
         self.aac_handlers = aac_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_aac_bitrate_spinbutton_value_changed(self, bitrate_spinbutton):
+    def on_aac_bitrate_spinbutton_value_changed(self, aac_bitrate_spinbutton):
         """
         Updates all selected rows on the inputs page with the new audio bitrate.
 
-        :param bitrate_spinbutton: Spinbutton that emitted the signal.
+        :param aac_bitrate_spinbutton: Spinbutton that emitted the signal.
         """
         if self.aac_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.audio_settings.bitrate = bitrate_spinbutton.get_value_as_int()
+            ffmpeg.audio_settings.bitrate = aac_bitrate_spinbutton.get_value_as_int()
 
             row.setup_labels()
