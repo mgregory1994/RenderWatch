@@ -76,7 +76,7 @@ class AacHandlers:
     def _setup_aac_settings_widgets(self, ffmpeg):
         audio_settings = ffmpeg.audio_settings
 
-        if audio_settings and audio_settings.codec_name == 'aac':
+        if ffmpeg.is_audio_settings_aac():
             self.is_widgets_setting_up = True
             self.aac_bitrate_spinbutton.set_value(audio_settings.bitrate)
             self.aac_channels_combobox.set_active(audio_settings.channels)
