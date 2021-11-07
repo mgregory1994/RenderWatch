@@ -130,7 +130,7 @@ class NvencHandlers:
         self.nvenc_coder_box = gtk_builder.get_object('nvenc_coder_box')
         self.nvenc_weighted_prediction_checkbutton = gtk_builder.get_object('nvenc_weighted_prediction_checkbutton')
 
-    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+    def __getattr__(self, signal_name):
         """
         If found, return the signal name's function from the list of signals.
 
