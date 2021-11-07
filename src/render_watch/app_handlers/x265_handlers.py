@@ -512,7 +512,7 @@ class X265Handlers:
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             self.apply_settings(ffmpeg)
-            
+
             GLib.idle_add(row.setup_labels)
 
         GLib.idle_add(self.inputs_page_handlers.update_preview_page)
