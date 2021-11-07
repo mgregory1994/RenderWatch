@@ -434,6 +434,12 @@ class Settings:
             return self.video_settings.encode_pass == 1
         return False
 
+    def is_audio_settings_aac(self):
+        return self.audio_settings is not None and self.audio_settings.codec_name == 'aac'
+
+    def is_audio_settings_opus(self):
+        return self.audio_settings is not None and self.audio_settings.codec_name == 'libopus'
+
     def get_copy(self):
         """
         Get separate copy of this ffmpeg settings object.
