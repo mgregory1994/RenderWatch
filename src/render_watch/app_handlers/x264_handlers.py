@@ -148,7 +148,7 @@ class X264Handlers:
         self.x264_no_dct_decimate_checkbutton = gtk_builder.get_object('x264_no_dct_decimate_checkbutton')
         self.x264_no_cabac_checkbutton = gtk_builder.get_object('x264_no_cabac_checkbutton')
 
-    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+    def __getattr__(self, signal_name):
         """
         If found, return the signal name's function from the list of signals.
 
