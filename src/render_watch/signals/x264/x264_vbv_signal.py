@@ -25,7 +25,7 @@ class X264VbvSignal:
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_vbv_max_rate_spinbutton_value_changed(self, x264_vbv_maxrate_spinbutton):
+    def on_x264_vbv_maxrate_spinbutton_value_changed(self, x264_vbv_maxrate_spinbutton):
         """
         Applies the VBV Maxrate option and updates the preview page.
 
