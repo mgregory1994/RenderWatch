@@ -4876,7 +4876,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkSpinButton" id="x264_psyrd_spinbutton">
+                                                      <object class="GtkSpinButton" id="x264_psy_rd_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="max-length">3</property>
@@ -4887,7 +4887,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                         <property name="snap-to-ticks">True</property>
                                                         <property name="numeric">True</property>
                                                         <property name="value">1</property>
-                                                        <signal name="value-changed" handler="on_x264_psyrd_spinbutton_value_changed" swapped="no"/>
+                                                        <signal name="value-changed" handler="on_x264_psy_rd_spinbutton_value_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>
@@ -4931,7 +4931,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                       </packing>
                                                     </child>
                                                     <child>
-                                                      <object class="GtkSpinButton" id="x264_psyrd_trellis_spinbutton">
+                                                      <object class="GtkSpinButton" id="x264_psy_rd_trellis_spinbutton">
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="max-length">4</property>
@@ -4941,7 +4941,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                         <property name="digits">2</property>
                                                         <property name="snap-to-ticks">True</property>
                                                         <property name="numeric">True</property>
-                                                        <signal name="value-changed" handler="on_x264_psyrd_trellis_spinbutton_value_changed" swapped="no"/>
+                                                        <signal name="value-changed" handler="on_x264_psy_rd_trellis_spinbutton_value_changed" swapped="no"/>
                                                       </object>
                                                       <packing>
                                                         <property name="expand">True</property>

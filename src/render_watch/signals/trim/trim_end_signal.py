@@ -58,7 +58,7 @@ class TrimEndSignal:
             return
 
         self.trim_page_handlers.run_trim_preview_thread(True)
-        self.trim_page_handlers.update_trim_settings()
+        self.trim_page_handlers.apply_trim_settings()
 
     def on_trim_end_time_scale_key_release_event(self, trim_end_scale, event=None, user_data=None):
         """

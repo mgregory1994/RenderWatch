@@ -35,4 +35,4 @@ class TrimEnabledSignal:
         if self.trim_page_handlers.is_widgets_setting_up:
             return
 
-        self.trim_page_handlers.update_trim_settings()
+        self.trim_page_handlers.apply_trim_settings()
