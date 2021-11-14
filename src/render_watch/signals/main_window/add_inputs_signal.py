@@ -152,7 +152,7 @@ class AddInputsSignal:
     def _setup_settings_sidebar_ffmpeg_template(self):
         if self.inputs_page_handlers.is_apply_all_selected():
             ffmpeg_template = self.main_window_handlers.ffmpeg_template
-            self.settings_sidebar_handlers.get_settings(ffmpeg_template)
+            self.settings_sidebar_handlers.apply_settings(ffmpeg_template)
 
     def _setup_importing_files_widgets(self, file_path, input_index, length_of_input_files):
         GLib.idle_add(self.inputs_page_handlers.set_importing_file_path_text, file_path)

@@ -34,7 +34,7 @@ class VideoCodecSignal:
         if not self._is_video_combobox_state_valid(video_codec_combobox):
             return
 
-        video_settings = self.settings_sidebar_handlers.update_video_settings()
+        video_settings = self.settings_sidebar_handlers.get_changed_video_codec_settings()
 
         if self.settings_sidebar_handlers.is_widgets_setting_up:
             return

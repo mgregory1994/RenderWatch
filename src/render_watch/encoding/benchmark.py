@@ -102,7 +102,7 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
                 bufsize=1) as benchmark_process:
             while True:
                 with settings_sidebar_handlers.benchmark_thread_lock:
-                    if settings_sidebar_handlers.benchmark_thread_stopping:
+                    if settings_sidebar_handlers.is_benchmark_thread_stopping:
                         benchmark_process.terminate()
                         break
 
@@ -149,7 +149,7 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
 
     if process_return_code != 0:
         with settings_sidebar_handlers.benchmark_thread_lock:
-            if settings_sidebar_handlers.benchmark_thread_stopping:
+            if settings_sidebar_handlers.is_benchmark_thread_stopping:
                 GLib.idle_add(settings_sidebar_handlers.set_benchmark_ready_state)
             else:
                 logging.error('--- BENCHMARK PROCESS FAILED ---\n' + str(ffmpeg.get_args()))
