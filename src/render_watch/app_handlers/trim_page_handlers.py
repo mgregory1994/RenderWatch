@@ -68,7 +68,7 @@ class TrimPageHandlers:
         self.trim_end_time_label = gtk_builder.get_object('trim_end_time_label')
         self.trim_preview_viewport = gtk_builder.get_object('trim_preview_viewport')
 
-    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
+    def __getattr__(self, signal_name):
         """
         If found, return the signal name's function from the list of signals.
 
