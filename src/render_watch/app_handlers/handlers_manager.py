@@ -18,7 +18,7 @@
 import logging
 
 from render_watch.app_handlers.main_window_handlers import MainWindowHandlers
-from render_watch.app_handlers.prefs_handlers import PrefsHandlers
+from render_watch.app_handlers.application_preferences_handlers import ApplicationPreferencesHandlers
 
 
 class HandlersManager(object):
@@ -26,7 +26,7 @@ class HandlersManager(object):
 
     def __init__(self, gtk_builder, gtk_settings, encoder_queue, preferences):
         main_window_handlers = MainWindowHandlers(gtk_builder, encoder_queue, preferences)
-        prefs_handlers = PrefsHandlers(gtk_builder, gtk_settings, main_window_handlers, preferences)
+        prefs_handlers = ApplicationPreferencesHandlers(gtk_builder, gtk_settings, main_window_handlers, preferences)
         self.__handlers_list = (main_window_handlers, prefs_handlers)
 
     def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py

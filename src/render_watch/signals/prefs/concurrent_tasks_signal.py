@@ -37,7 +37,7 @@ class ConcurrentTasksSignal:
         parallel_tasks_value = ApplicationPreferences.PARALLEL_TASKS_VALUES[concurrent_tasks_combobox.get_active()]
         self.application_preferences.parallel_tasks = parallel_tasks_value
 
-        self.prefs_handlers.update_concurrent_restart_state()
+        self.prefs_handlers.update_concurrent_tasks_restart_state()
         self.prefs_handlers.update_concurrent_message(parallel_tasks_value)
 
     def on_concurrent_nvenc_tasks_combobox_changed(self, concurrent_nvenc_tasks_combobox):
@@ -51,7 +51,7 @@ class ConcurrentTasksSignal:
         ]
         self.application_preferences.concurrent_nvenc_value = concurrent_nvenc_text
 
-        self.prefs_handlers.update_nvenc_concurrent_restart_state(concurrent_nvenc_text)
+        self.prefs_handlers.update_nvenc_concurrent_tasks_restart_state(concurrent_nvenc_text)
 
     def on_simultaneous_concurrent_nvenc_tasks_checkbutton_toggled(self,
                                                                    simultaneous_concurrent_nvenc_tasks_checkbutton):
