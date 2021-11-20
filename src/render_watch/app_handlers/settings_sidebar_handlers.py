@@ -781,7 +781,7 @@ class SettingsSidebarHandlers:
         with self.benchmark_thread_lock:
             if self.benchmark_thread and self.benchmark_thread.is_alive():
                 self.is_benchmark_thread_stopping = True
-                
+
         if self.is_benchmark_thread_stopping:
             self.benchmark_thread.join()
             self.is_benchmark_thread_stopping = False

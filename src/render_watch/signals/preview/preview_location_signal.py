@@ -70,7 +70,7 @@ class PreviewLocationSignal:
         self.preview_page_handlers.set_preview_opacity(0.5)
 
         time = self.preview_page_handlers.get_current_time_value()
-        self.preview_page_handlers.queue_add_time(time)
+        self.preview_page_handlers.queue_preview_time_position(time)
 
         threading.Thread(target=self.preview_page_handlers.process_preview, args=()).start()
 
