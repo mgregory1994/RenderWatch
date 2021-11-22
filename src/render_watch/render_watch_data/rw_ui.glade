@@ -420,7 +420,7 @@ Author: Michael Gregory
         <property name="orientation">vertical</property>
         <property name="spacing">10</property>
         <child>
-          <object class="GtkStack" id="application_page_options_stack">
+          <object class="GtkStack" id="page_options_stack">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="vhomogeneous">False</property>

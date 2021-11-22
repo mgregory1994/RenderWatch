@@ -32,3 +32,16 @@ class SettingsSidebarSignal:
         :param toggle_settings_sidebar_button: Button that emitted the signal.
         """
         self.main_window_handlers.toggle_settings_sidebar()
+
+    # Unused parameters needed for this signal
+    def on_sidebar_pane_click_press(self, event=None, user_data=None):
+        self.main_window_handlers.is_sidebar_pane_resizing = True
+
+    # Unused parameters needed for this signal
+    def on_sidebar_pane_click_release(self, event=None, user_data=None):
+        self.main_window_handlers.is_sidebar_pane_resizing = False
+        self.main_window_handlers.update_settings_sidebar_paned_position()
+
+    # Unused parameters needed for this signal
+    def on_sidebar_pane_size_allocate(self, sidebar_pane, allocation):
+        self.main_window_handlers.update_settings_sidebar_paned_allocation()

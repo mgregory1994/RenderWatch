@@ -36,7 +36,7 @@ class StopAllTasksSignal:
 
         :param stop_all_tasks_button: Button that emitted the signal.
         """
-        self.main_window_handlers.app_preferences_popover.popdown()
+        self.main_window_handlers.application_options_popover.popdown()
 
         stop_all_tasks_message_response = self._show_stop_all_tasks_message_dialog()
         if stop_all_tasks_message_response == Gtk.ResponseType.YES:
