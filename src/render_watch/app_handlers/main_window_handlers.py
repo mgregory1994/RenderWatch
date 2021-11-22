@@ -54,6 +54,8 @@ class MainWindowHandlers:
         self.ffmpeg_template = None
         self.inputs_page_paned_position = self.application_preferences.settings_sidebar_position
         self.is_sidebar_pane_resizing = False
+        self._setup_signals()
+        self._setup_widgets(gtk_builder)
 
     def _setup_signals(self):
         self.about_application_signal = AboutApplicationSignal(self)
