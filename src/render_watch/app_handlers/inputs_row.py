@@ -372,7 +372,7 @@ class InputsRow(Gtk.ListBoxRow):
                     GLib.idle_add(active_page_task.add_audio_chunk_row, chunk_row)
                 else:
                     GLib.idle_add(active_page_task.add_chunk_row, chunk_row)
-                    
+
                 self.encoder_queue.add_active_row(chunk_row)
         else:
             self.encoder_queue.add_active_row(active_page_task)

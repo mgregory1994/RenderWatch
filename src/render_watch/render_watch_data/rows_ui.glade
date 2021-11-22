@@ -948,6 +948,8 @@
           <object class="GtkBox" id="inputs_listbox_row_widgets_box">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="valign">start</property>
+            <property name="vexpand">True</property>
             <property name="spacing">10</property>
             <child>
               <!-- n-columns=2 n-rows=2 -->
