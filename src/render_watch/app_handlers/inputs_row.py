@@ -61,10 +61,6 @@ class InputsRow(Gtk.ListBoxRow):
         self.remove_task_signal = RemoveTaskSignal(self, inputs_page_handlers)
         self.start_signal = StartSignal(self)
         self.video_stream_signal = VideoStreamSignal(self)
-        self.signals_list = (
-            self.audio_stream_signal, self.recursive_folder_task_signal, self.watch_folder_task_signal,
-            self.remove_task_signal, self.start_signal, self.video_stream_signal
-        )
 
     def _setup_widgets(self):
         this_modules_file_path = os.path.dirname(os.path.abspath(__file__))
