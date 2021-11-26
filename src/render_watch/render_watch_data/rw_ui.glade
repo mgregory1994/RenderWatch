@@ -47,12 +47,12 @@ Author: Michael Gregory
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="crop_x_adjustment">
+  <object class="GtkAdjustment" id="crop_x_padding_adjustment">
     <property name="upper">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
   </object>
-  <object class="GtkAdjustment" id="crop_y_adjustment">
+  <object class="GtkAdjustment" id="crop_y_padding_adjustment">
     <property name="upper">100</property>
     <property name="step-increment">1</property>
     <property name="page-increment">10</property>
@@ -2321,7 +2321,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Adjust crop X-axis padding</property>
-                                                        <property name="adjustment">crop_x_adjustment</property>
+                                                        <property name="adjustment">crop_x_padding_adjustment</property>
                                                         <property name="round-digits">0</property>
                                                         <property name="value-pos">bottom</property>
                                                         <signal name="button-release-event" handler="on_crop_x_padding_scale_button_release_event" swapped="no"/>
@@ -2364,7 +2364,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                         <property name="visible">True</property>
                                                         <property name="can-focus">True</property>
                                                         <property name="tooltip-text" translatable="yes">Adjust crop Y-axis padding</property>
-                                                        <property name="adjustment">crop_y_adjustment</property>
+                                                        <property name="adjustment">crop_y_padding_adjustment</property>
                                                         <property name="round-digits">0</property>
                                                         <property name="value-pos">bottom</property>
                                                         <signal name="button-release-event" handler="on_crop_y_padding_scale_button_release_event" swapped="no"/>

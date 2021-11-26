@@ -195,7 +195,7 @@ class MainWindowHandlers:
         """
         Sets up the main window widgets for when the completed page is showing.
         """
-        self.page_options_stack.set_visible_child(self.completed_page_handlers.clear_all_completed_button)
+        self.page_options_stack.set_visible_child(self.completed_page_handlers.clear_all_completed_tasks_button)
         self.input_settings_stack.set_sensitive(False)
         self.output_directory_chooserbutton.set_sensitive(False)
         self.add_inputs_button.set_sensitive(False)
