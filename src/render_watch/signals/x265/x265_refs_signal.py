@@ -16,7 +16,7 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class X265RefSignal:
+class X265RefsSignal:
     """
     Handles the signal emitted when the x265 Reference Frames option is changed.
     """
@@ -25,16 +25,16 @@ class X265RefSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_ref_spinbutton_value_changed(self, x265_ref_spinbutton):
+    def on_x265_refs_spinbutton_value_changed(self, x265_refs_spinbutton):
         """
         Applies the Reference Frames value option and updates the preview page.
 
-        :param x265_ref_spinbutton: Spinbutton that emitted the signal.
+        :param x265_refs_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        ref_value = x265_ref_spinbutton.get_value_as_int()
+        ref_value = x265_refs_spinbutton.get_value_as_int()
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg

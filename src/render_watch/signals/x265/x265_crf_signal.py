@@ -77,6 +77,9 @@ class X265CrfSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
+    def on_x265_crf_scale_key_release_event(self, x265_crf_scale, event, user_data):
+        self.on_x265_crf_scale_button_release_event(x265_crf_scale, event, user_data)
+
     @staticmethod
     def _apply_x265_crf_settings(row, crf_value, is_crf_enabled):
         ffmpeg = row.ffmpeg

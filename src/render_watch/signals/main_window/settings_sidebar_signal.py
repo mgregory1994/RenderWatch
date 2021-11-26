@@ -34,11 +34,11 @@ class SettingsSidebarSignal:
         self.main_window_handlers.toggle_settings_sidebar()
 
     # Unused parameters needed for this signal
-    def on_sidebar_pane_click_press(self, event=None, user_data=None):
+    def on_inputs_page_paned_button_press_event(self, event=None, user_data=None):
         self.main_window_handlers.is_sidebar_pane_resizing = True
 
     # Unused parameters needed for this signal
-    def on_sidebar_pane_click_release(self, event=None, user_data=None):
+    def on_inputs_page_paned_button_release_event(self, event=None, user_data=None):
         self.main_window_handlers.is_sidebar_pane_resizing = False
         self.main_window_handlers.update_settings_sidebar_paned_position()
 

@@ -63,7 +63,7 @@ class X265AqSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_hevc_aq_checkbox_toggled(self, x265_hevc_aq_checkbutton):
+    def on_x265_hevc_aq_checkbutton_toggled(self, x265_hevc_aq_checkbutton):
         """
         Applies the HEVC AQ option and updates the preview page.
 

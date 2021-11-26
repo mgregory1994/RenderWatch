@@ -30,7 +30,7 @@ class OutputChooserSignal:
         self.inputs_page_handlers = inputs_page_handlers
         self.application_preferences = application_preferences
 
-    def on_output_chooserbutton_file_set(self, file_chooser_button):
+    def on_output_directory_chooserbutton_file_set(self, file_chooser_button):
         """
         Applies the selected output directory to all inputs.
         If the file path isn't accessible, then the user is notified and the old path is used instead.

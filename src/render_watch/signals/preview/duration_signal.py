@@ -34,7 +34,7 @@ class DurationSignal:
             return
 
         self.preview_page_handlers.stop_preview_thumbnail_thread()
-        self.preview_page_handlers.reset_preview_page()
+        #self.preview_page_handlers.reset_preview_page()
 
         start_time = round(self.preview_page_handlers.get_current_time_value(), 1)
         preview_duration = self.preview_page_handlers.get_preview_duration()

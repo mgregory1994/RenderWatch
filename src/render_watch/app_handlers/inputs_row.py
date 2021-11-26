@@ -54,6 +54,9 @@ class InputsRow(Gtk.ListBoxRow):
         self.encoder_queue = encoder_queue
         self.main_window_handlers = main_window_handlers
 
+        self._setup_signals(inputs_page_handlers)
+        self._setup_widgets()
+
     def _setup_signals(self, inputs_page_handlers):
         self.audio_stream_signal = AudioStreamSignal(self)
         self.recursive_folder_task_signal = RecursiveFolderTaskSignal(self)

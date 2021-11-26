@@ -36,6 +36,10 @@ class VP9Handlers:
         self.application_preferences = application_preferences
         self.is_widgets_setting_up = False
 
+        self._setup_signals(inputs_page_handlers, application_preferences)
+        self._setup_widgets(gtk_builder)
+
+    def _setup_signals(self, inputs_page_handlers, application_preferences):
         self.vp9_crf_signal = Vp9CrfSignal(self, inputs_page_handlers)
         self.vp9_bitrate_signal = Vp9BitrateSignal(self, inputs_page_handlers)
         self.vp9_constrained_signal = Vp9ConstrainedSignal(self, inputs_page_handlers)
@@ -49,10 +53,11 @@ class VP9Handlers:
             self.vp9_row_multithreading_signal
         )
 
+    def _setup_widgets(self, gtk_builder):
         self.vp9_bitrate_spinbutton = gtk_builder.get_object('vp9_bitrate_spinbutton')
         self.vp9_max_bitrate_spinbutton = gtk_builder.get_object('vp9_max_bitrate_spinbutton')
         self.vp9_min_bitrate_spinbutton = gtk_builder.get_object('vp9_min_bitrate_spinbutton')
-        self.vp9_rate_type_buttonbox = gtk_builder.get_object('vp9_rate_type_buttonbox')
+        self.vp9_bitrate_type_buttonbox = gtk_builder.get_object('vp9_bitrate_type_buttonbox')
         self.vp9_quality_combobox = gtk_builder.get_object('vp9_quality_combobox')
         self.vp9_crf_radiobutton = gtk_builder.get_object('vp9_crf_radiobutton')
         self.vp9_bitrate_radiobutton = gtk_builder.get_object('vp9_bitrate_radiobutton')
@@ -184,9 +189,9 @@ class VP9Handlers:
         self.vp9_min_bitrate_spinbutton.set_value(2500)
         self.vp9_max_bitrate_spinbutton.set_value(2500)
         self.vp9_average_radiobutton.set_active(True)
-        self.vp9_2_pass_checkbox.set_active(False)
+        self.vp9_2_pass_checkbutton.set_active(False)
         self.vp9_speed_combobox.set_active(0)
-        self.vp9_row_multithreading_checkbox.set_active(False)
+        self.vp9_row_multithreading_checkbutton.set_active(False)
         self.is_widgets_setting_up = False
 
     def get_crf_value(self):
@@ -212,12 +217,12 @@ class VP9Handlers:
         self.vp9_bitrate_spinbutton.set_sensitive(False)
         self.vp9_max_bitrate_spinbutton.set_sensitive(False)
         self.vp9_min_bitrate_spinbutton.set_sensitive(False)
-        self.vp9_bitrate_type_buttonsbox.set_sensitive(False)
+        self.vp9_bitrate_type_buttonbox.set_sensitive(False)
 
     def set_bitrate_state(self):
         self.vp9_crf_scale.set_sensitive(False)
         self.vp9_bitrate_spinbutton.set_sensitive(True)
-        self.vp9_bitrate_type_buttonsbox.set_sensitive(True)
+        self.vp9_bitrate_type_buttonbox.set_sensitive(True)
 
     def set_vbr_state(self, enabled):
         self.vp9_max_bitrate_spinbutton.set_sensitive(enabled)

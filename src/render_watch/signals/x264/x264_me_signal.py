@@ -25,7 +25,7 @@ class X264MeSignal:
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_motion_estimation_combobox_changed(self, x264_me_combobox):
+    def on_x264_me_combobox_changed(self, x264_me_combobox):
         """
         Applies the Motion Estimation option and updates the preview page.
 
@@ -44,7 +44,7 @@ class X264MeSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_sub_motion_estimation_combobox_changed(self, x264_subme_combobox):
+    def on_x264_subme_combobox_changed(self, x264_subme_combobox):
         """
         Applies the Sub-Motion Estimation option and updates the preview page.
 

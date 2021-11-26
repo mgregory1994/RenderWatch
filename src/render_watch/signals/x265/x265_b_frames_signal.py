@@ -25,16 +25,16 @@ class X265BFramesSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_bframes_spinbutton_value_changed(self, x265_bframes_spinbutton):
+    def on_x265_b_frames_spinbutton_value_changed(self, x265_b_frames_spinbutton):
         """
         Applies the B Frames option and updates the preview page.
 
-        :param x265_bframes_spinbutton: Spinbutton that emitted the signal.
+        :param x265_b_frames_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        bframes_value = x265_bframes_spinbutton.get_value_as_int()
+        bframes_value = x265_b_frames_spinbutton.get_value_as_int()
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg

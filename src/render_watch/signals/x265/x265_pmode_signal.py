@@ -25,7 +25,7 @@ class X265PModeSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_pmode_checkbox_toggled(self, x265_pmode_checkbutton):
+    def on_x265_pmode_checkbutton_toggled(self, x265_pmode_checkbutton):
         """
         Toggles the PMODE option and updates the preview page.
 

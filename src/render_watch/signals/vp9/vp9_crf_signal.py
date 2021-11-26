@@ -72,3 +72,6 @@ class Vp9CrfSignal:
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
+
+    def on_vp9_crf_scale_key_release_event(self, vp9_crf_scale, event, user_data):
+        self.on_vp9_crf_scale_button_release_event(vp9_crf_scale, event, user_data)

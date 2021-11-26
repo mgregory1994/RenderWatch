@@ -33,10 +33,10 @@ class PageSwitchSignal:
         :param page_stack: Stack that emitted the signal.
         :param user_data: Signal user data.
         """
-        self.main_window_handlers.toggle_settings_sidebar(False)
+        self.main_window_handlers.toggle_settings_sidebar(is_closing_settings_sidebar=True)
 
         current_page = page_stack.get_visible_child()
-        if current_page == self.inputs_page_handlers.inputs_page_box:
+        if current_page == self.main_window_handlers.inputs_page_paned:
             self.main_window_handlers.set_inputs_page_state()
         elif current_page == self.main_window_handlers.active_page_scroller:
             self.main_window_handlers.set_active_page_state()

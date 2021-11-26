@@ -74,6 +74,9 @@ class X264CrfSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
+    def on_x264_crf_scale_key_release_event(self, x264_crf_scale, event, user_data):
+        self.on_x264_crf_scale_button_release_event(x264_crf_scale, event, user_data)
+
     def _apply_x264_crf_settings(self, row, crf_value):
         ffmpeg = row.ffmpeg
 

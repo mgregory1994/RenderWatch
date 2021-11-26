@@ -25,18 +25,18 @@ class X265DeblockSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_no_deblock_checkbox_toggled(self, x265_no_deblock_checkbox):
+    def on_x265_no_deblock_checkbutton_toggled(self, x265_no_deblock_checkbutton):
         """
         Toggles the No Deblock option and updates the preview page.
 
-        :param x265_no_deblock_checkbox: Checkbutton that emitted the signal.
+        :param x265_no_deblock_checkbutton: Checkbutton that emitted the signal.
         """
-        self.x265_handlers.set_deblock_state(not x265_no_deblock_checkbox.get_active())
+        self.x265_handlers.set_deblock_state(not x265_no_deblock_checkbutton.get_active())
 
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        is_no_deblock_enabled = x265_no_deblock_checkbox.get_active()
+        is_no_deblock_enabled = x265_no_deblock_checkbutton.get_active()
         deblock_settings = self.x265_handlers.get_deblock_settings()
 
         for row in self.inputs_page_handlers.get_selected_rows():

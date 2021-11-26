@@ -116,13 +116,13 @@ class X264Handlers:
         self.x264_vbv_bufsize_spinbutton = gtk_builder.get_object('x264_vbv_bufsize_spinbutton')
         self.x264_aq_mode_combobox = gtk_builder.get_object('x264_aq_mode_combobox')
         self.x264_aq_strength_spinbutton = gtk_builder.get_object('x264_aq_strength_spinbutton')
-        self.x264_ref_spinbutton = gtk_builder.get_object('x264_reference_frames_spinbutton')
+        self.x264_refs_spinbutton = gtk_builder.get_object('x264_refs_spinbutton')
         self.x264_mixed_refs_checkbutton = gtk_builder.get_object('x264_mixed_refs_checkbutton')
         self.x264_b_frames_spinbutton = gtk_builder.get_object('x264_b_frames_spinbutton')
         self.x264_b_adapt_combobox = gtk_builder.get_object('x264_b_adapt_combobox')
         self.x264_b_pyramid_combobox = gtk_builder.get_object('x264_b_pyramid_combobox')
         self.x264_weight_p_combobox = gtk_builder.get_object('x264_weight_p_combobox')
-        self.x264_weight_b_checkbox = gtk_builder.get_object('x264_weight_b_checkbox')
+        self.x264_weight_b_checkbutton = gtk_builder.get_object('x264_weight_b_checkbutton')
         self.x264_keyint_spinbutton = gtk_builder.get_object('x264_keyint_spinbutton')
         self.x264_min_keyint_spinbutton = gtk_builder.get_object('x264_min_keyint_spinbutton')
         self.x264_me_combobox = gtk_builder.get_object('x264_me_combobox')
@@ -141,10 +141,10 @@ class X264Handlers:
         self.x264_psy_rd_trellis_spinbutton = gtk_builder.get_object('x264_psy_rd_trellis_spinbutton')
         self.x264_trellis_combobox = gtk_builder.get_object('x264_trellis_combobox')
         self.x264_direct_combobox = gtk_builder.get_object('x264_direct_combobox')
-        self.x264_no_deblock_checkbox = gtk_builder.get_object('x264_no_deblock_checkbox')
+        self.x264_no_deblock_checkbutton = gtk_builder.get_object('x264_no_deblock_checkbutton')
         self.x264_deblock_alpha_spinbutton = gtk_builder.get_object('x264_deblock_alpha_spinbutton')
         self.x264_deblock_beta_spinbutton = gtk_builder.get_object('x264_deblock_beta_spinbutton')
-        self.x264_no_fast_p_skip_checkbutton = gtk_builder.get_object('x264_no_fast_p_skip_checkbutton')
+        self.x264_no_fast_pskip_checkbutton = gtk_builder.get_object('x264_no_fast_pskip_checkbutton')
         self.x264_no_dct_decimate_checkbutton = gtk_builder.get_object('x264_no_dct_decimate_checkbutton')
         self.x264_no_cabac_checkbutton = gtk_builder.get_object('x264_no_cabac_checkbutton')
 
@@ -205,10 +205,10 @@ class X264Handlers:
             video_settings.direct = self.x264_direct_combobox.get_active()
             aq_strength_value = round(self.x264_aq_strength_spinbutton.get_value(), 1)
             video_settings.aq_strength = aq_strength_value
-            video_settings.ref = self.x264_ref_spinbutton.get_value_as_int()
+            video_settings.ref = self.x264_refs_spinbutton.get_value_as_int()
             video_settings.mixed_refs = self.x264_mixed_refs_checkbutton.get_active()
             video_settings.bframes = self.x264_b_frames_spinbutton.get_value_as_int()
-            video_settings.weightb = self.x264_weight_b_checkbox.get_active()
+            video_settings.weightb = self.x264_weight_b_checkbutton.get_active()
             video_settings.keyint = self.x264_keyint_spinbutton.get_value_as_int()
             video_settings.min_keyint = self.x264_min_keyint_spinbutton.get_value_as_int()
             video_settings.me_range = self.x264_me_range_spinbutton.get_value_as_int()
@@ -216,14 +216,14 @@ class X264Handlers:
             psy_rd_value = round(self.x264_psy_rd_spinbutton.get_value(), 1)
             psy_rd_trellis_value = round(self.x264_psy_rd_trellis_spinbutton.get_value(), 2)
             video_settings.psy_rd = (psy_rd_value, psy_rd_trellis_value)
-            video_settings.no_fast_pskip = self.x264_no_fast_p_skip_checkbutton.get_active()
+            video_settings.no_fast_pskip = self.x264_no_fast_pskip_checkbutton.get_active()
             video_settings.no_dct_decimate = self.x264_no_dct_decimate_checkbutton.get_active()
             video_settings.no_cabac = self.x264_no_cabac_checkbutton.get_active()
             self._apply_deblock_settings(video_settings)
             self._apply_partitions_settings(video_settings)
 
     def _apply_deblock_settings(self, video_settings):
-        if self.x264_no_deblock_checkbox.get_active():
+        if self.x264_no_deblock_checkbutton.get_active():
             video_settings.no_deblock = True
             video_settings.deblock = None
         else:
@@ -303,13 +303,13 @@ class X264Handlers:
         self.x264_vbv_bufsize_spinbutton.set_value(video_settings.vbv_bufsize)
         self.x264_aq_mode_combobox.set_active(video_settings.aq_mode)
         self.x264_aq_strength_spinbutton.set_value(video_settings.aq_strength)
-        self.x264_ref_spinbutton.set_value(video_settings.ref)
+        self.x264_refs_spinbutton.set_value(video_settings.ref)
         self.x264_mixed_refs_checkbutton.set_active(video_settings.mixed_refs)
         self.x264_b_frames_spinbutton.set_value(video_settings.bframes)
         self.x264_b_adapt_combobox.set_active(video_settings.b_adapt)
         self.x264_b_pyramid_combobox.set_active(video_settings.b_pyramid)
         self.x264_weight_p_combobox.set_active(video_settings.weightp)
-        self.x264_weight_b_checkbox.set_active(video_settings.weightb)
+        self.x264_weight_b_checkbutton.set_active(video_settings.weightb)
         self.x264_keyint_spinbutton.set_value(video_settings.keyint)
         self.x264_min_keyint_spinbutton.set_value(video_settings.min_keyint)
         self.x264_me_combobox.set_active(video_settings.me)
@@ -321,7 +321,7 @@ class X264Handlers:
         self.x264_trellis_combobox.set_active(video_settings.trellis)
         self.x264_direct_combobox.set_active(video_settings.direct)
         self._setup_x264_deblock_widgets(video_settings)
-        self.x264_no_fast_p_skip_checkbutton.set_active(video_settings.no_fast_pskip)
+        self.x264_no_fast_pskip_checkbutton.set_active(video_settings.no_fast_pskip)
         self.x264_no_dct_decimate_checkbutton.set_active(video_settings.no_dct_decimate)
         self.x264_no_cabac_checkbutton.set_active(video_settings.no_cabac)
 
@@ -357,11 +357,11 @@ class X264Handlers:
 
     def _set_auto_partitions_settings(self):
         self.x264_partitions_auto_radiobutton.set_active(True)
-        self.x264_i4x4_checkbox.set_active(False)
-        self.x264_i8x8_checkbox.set_active(False)
-        self.x264_p4x4_checkbox.set_active(False)
-        self.x264_p8x8_checkbox.set_active(False)
-        self.x264_b8x8_checkbox.set_active(False)
+        self.x264_i4x4_checkbutton.set_active(False)
+        self.x264_i8x8_checkbutton.set_active(False)
+        self.x264_p4x4_checkbutton.set_active(False)
+        self.x264_p8x8_checkbutton.set_active(False)
+        self.x264_b8x8_checkbutton.set_active(False)
 
     def _setup_x264_psy_rd_widgets(self, video_settings):
         psy_rd = video_settings.psy_rd
@@ -373,13 +373,13 @@ class X264Handlers:
 
     def _setup_x264_deblock_widgets(self, video_settings):
         if video_settings.no_deblock:
-            self.x264_no_deblock_checkbox.set_active(True)
+            self.x264_no_deblock_checkbutton.set_active(True)
             self.x264_deblock_alpha_spinbutton.set_value(0)
             self.x264_deblock_beta_spinbutton.set_value(0)
         else:
             alpha_value, beta_value = video_settings.deblock
 
-            self.x264_no_deblock_checkbox.set_active(False)
+            self.x264_no_deblock_checkbutton.set_active(False)
             self.x264_deblock_alpha_spinbutton.set_value(alpha_value)
             self.x264_deblock_beta_spinbutton.set_value(beta_value)
 
@@ -405,33 +405,33 @@ class X264Handlers:
         self.x264_vbv_bufsize_spinbutton.set_value(2500)
         self.x264_aq_mode_combobox.set_active(0)
         self.x264_aq_strength_spinbutton.set_value(1.0)
-        self.x264_ref_spinbutton.set_value(3)
+        self.x264_refs_spinbutton.set_value(3)
         self.x264_mixed_refs_checkbutton.set_active(False)
         self.x264_b_frames_spinbutton.set_value(3)
         self.x264_b_adapt_combobox.set_active(0)
         self.x264_b_pyramid_combobox.set_active(0)
         self.x264_weight_p_combobox.set_active(0)
-        self.x264_weight_b_checkbox.set_active(False)
+        self.x264_weight_b_checkbutton.set_active(False)
         self.x264_keyint_spinbutton.set_value(250)
         self.x264_min_keyint_spinbutton.set_value(25)
         self.x264_me_combobox.set_active(0)
         self.x264_subme_combobox.set_active(0)
         self.x264_me_range_spinbutton.set_value(16)
         self.x264_partitions_auto_radiobutton.set_active(True)
-        self.x264_i4x4_checkbox.set_active(False)
-        self.x264_i8x8_checkbox.set_active(False)
-        self.x264_p4x4_checkbox.set_active(False)
-        self.x264_p8x8_checkbox.set_active(False)
-        self.x264_b8x8_checkbox.set_active(False)
-        self.x264_8x8dct_checkbox.set_active(False)
+        self.x264_i4x4_checkbutton.set_active(False)
+        self.x264_i8x8_checkbutton.set_active(False)
+        self.x264_p4x4_checkbutton.set_active(False)
+        self.x264_p8x8_checkbutton.set_active(False)
+        self.x264_b8x8_checkbutton.set_active(False)
+        self.x264_8x8dct_checkbutton.set_active(False)
         self.x264_psy_rd_spinbutton.set_value(1.0)
         self.x264_psy_rd_trellis_spinbutton.set_value(0.0)
         self.x264_trellis_combobox.set_active(0)
         self.x264_direct_combobox.set_active(0)
-        self.x264_no_deblock_checkbox.set_active(False)
+        self.x264_no_deblock_checkbutton.set_active(False)
         self.x264_deblock_alpha_spinbutton.set_value(0)
         self.x264_deblock_beta_spinbutton.set_value(0)
-        self.x264_no_fast_p_skip_checkbutton.set_active(False)
+        self.x264_no_fast_pskip_checkbutton.set_active(False)
         self.x264_no_dct_decimate_checkbutton.set_active(False)
         self.x264_no_cabac_checkbutton.set_active(False)
 
@@ -479,7 +479,7 @@ class X264Handlers:
         return self.x264_psy_rd_trellis_spinbutton.get_value()
 
     def get_deblock_settings(self):
-        if self.x264_no_deblock_checkbox.get_active():
+        if self.x264_no_deblock_checkbutton.get_active():
             return None
 
         alpha_value = self.x264_deblock_alpha_spinbutton.get_value_as_int()

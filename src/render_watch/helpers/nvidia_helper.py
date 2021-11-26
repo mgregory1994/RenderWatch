@@ -135,9 +135,10 @@ class NvidiaHelper:
 
     @staticmethod
     def setup_nvenc_max_workers(application_preferences):
-        if application_preferences.concurrent_nvenc_value:
-            NvidiaHelper.nvenc_max_workers = application_preferences.concurrent_nvenc_value
-            logging.info('--- NVENC MAX WORKERS SET TO: %s ---', str(application_preferences.concurrent_nvenc_value))
+        if application_preferences.get_concurrent_nvenc_value():
+            NvidiaHelper.nvenc_max_workers = application_preferences.get_concurrent_nvenc_value()
+            logging.info('--- NVENC MAX WORKERS SET TO: %s ---',
+                         str(application_preferences.get_concurrent_nvenc_value()))
         else:
             NvidiaHelper._test_nvenc_max_workers()
 

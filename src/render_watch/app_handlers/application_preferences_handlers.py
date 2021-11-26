@@ -34,7 +34,7 @@ class ApplicationPreferencesHandlers:
     def __init__(self, gtk_builder, gtk_settings, main_window_handlers, application_preferences):
         self.original_temp_directory = application_preferences.temp_directory
         self.original_concurrent_tasks_index = ApplicationPreferences.PARALLEL_TASKS_VALUES.index(
-            application_preferences.parallel_tasks_as_string)
+            str(application_preferences.parallel_tasks))
 
         self._setup_signals(gtk_settings, main_window_handlers, application_preferences)
         self._setup_widgets(gtk_builder)

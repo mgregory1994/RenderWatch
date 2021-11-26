@@ -25,16 +25,16 @@ class X265NoHighTierSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_no_high_tier_checkbox_toggled(self, x265_no_high_tier_checkbox):
+    def on_x265_no_high_tier_checkbutton_toggled(self, x265_no_high_tier_checkbutton):
         """
         Toggles the No High Tier option and updates the preview page.
 
-        :param x265_no_high_tier_checkbox: Checkbutton that emitted the signal.
+        :param x265_no_high_tier_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        is_no_high_tier_enabled = x265_no_high_tier_checkbox.get_active()
+        is_no_high_tier_enabled = x265_no_high_tier_checkbutton.get_active()
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg

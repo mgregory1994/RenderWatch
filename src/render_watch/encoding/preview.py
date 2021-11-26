@@ -18,6 +18,7 @@
 
 import subprocess
 import logging
+import re
 
 from render_watch.app_formatting import format_converter
 from render_watch.ffmpeg.settings import Settings
@@ -311,20 +312,19 @@ def _run_vid_preview_encode_process(ffmpeg, preview_duration, preview_page_handl
                     vid_preview_encode_process.terminate()
                     break
 
-                stdout = vid_preview_encode_process.stdout.readline().strip()
-                if stdout == '' and vid_preview_encode_process.poll():
+                process_stdout = vid_preview_encode_process.stdout.readline().strip()
+                if process_stdout == '' and vid_preview_encode_process.poll() is not None:
                     break
 
                 try:
-                    stdout = stdout.split('=')
-                    stdout = stdout[5].split(' ')
-                    print(stdout)  # Replace current code with regex
-                    current = format_converter.get_seconds_from_timecode(stdout[0])
+                    current_timecode = re.search('time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
+                                                 process_stdout).group().split('=')[1]
+                    current_time_in_seconds = format_converter.get_seconds_from_timecode(current_timecode)
 
                     if encode_pass == 0:
-                        progress = (current / preview_duration) / len(ffmpeg_args)
+                        progress = (current_time_in_seconds / preview_duration) / len(ffmpeg_args)
                     else:
-                        progress = .5 + ((current / preview_duration) / len(ffmpeg_args))
+                        progress = .5 + ((current_time_in_seconds / preview_duration) / len(ffmpeg_args))
 
                     GLib.idle_add(preview_page_handlers.set_progress_fraction, progress)
                 except:

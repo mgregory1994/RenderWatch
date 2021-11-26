@@ -25,7 +25,7 @@ class X265PmeSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_pme_checkbox_toggled(self, x265_pme_checkbutton):
+    def on_x265_pme_checkbutton_toggled(self, x265_pme_checkbutton):
         """
         Toggles the PME option and updates the preview page.
 

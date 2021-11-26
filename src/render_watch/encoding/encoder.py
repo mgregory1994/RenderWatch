@@ -50,7 +50,7 @@ class Encoder:
                                   bufsize=1) as encode_process:
                 while True:
                     if active_row.stopped and encode_process.poll() is None:
-                        encode_process.terminate()
+                        os.kill(encode_process.pid, signal.SIGKILL)
                         break
                     elif active_row.paused and encode_process.poll() is None:
                         Encoder._pause_encode_process(encode_process, active_row)

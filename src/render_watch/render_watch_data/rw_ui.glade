@@ -1703,7 +1703,7 @@ If this option is disabled, then conflicting tasks will have their output file r
     <property name="icon">rw_64.png</property>
     <property name="startup-id">RenderWatch</property>
     <property name="show-menubar">False</property>
-    <signal name="size-allocate" handler="on_main_window_size_allocate" swapped="no"/>
+    <signal name="size-allocate" handler="on_sidebar_pane_size_allocate" swapped="no"/>
     <child>
       <object class="GtkStack" id="page_stack">
         <property name="visible">True</property>
@@ -10143,6 +10143,7 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
         <child>
           <object class="GtkButton" id="toggle_settings_sidebar_button">
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can-focus">True</property>
             <property name="receives-default">True</property>
             <property name="always-show-image">True</property>

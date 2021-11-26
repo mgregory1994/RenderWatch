@@ -36,6 +36,6 @@ class AliasGenerator:
         global counter
         counter += 1
 
-        current_date_time = datetime.now().strftime('_%m/%d/%Y_%H:%M:%S')
+        current_date_time = datetime.now().strftime('_%m-%d-%Y_%H%M%S')
 
         return name[0] + str(counter) + current_date_time

@@ -25,7 +25,7 @@ class X265BAdaptSignal:
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_badapt_combobox_changed(self, x265_b_adapt_combobox):
+    def on_x265_b_adapt_combobox_changed(self, x265_b_adapt_combobox):
         """
         Applies the B Adapt option and updates the preview page.
 

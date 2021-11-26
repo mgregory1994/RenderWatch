@@ -72,6 +72,9 @@ class NvencQpSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
+    def on_nvenc_qp_scale_key_release_event(self, nvenc_qp_scale, event, user_data):
+        self.on_nvenc_qp_scale_button_release_event(nvenc_qp_scale, event, user_data)
+
     def on_nvenc_qp_auto_radiobutton_toggled(self, nvenc_qp_auto_radiobutton):
         """
         Removes the QP_i, QP_p, and QP_b options and updates the preview page.
@@ -147,6 +150,9 @@ class NvencQpSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
+    def on_nvenc_qp_i_scale_key_release_event(self, nvenc_qp_i_scale, event, user_data):
+        self.on_nvenc_qp_i_scale_button_release_event(nvenc_qp_i_scale, event, user_data)
+
     # Unused parameters needed for this signal
     def on_nvenc_qp_p_scale_button_release_event(self, nvenc_qp_p_scale, event=None, user_data=None):
         """
@@ -169,8 +175,11 @@ class NvencQpSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
+    def on_nvenc_qp_p_scale_key_release_event(self, nvenc_qp_p_scale, event, user_data):
+        self.on_nvenc_qp_p_scale_button_release_event(nvenc_qp_p_scale, event, user_data)
+
     # Unused parameters needed for this signal
-    def on_nvenc_qp_b_scale_button_release_event(self, nvenc_qp_b_scale, event=None, user_data=None):
+    def on_nvenc_qp_b_scale_key_release_event(self, nvenc_qp_b_scale, event=None, user_data=None):
         """
         Applies the QP_b value option and updates the preview page.
 
@@ -190,3 +199,13 @@ class NvencQpSignal:
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
+
+    def on_nvenc_qp_b_scale_button_release_event(self, nvenc_qp_b_scale, event, user_data):
+        """
+        Applies the QP_b value option and updates the preview page.
+
+        :param nvenc_qp_b_scale: Scale that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
+        """
+        self.on_nvenc_qp_b_scale_key_release_event(nvenc_qp_b_scale, event, user_data)

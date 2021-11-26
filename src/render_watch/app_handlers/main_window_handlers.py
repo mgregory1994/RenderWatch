@@ -105,9 +105,6 @@ class MainWindowHandlers:
         self.toggle_parallel_tasks_radiobutton = gtk_builder.get_object('toggle_parallel_tasks_radiobutton')
         self.parallel_tasks_chunks_radiobutton = gtk_builder.get_object('parallel_tasks_chunks_radiobutton')
         self.main_window = gtk_builder.get_object('main_window')
-        self.main_window.connect('size-allocate', self.on_sidebar_pane_size_allocate)
-        self.inputs_page_paned.connect('button-press-event', self.on_sidebar_pane_click_press)
-        self.inputs_page_paned.connect('button-release-event', self.on_sidebar_pane_click_release)
 
     def __getattr__(self, signal_name):
         """
@@ -142,7 +139,7 @@ class MainWindowHandlers:
             self.inputs_page_handlers.set_processing_inputs_state(first_input_file_path)
             self.add_inputs_button.set_sensitive(not is_state_enabled)
             self.add_inputs_type_combobox.set_sensitive(not is_state_enabled)
-            self.input_settings_stack.set_sensitive(not is_state_enabled)
+            self.toggle_settings_sidebar_button.set_sensitive(not is_state_enabled)
             self.output_directory_chooserbutton.set_sensitive(not is_state_enabled)
             self.application_options_menubutton.set_sensitive(not is_state_enabled)
         else:
@@ -186,7 +183,7 @@ class MainWindowHandlers:
         Sets up the main window widgets for when the active page is showing.
         """
         self.page_options_stack.set_visible_child(self.active_page_options_box)
-        self.input_settings_stack.set_sensitive(False)
+        self.toggle_settings_sidebar_button.set_sensitive(False)
         self.output_directory_chooserbutton.set_sensitive(False)
         self.add_inputs_button.set_sensitive(False)
         self.add_inputs_type_combobox.set_sensitive(False)
@@ -196,7 +193,7 @@ class MainWindowHandlers:
         Sets up the main window widgets for when the completed page is showing.
         """
         self.page_options_stack.set_visible_child(self.completed_page_handlers.clear_all_completed_tasks_button)
-        self.input_settings_stack.set_sensitive(False)
+        self.toggle_settings_sidebar_button.set_sensitive(False)
         self.output_directory_chooserbutton.set_sensitive(False)
         self.add_inputs_button.set_sensitive(False)
         self.add_inputs_type_combobox.set_sensitive(False)
@@ -206,11 +203,10 @@ class MainWindowHandlers:
         Toggles the settings sidebar when an input is selected/deselected.
         """
         if is_state_enabled:
-            self.input_settings_stack.set_sensitive(True)
+            self.toggle_settings_sidebar_button.set_sensitive(True)
         else:
-            self.input_settings_stack.set_sensitive(False)
+            self.toggle_settings_sidebar_button.set_sensitive(False)
             self.settings_sidebar_box.set_visible(False)
-            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
 
     def set_parallel_tasks_state(self, is_state_enabled):
         """
@@ -242,14 +238,15 @@ class MainWindowHandlers:
         self.application_preferences_dialog.run()
         self.application_preferences_dialog.hide()
 
-    def toggle_settings_sidebar(self):
-        is_toggled_settings_sidebar_visible = not self.settings_sidebar_box.get_visible()
+    def toggle_settings_sidebar(self, is_closing_settings_sidebar=False):
+        if is_closing_settings_sidebar:
+            is_toggled_settings_sidebar_visible = False
+        else:
+            is_toggled_settings_sidebar_visible = not self.settings_sidebar_box.get_visible()
 
         if is_toggled_settings_sidebar_visible:
-            self.input_settings_stack.set_visible_child(self.toggle_settings_sidebar_button)
             self.inputs_page_paned.set_position(self.inputs_page_paned_position)
         else:
-            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
             self.inputs_page_paned.set_position(-1)
 
         GLib.idle_add(self.settings_sidebar_box.set_visible, is_toggled_settings_sidebar_visible)

@@ -25,7 +25,7 @@ class X264KeyframeSignal:
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_keyframe_interval_spinbutton_value_changed(self, x264_keyint_spinbutton):
+    def on_x264_keyint_spinbutton_value_changed(self, x264_keyint_spinbutton):
         """
         Applies the Keyframe Interval option and updates the preview page.
 
@@ -42,7 +42,7 @@ class X264KeyframeSignal:
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_min_keyframe_interval_spinbutton_value_changed(self, x264_min_keyint_spinbutton):
+    def on_x264_min_keyint_spinbutton_value_changed(self, x264_min_keyint_spinbutton):
         """
         Applies the Min Keyframe Interval option and updates the preview page.
 

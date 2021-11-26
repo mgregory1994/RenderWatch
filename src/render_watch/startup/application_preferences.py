@@ -135,9 +135,11 @@ class ApplicationPreferences:
         :param application_preferences: Application's preferences.
         """
         try:
-            with open(os.path.join(ApplicationPreferences.DEFAULT_APPLICATION_DATA_DIRECTORY, 'prefs'), 'w') as preferences_file:
+            with open(os.path.join(ApplicationPreferences.DEFAULT_APPLICATION_DATA_DIRECTORY, 'prefs'),
+                      'w') as preferences_file:
                 preferences_file.writelines(ApplicationPreferences._get_preferences_args(application_preferences))
-        except:
+        except Exception() as excpetion:
+            print(excpetion)
             logging.error('--- FAILED TO SAVE PREFERENCES ---')
 
     @staticmethod
@@ -210,15 +212,15 @@ class ApplicationPreferences:
 
     @staticmethod
     def _get_use_dark_mode_arg(application_preferences):
-        return 'dark_mode=' + str(application_preferences.is_dark_mode) + '\n'
+        return 'dark_mode=' + str(application_preferences.is_dark_mode_enabled) + '\n'
 
     @staticmethod
     def _get_clearing_temp_directory_arg(application_preferences):
-        return 'clear_temp=' + str(application_preferences.is_clearing_temp_directory) + '\n'
+        return 'clear_temp=' + str(application_preferences.is_clear_temp_directory_enabled) + '\n'
 
     @staticmethod
     def _get_overwriting_outputs_arg(application_preferences):
-        return 'overwrite_outputs=' + str(application_preferences.is_overwriting_outputs) + '\n'
+        return 'overwrite_outputs=' + str(application_preferences.is_overwrite_outputs_enabled) + '\n'
 
     @staticmethod
     def load_preferences(application_preferences):
@@ -318,7 +320,7 @@ class ApplicationPreferences:
     def _set_concurrent_nvenc_arg(split_arg, application_preferences):
         try:
             if 'concurrent_nvenc' in split_arg:
-                application_preferences.is_concurrent_nvenc_enabled = bool(split_arg[1])
+                application_preferences.is_concurrent_nvenc_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -330,7 +332,7 @@ class ApplicationPreferences:
     def _set_concurrent_watch_folder_arg(split_arg, application_preferences):
         try:
             if 'concurrent_watch_folder' in split_arg:
-                application_preferences.is_concurrent_watch_folder_enabled = bool(split_arg[1])
+                application_preferences.is_concurrent_watch_folder_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -342,7 +344,7 @@ class ApplicationPreferences:
     def _set_watch_folder_wait_for_tasks_arg(split_arg, application_preferences):
         try:
             if 'watch_folder_wait_for_tasks' in split_arg:
-                application_preferences.is_watch_folder_wait_for_tasks_enabled = bool(split_arg[1])
+                application_preferences.is_watch_folder_wait_for_tasks_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -354,7 +356,7 @@ class ApplicationPreferences:
     def _set_watch_folder_move_tasks_to_done_arg(split_arg, application_preferences):
         try:
             if 'watch_folder_move_tasks_to_done' in split_arg:
-                application_preferences.is_watch_folder_move_tasks_to_done_enabled = bool(split_arg[1])
+                application_preferences.is_watch_folder_move_tasks_to_done_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -379,7 +381,7 @@ class ApplicationPreferences:
     def _set_window_maximized_arg(split_arg, application_preferences):
         try:
             if 'maximized' in split_arg:
-                application_preferences.is_window_maximized = bool(split_arg[1])
+                application_preferences.is_window_maximized = split_arg[1] == 'True'
 
                 return True
             else:
@@ -403,7 +405,7 @@ class ApplicationPreferences:
     def _set_use_dark_mode_arg(split_arg, application_preferences):
         try:
             if 'dark_mode' in split_arg:
-                application_preferences.is_dark_mode = bool(split_arg[1])
+                application_preferences.is_dark_mode_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -415,7 +417,7 @@ class ApplicationPreferences:
     def _set_clearing_temp_directory_arg(split_arg, application_preferences):
         try:
             if 'clear_temp' in split_arg:
-                application_preferences.is_clearing_temp_directory = bool(split_arg[1])
+                application_preferences.is_clear_temp_directory_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -427,7 +429,7 @@ class ApplicationPreferences:
     def _set_overwriting_outputs_arg(split_arg, application_preferences):
         try:
             if 'overwrite_outputs' in split_arg:
-                application_preferences.is_overwriting_outputs = bool(split_arg[1])
+                application_preferences.is_overwrite_outputs_enabled = split_arg[1] == 'True'
 
                 return True
             else:

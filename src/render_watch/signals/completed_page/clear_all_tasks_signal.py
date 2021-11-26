@@ -25,13 +25,13 @@ class ClearAllTasksSignal:
         self.completed_page_handlers = completed_page_handlers
         self.main_window_handlers = main_window_handlers
 
-    def on_clear_all_completed_button_clicked(self, clear_all_completed_button):
+    def on_clear_all_completed_tasks_button_clicked(self, clear_all_completed_tasks_button):
         """
         Removes all completed tasks from the completed page.
 
-        :param clear_all_completed_button: Button that emitted the signal.
+        :param clear_all_completed_tasks_button: Button that emitted the signal.
         """
         self.completed_page_handlers.remove_all_rows()
 
-        clear_all_completed_button.set_sensitive(False)
+        clear_all_completed_tasks_button.set_sensitive(False)
         self.main_window_handlers.popdown_app_preferences_popover()

@@ -25,18 +25,18 @@ class X264RefsSignal:
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_reference_frames_spinbutton_value_changed(self, x264_ref_spinbutton):
+    def on_x264_refs_spinbutton_value_changed(self, x264_refs_spinbutton):
         """
         Applies the Reference Frames option and updates the preview page.
 
-        :param x264_ref_spinbutton: Spinbutton that emitted the signal.
+        :param x264_refs_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.ref = x264_ref_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.ref = x264_refs_spinbutton.get_value_as_int()
 
             row.setup_labels()
 

@@ -27,9 +27,12 @@ class HandlersManager(object):
     Returns all signals from the handlers modules for Gtk.Builder.get_signals()
     """
 
-    def __init__(self, gtk_builder, gtk_settings, encoder_queue, preferences):
-        main_window_handlers = MainWindowHandlers(gtk_builder, encoder_queue, preferences)
-        prefs_handlers = ApplicationPreferencesHandlers(gtk_builder, gtk_settings, main_window_handlers, preferences)
+    def __init__(self, gtk_builder, gtk_settings, encoder_queue, application_preferences):
+        main_window_handlers = MainWindowHandlers(gtk_builder, encoder_queue, application_preferences)
+        prefs_handlers = ApplicationPreferencesHandlers(gtk_builder,
+                                                        gtk_settings,
+                                                        main_window_handlers,
+                                                        application_preferences)
         self.__handlers_list = (main_window_handlers, prefs_handlers)
 
     def __getattr__(self, signal_name):
