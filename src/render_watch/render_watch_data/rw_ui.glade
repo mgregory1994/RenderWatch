@@ -1906,7 +1906,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="transition-duration">250</property>
                                                 <property name="transition-type">crossfade</property>
                                                 <child>
-                                                  <object class="GtkImage" id="trim_no_preview_icon">
+                                                  <object class="GtkImage" id="trim_preview_icon">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="opacity">0.50196078431372548</property>
@@ -1920,7 +1920,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkImage" id="trim_preview_icon">
+                                                  <object class="GtkImage" id="trim_no_preview_icon">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="opacity">0.5</property>
@@ -2129,7 +2129,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                 <property name="transition-duration">250</property>
                                                 <property name="transition-type">crossfade</property>
                                                 <child>
-                                                  <object class="GtkImage" id="picture_settings_preview_icon">
+                                                  <object class="GtkImage" id="picture_settings_no_preview_icon">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="opacity">0.50196078431372548</property>
@@ -2143,7 +2143,7 @@ If this option is disabled, then conflicting tasks will have their output file r
                                                   </packing>
                                                 </child>
                                                 <child>
-                                                  <object class="GtkImage" id="picture_settings_no_preview_icon">
+                                                  <object class="GtkImage" id="picture_settings_preview_icon">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
                                                     <property name="opacity">0.5</property>
