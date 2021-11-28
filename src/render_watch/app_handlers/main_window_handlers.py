@@ -28,6 +28,7 @@ from render_watch.signals.main_window.auto_crop_signal import AutoCropSignal
 from render_watch.signals.main_window.output_chooser_signal import OutputChooserSignal
 from render_watch.signals.main_window.page_switch_signal import PageSwitchSignal
 from render_watch.signals.main_window.parallel_tasks_signal import ParallelTasksSignal
+from render_watch.signals.main_window.parallel_chunks_signal import ParallelChunksSignal
 from render_watch.signals.main_window.application_preferences_signal import ApplicationPreferencesSignal
 from render_watch.signals.main_window.settings_sidebar_signal import SettingsSidebarSignal
 from render_watch.startup import GLib
@@ -69,18 +70,19 @@ class MainWindowHandlers:
                                                                 self.inputs_page_handlers,
                                                                 self.settings_sidebar_handlers,
                                                                 self.application_preferences)
-        self.auto_crop_signal = AutoCropSignal(self.inputs_page_handlers)
+        self.auto_crop_signal = AutoCropSignal(self.inputs_page_handlers, self.application_preferences)
         self.output_chooser_signal = OutputChooserSignal(self, self.inputs_page_handlers, self.application_preferences)
         self.page_switch_signal = PageSwitchSignal(self, self.inputs_page_handlers)
-        self.parallel_tasks_signal = ParallelTasksSignal(self, self.encoder_queue)
+        self.parallel_tasks_signal = ParallelTasksSignal(self, self.encoder_queue, self.application_preferences)
+        self.parallel_chunks_signal = ParallelChunksSignal(self.application_preferences)
         self.preferences_signal = ApplicationPreferencesSignal(self)
         self.settings_sidebar_signal = SettingsSidebarSignal(self)
         self.signals_list = (
             self.about_application_signal, self.add_input_signal, self.apply_settings_all_signal,
             self.auto_crop_signal, self.output_chooser_signal, self.page_switch_signal,
-            self.parallel_tasks_signal, self.preferences_signal, self.settings_sidebar_signal,
-            self.completed_page_handlers, self.active_page_handlers, self.inputs_page_handlers,
-            self.settings_sidebar_handlers
+            self.parallel_tasks_signal, self.parallel_chunks_signal, self.preferences_signal,
+            self.settings_sidebar_signal, self.completed_page_handlers, self.active_page_handlers,
+            self.inputs_page_handlers, self.settings_sidebar_handlers
         )
 
     def _setup_widgets(self, gtk_builder):

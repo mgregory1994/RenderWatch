@@ -70,6 +70,8 @@ class ApplicationUI:
         self._setup_vp9_widgets()
         self._setup_aac_widgets()
         self._setup_opus_widgets()
+        self._setup_inputs_page_widgets()
+        self._setup_active_page_widgets()
         self._setup_main_window_widgets()
 
         self.gtk_builder.connect_signals(HandlersManager(self.gtk_builder,
@@ -359,6 +361,31 @@ class ApplicationUI:
     def _setup_opus_channels_widgets(self):
         opus_channels_combobox = self.gtk_builder.get_object('opus_channels_combobox')
         UIHelper.setup_combobox(opus_channels_combobox, Opus.CHANNELS_UI_LIST)
+
+    def _setup_inputs_page_widgets(self):
+        self._setup_parallel_tasks_widgets()
+        self._setup_auto_crop_inputs_widgets()
+
+    def _setup_parallel_tasks_widgets(self):
+        toggle_parallel_tasks_radiobutton = self.gtk_builder.get_object('toggle_parallel_tasks_radiobutton')
+        toggle_parallel_tasks_radiobutton.set_active(self.application_preferences.is_parallel_tasks_enabled)
+        parallel_tasks_type_options_box = self.gtk_builder.get_object('parallel_tasks_type_options_box')
+        parallel_tasks_type_options_box.set_sensitive(self.application_preferences.is_parallel_tasks_enabled)
+        parallel_tasks_chunks_radiobutton = self.gtk_builder.get_object('parallel_tasks_chunks_radiobutton')
+        parallel_tasks_chunks_radiobutton.set_active(self.application_preferences.is_parallel_chunks_enabled)
+
+        self.encoder_queue.is_parallel_tasks_enabled = self.application_preferences.is_parallel_tasks_enabled
+
+    def _setup_auto_crop_inputs_widgets(self):
+        auto_crop_inputs_checkbutton = self.gtk_builder.get_object('auto_crop_inputs_checkbutton')
+        auto_crop_inputs_checkbutton.set_active(self.application_preferences.is_auto_crop_inputs_enabled)
+
+    def _setup_active_page_widgets(self):
+        self._setup_encode_preview_widgets()
+
+    def _setup_encode_preview_widgets(self):
+        preview_encode_switch = self.gtk_builder.get_object('preview_encode_switch')
+        preview_encode_switch.set_active(self.application_preferences.is_encode_preview_enabled)
 
     def _setup_main_window_widgets(self):
         self._setup_main_window_output_chooser_widgets()

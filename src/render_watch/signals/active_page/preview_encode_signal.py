@@ -21,8 +21,9 @@ class PreviewEncodeSignal:
     Handles the signal emitted from the preview encode switch on the active page's options menu.
     """
 
-    def __init__(self, active_page_handlers):
+    def __init__(self, active_page_handlers, application_preferences):
         self.active_page_handlers = active_page_handlers
+        self.application_preferences = application_preferences
 
     # Unused parameters needed for this signal
     def on_preview_encode_switch_state_set(self, preview_encode_switch, user_data):
@@ -34,3 +35,5 @@ class PreviewEncodeSignal:
         """
         for row in self.active_page_handlers.get_rows():
             row.live_thumbnail = preview_encode_switch.get_active()
+
+        self.application_preferences.is_encode_preview_enabled = preview_encode_switch.get_active()

@@ -709,6 +709,7 @@ The parallel task type selected below will be used</property>
                             <property name="tooltip-text" translatable="yes">Inputs will be split into chunks and each chunk will be processed simultaneously</property>
                             <property name="draw-indicator">False</property>
                             <property name="group">parallel_tasks_batch_radiobutton</property>
+                            <signal name="toggled" handler="on_parallel_tasks_chunks_radiobutton_toggled" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">True</property>

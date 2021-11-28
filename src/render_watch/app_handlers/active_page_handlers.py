@@ -40,7 +40,7 @@ class ActivePageHandlers:
 
     def _setup_signals(self, main_window_handlers, completed_page_handlers, application_preferences):
         self.add_row_signal = AddTaskSignal(self)
-        self.live_thumbnails_signal = PreviewEncodeSignal(self)
+        self.live_thumbnails_signal = PreviewEncodeSignal(self, application_preferences)
         self.pause_all_signal = PauseAllTasksSignal(self, main_window_handlers)
         self.remove_row_signal = TaskRemovedSignal(self, completed_page_handlers, application_preferences)
         self.resume_all_signal = ResumeAllTasksSignal(self, main_window_handlers)

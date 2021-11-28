@@ -45,6 +45,9 @@ class ApplicationPreferences:
             'x265': 1,
             'vp9': 1
         }
+        self.is_parallel_tasks_enabled = False
+        self.is_parallel_chunks_enabled = False
+        self.is_auto_crop_inputs_enabled = True
         self.is_concurrent_watch_folder_enabled = False
         self.is_watch_folder_wait_for_tasks_enabled = True
         self.is_watch_folder_move_tasks_to_done_enabled = True
@@ -54,6 +57,7 @@ class ApplicationPreferences:
         self.is_overwrite_outputs_enabled = True
         self.output_directory = os.getenv('HOME')
         self.is_dark_mode_enabled = True
+        self.is_encode_preview_enabled = True
         self.window_dimensions = (1000, 600)
         self.is_window_maximized = False
         self.settings_sidebar_position = -1
@@ -160,12 +164,16 @@ class ApplicationPreferences:
             ApplicationPreferences._get_parallel_tasks_arg(application_preferences),
             ApplicationPreferences._get_per_codec_parallel_tasks_enabled_arg(application_preferences),
             ApplicationPreferences._get_per_codec_parallel_tasks_arg(application_preferences),
+            ApplicationPreferences._get_parallel_tasks_enabled_arg(application_preferences),
+            ApplicationPreferences._get_parallel_chunks_enabled_arg(application_preferences),
             ApplicationPreferences._get_concurrent_nvenc_arg(application_preferences),
             ApplicationPreferences._get_concurrent_nvenc_value_arg(application_preferences),
             ApplicationPreferences._get_concurrent_watch_folder_arg(application_preferences),
+            ApplicationPreferences._get_auto_crop_inputs_enabled_arg(application_preferences),
             ApplicationPreferences._get_watch_folder_move_tasks_to_done_arg(application_preferences),
             ApplicationPreferences._get_watch_folder_wait_for_tasks_arg(application_preferences),
             ApplicationPreferences._get_use_dark_mode_arg(application_preferences),
+            ApplicationPreferences._get_encode_preview_enabled_arg(application_preferences),
             ApplicationPreferences._get_window_dimensions_arg(application_preferences),
             ApplicationPreferences._get_window_maximized_arg(application_preferences),
             ApplicationPreferences._get_settings_sidebar_position_arg(application_preferences)
@@ -180,6 +188,10 @@ class ApplicationPreferences:
         return 'parallel_tasks=' + str(application_preferences.parallel_tasks) + '\n'
 
     @staticmethod
+    def _get_parallel_chunks_enabled_arg(application_preferences):
+        return 'parallel_chunks=' + str(application_preferences.is_parallel_chunks_enabled) + '\n'
+
+    @staticmethod
     def _get_per_codec_parallel_tasks_enabled_arg(application_preferences):
         return 'per_codec_tasks_enabled=' + str(application_preferences.is_per_codec_parallel_tasks_enabled) + '\n'
 
@@ -191,8 +203,16 @@ class ApplicationPreferences:
                + 'vp9:' + str(application_preferences.per_codec_parallel_tasks['vp9']) + '\n'
 
     @staticmethod
+    def _get_parallel_tasks_enabled_arg(application_preferences):
+        return 'parallel_tasks_enabled=' + str(application_preferences.is_parallel_tasks_enabled) + '\n'
+
+    @staticmethod
     def _get_concurrent_nvenc_value_arg(application_preferences):
         return 'concurrent_nvenc_value=' + application_preferences.get_concurrent_nvenc_value(string=True) + '\n'
+
+    @staticmethod
+    def _get_auto_crop_inputs_enabled_arg(application_preferences):
+        return 'auto_crop_inputs=' + str(application_preferences.is_auto_crop_inputs_enabled) + '\n'
 
     @staticmethod
     def _get_window_dimensions_arg(application_preferences):
@@ -244,6 +264,10 @@ class ApplicationPreferences:
         return 'overwrite_outputs=' + str(application_preferences.is_overwrite_outputs_enabled) + '\n'
 
     @staticmethod
+    def _get_encode_preview_enabled_arg(application_preferences):
+        return 'encode_preview_enabled=' + str(application_preferences.is_encode_preview_enabled) + '\n'
+
+    @staticmethod
     def load_preferences(application_preferences):
         """
         Loads application preferences from a 'prefs' file in the DEFAULT_APPLICATION_DATA_DIRECTORY.
@@ -264,7 +288,11 @@ class ApplicationPreferences:
             return
         if ApplicationPreferences._set_output_directory_arg(split_arg, application_preferences):
             return
+        if ApplicationPreferences._set_parallel_tasks_enabled_arg(split_arg, application_preferences):
+            return
         if ApplicationPreferences._set_parallel_tasks_arg(split_arg, application_preferences):
+            return
+        if ApplicationPreferences._set_parallel_chunks_enabled_arg(split_arg, application_preferences):
             return
         if ApplicationPreferences._set_per_codec_parallel_tasks_enabled_arg(split_arg, application_preferences):
             return
@@ -276,9 +304,13 @@ class ApplicationPreferences:
             return
         if ApplicationPreferences._set_concurrent_watch_folder_arg(split_arg, application_preferences):
             return
+        if ApplicationPreferences._set_auto_crop_inputs_enabled_arg(split_arg, application_preferences):
+            return
         if ApplicationPreferences._set_watch_folder_wait_for_tasks_arg(split_arg, application_preferences):
             return
         if ApplicationPreferences._set_watch_folder_move_tasks_to_done_arg(split_arg, application_preferences):
+            return
+        if ApplicationPreferences._set_encode_preview_enabled(split_arg, application_preferences):
             return
         if ApplicationPreferences._set_window_dimensions_arg(split_arg, application_preferences):
             return
@@ -318,10 +350,34 @@ class ApplicationPreferences:
             return False
 
     @staticmethod
+    def _set_parallel_tasks_enabled_arg(split_arg, application_preferences):
+        try:
+            if 'parallel_tasks_enabled' in split_arg:
+                application_preferences.is_parallel_tasks_enabled = split_arg[1] == 'True'
+
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    @staticmethod
     def _set_parallel_tasks_arg(split_arg, application_preferences):
         try:
             if 'parallel_tasks' in split_arg:
                 application_preferences.parallel_tasks = split_arg[1]
+
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    @staticmethod
+    def _set_parallel_chunks_enabled_arg(split_arg, application_preferences):
+        try:
+            if 'parallel_chunks' in split_arg:
+                application_preferences.is_parallel_chunks_enabled = split_arg[1] == 'True'
 
                 return True
             else:
@@ -396,6 +452,18 @@ class ApplicationPreferences:
             return False
 
     @staticmethod
+    def _set_auto_crop_inputs_enabled_arg(split_arg, application_preferences):
+        try:
+            if 'auto_crop_inputs' in split_arg:
+                application_preferences.is_auto_crop_inputs_enabled = split_arg[1] == 'True'
+
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    @staticmethod
     def _set_concurrent_watch_folder_arg(split_arg, application_preferences):
         try:
             if 'concurrent_watch_folder' in split_arg:
@@ -424,6 +492,18 @@ class ApplicationPreferences:
         try:
             if 'watch_folder_move_tasks_to_done' in split_arg:
                 application_preferences.is_watch_folder_move_tasks_to_done_enabled = split_arg[1] == 'True'
+
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    @staticmethod
+    def _set_encode_preview_enabled(split_arg, application_preferences):
+        try:
+            if 'encode_preview_enabled' in split_arg:
+                application_preferences.is_encode_preview_enabled = split_arg[1] == 'True'
 
                 return True
             else:

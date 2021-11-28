@@ -21,9 +21,10 @@ class ParallelTasksSignal:
     Handles the signal emitted from toggling the parallel tasks option.
     """
 
-    def __init__(self, main_window_handlers, encoder_queue):
+    def __init__(self, main_window_handlers, encoder_queue, application_preferences):
         self.main_window_handlers = main_window_handlers
         self.encoder_queue = encoder_queue
+        self.application_preferences = application_preferences
 
     def on_parallel_tasks_type_radiobutton_toggled(self, parallel_tasks_type_radiobutton):
         """
@@ -33,3 +34,5 @@ class ParallelTasksSignal:
         """
         self.encoder_queue.is_parallel_tasks_enabled = parallel_tasks_type_radiobutton.get_active()
         self.main_window_handlers.set_parallel_tasks_state(parallel_tasks_type_radiobutton.get_active())
+
+        self.application_preferences.is_parallel_tasks_enabled = parallel_tasks_type_radiobutton.get_active()
