@@ -100,9 +100,13 @@ class ApplicationPreferencesHandlers:
         self._add_per_codec_rows(application_preferences)
 
     def _add_per_codec_rows(self, application_preferences):
-        self.per_codec_list.add(PerCodecX264Row(self, application_preferences))
-        self.per_codec_list.add(PerCodecX265Row(self, application_preferences))
-        self.per_codec_list.add(PerCodecVp9Row(self, application_preferences))
+        self.per_codec_x264_row = PerCodecX264Row(self, application_preferences)
+        self.per_codec_x265_row = PerCodecX265Row(self, application_preferences)
+        self.per_codec_vp9_row = PerCodecVp9Row(self, application_preferences)
+
+        self.per_codec_list.add(self.per_codec_x264_row)
+        self.per_codec_list.add(self.per_codec_x265_row)
+        self.per_codec_list.add(self.per_codec_vp9_row)
         self.per_codec_list.show_all()
 
     def __getattr__(self, signal_name):
@@ -148,6 +152,38 @@ class ApplicationPreferencesHandlers:
             self.per_codec_warning_stack.set_visible_child(self.per_codec_restart_blank_label)
         else:
             self.per_codec_warning_stack.set_visible_child(self.per_codec_restart_icon)
+
+    def update_per_codec_value_restart_state(self):
+        """
+        Shows the restart required image when the per codec values are changed.
+        """
+        if self._has_per_codec_x264_value_changed() \
+                or self._has_per_codec_x265_value_changed() \
+                or self._has_per_codec_vp9_value_changed():
+            self.per_codec_warning_stack.set_visible_child(self.per_codec_restart_icon)
+        else:
+            self.per_codec_warning_stack.set_visible_child(self.per_codec_restart_blank_label)
+
+    def _has_per_codec_x264_value_changed(self):
+        per_codec_x264_index = self.per_codec_x264_row.per_codec_combobox.get_active()
+        original_per_codec_x264_index = ApplicationPreferences.PER_CODEC_TASKS_VALUES.index(
+            str(self.original_per_codec_x264_value))
+
+        return per_codec_x264_index != original_per_codec_x264_index
+
+    def _has_per_codec_x265_value_changed(self):
+        per_codec_x265_index = self.per_codec_x265_row.per_codec_combobox.get_active()
+        original_per_codec_x265_index = ApplicationPreferences.PER_CODEC_TASKS_VALUES.index(
+            str(self.original_per_codec_x265_value))
+
+        return per_codec_x265_index != original_per_codec_x265_index
+
+    def _has_per_codec_vp9_value_changed(self):
+        per_codec_vp9_index = self.per_codec_vp9_row.per_codec_combobox.get_active()
+        original_per_codec_vp9_index = ApplicationPreferences.PER_CODEC_TASKS_VALUES.index(
+            str(self.original_per_codec_vp9_value))
+
+        return per_codec_vp9_index != original_per_codec_vp9_index
 
     def update_nvenc_concurrent_tasks_restart_state(self, concurrent_nvenc_tasks_text):
         """

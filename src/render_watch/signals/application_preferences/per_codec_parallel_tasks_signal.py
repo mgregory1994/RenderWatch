@@ -41,17 +41,20 @@ class PerCodecParallelTasksSignal:
     def on_per_codec_x264_combobox_changed(self, per_codec_x264_combobox):
         per_codec_x264_index = per_codec_x264_combobox.get_active()
         per_codec_x264_value = ApplicationPreferences.PER_CODEC_TASKS_VALUES[per_codec_x264_index]
-
         self.application_preferences.per_codec_parallel_tasks['x264'] = per_codec_x264_value
+
+        self.application_preferences_handlers.update_per_codec_value_restart_state()
 
     def on_per_codec_x265_combobox_changed(self, per_codec_x265_combobox):
         per_codec_x265_index = per_codec_x265_combobox.get_active()
         per_codec_x265_value = ApplicationPreferences.PER_CODEC_TASKS_VALUES[per_codec_x265_index]
-
         self.application_preferences.per_codec_parallel_tasks['x265'] = per_codec_x265_value
+
+        self.application_preferences_handlers.update_per_codec_value_restart_state()
 
     def on_per_codec_vp9_combobox_changed(self, per_codec_vp9_combobox):
         per_codec_vp9_index = per_codec_vp9_combobox.get_active()
         per_codec_vp9_value = ApplicationPreferences.PER_CODEC_TASKS_VALUES[per_codec_vp9_index]
-
         self.application_preferences.per_codec_parallel_tasks['vp9'] = per_codec_vp9_value
+
+        self.application_preferences_handlers.update_per_codec_value_restart_state()
