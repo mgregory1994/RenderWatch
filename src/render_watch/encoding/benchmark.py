@@ -18,6 +18,7 @@
 
 import subprocess
 import logging
+import re
 
 from render_watch.app_formatting import format_converter
 from render_watch.helpers import ffmpeg_helper
@@ -90,7 +91,7 @@ def _set_benchmark_widgets_start_state(settings_sidebar_handlers):
 
 def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_duration):
     ffmpeg_args = ffmpeg_helper.get_parsed_ffmpeg_args(ffmpeg)
-    speed_value = None
+    speed_value = 0
     file_size_value = None
 
     for encode_pass, args in enumerate(ffmpeg_args):
@@ -111,11 +112,9 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
                     break
 
                 try:
-                    stdout = stdout.split('=')
                     bitrate_value = _get_bitrate(stdout)
                     file_size_value = _get_current_file_size(stdout)
-                    speed = _get_speed(stdout)
-                    speed_value = _get_speed_value(stdout)
+                    speed_value = _get_speed(stdout)
                     current_time = _get_current_time(stdout)
 
                     if encode_pass == 0:
@@ -124,8 +123,9 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
                         progress = .5 + ((current_time / duration) / len(ffmpeg_args))
 
                     GLib.idle_add(settings_sidebar_handlers.set_benchmark_progress_bar_fraction, progress)
-                    GLib.idle_add(settings_sidebar_handlers.set_benchmark_bitrate_label_text, bitrate_value)
-                    GLib.idle_add(settings_sidebar_handlers.set_benchmark_speed_label_text, speed)
+                    GLib.idle_add(settings_sidebar_handlers.set_benchmark_bitrate_label_text,
+                                  str(bitrate_value) + 'kbits/s')
+                    GLib.idle_add(settings_sidebar_handlers.set_benchmark_speed_label_text, str(speed_value) + 'x')
                 except:
                     continue
 
@@ -156,36 +156,28 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
     return process_return_code == 0
 
 
-# Replace code below with regex
 def _get_bitrate(stdout):
-    bitrate = stdout[6].split(' ')
-    while '' in bitrate:
-        bitrate.remove('')
-    return bitrate[0]
+    bitrate = re.search('bitrate=\d+\.\d+|bitrate=\s+\d+\.\d+', stdout).group().split('=')[1]
+    return float(bitrate)
 
 
 def _get_current_file_size(stdout):
-    file_size = stdout[4].split(' ')
-    file_size = file_size[-2].split('k')[0]
+    file_size = re.search('size=\d+|size=\s+\d+', stdout).group().split('=')[1]
     return int(file_size)
 
 
 def _get_speed(stdout):
-    return stdout[-1]
-
-
-def _get_speed_value(stdout):
-    speed = stdout[-1]
-    speed_temp = speed.split('x')
-    return float(speed_temp[0])
+    speed = re.search('speed=\d+\.\d+|speed=\s+\d+\.\d+', stdout).group().split('=')[1]
+    return float(speed)
 
 
 def _get_current_time(stdout):
-    current_time = stdout[5].split(' ')
-    return format_converter.get_seconds_from_timecode(current_time[0])
+    current_time = re.search('time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
+                             stdout).group().split('=')[1]
+    return format_converter.get_seconds_from_timecode(current_time)
 
 
 def _get_final_file_size(file_size_value, origin_duration, duration):
     ratio = origin_duration / duration
-    total = file_size_value * ratio * 1000
+    total = file_size_value * ratio * format_converter.KILOBYTE_IN_BYTES
     return format_converter.get_file_size_from_bytes(total)

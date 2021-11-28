@@ -550,4 +550,4 @@ class X264Handlers:
         self.x264_bitrate_signal.on_x264_constant_radiobutton_toggled(self.x264_constant_radiobutton)
 
     def signal_2pass_radiobutton(self):
-        self.x264_bitrate_signal.on_x264_2_pass_radiobutton_toggled(self.x264_2pass_radiobutton)
+        self.x264_bitrate_signal.on_x264_2_pass_radiobutton_toggled(self.x264_2_pass_radiobutton)

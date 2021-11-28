@@ -1476,7 +1476,7 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="hscrollbar-policy">never</property>
-                            <property name="shadow-type">etched-in</property>
+                            <property name="shadow-type">in</property>
                             <child>
                               <object class="GtkViewport" id="per_codec_viewport">
                                 <property name="visible">True</property>
