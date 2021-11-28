@@ -945,8 +945,8 @@ The parallel task type selected below will be used</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
     <property name="window-position">center-on-parent</property>
-    <property name="default-width">560</property>
-    <property name="default-height">400</property>
+    <property name="default-width">650</property>
+    <property name="default-height">500</property>
     <property name="destroy-with-parent">True</property>
     <property name="type-hint">dialog</property>
     <property name="skip-taskbar-hint">True</property>
@@ -1205,16 +1205,16 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkBox" id="concurrent_tasks_widgets_box">
+                      <object class="GtkBox" id="per_codec_box">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="margin-start">10</property>
                         <property name="spacing">10</property>
                         <child>
-                          <object class="GtkLabel" id="concurrent_tasks_label">
+                          <object class="GtkLabel" id="per_codec_label">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="label" translatable="yes">Concurrent Tasks:</property>
+                            <property name="label" translatable="yes">Per-Codec</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -1223,11 +1223,10 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkComboBoxText" id="concurrent_tasks_combobox">
+                          <object class="GtkSwitch" id="per_codec_switch">
                             <property name="visible">True</property>
-                            <property name="can-focus">False</property>
-                            <property name="tooltip-text" translatable="yes">Choose how many tasks will be processed simultaneously when running parallel tasks</property>
-                            <signal name="changed" handler="on_concurrent_tasks_combobox_changed" swapped="no"/>
+                            <property name="can-focus">True</property>
+                            <signal name="state-set" handler="on_per_codec_switch_state_set" swapped="no"/>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -1236,13 +1235,13 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkStack" id="concurrent_tasks_restart_stack">
+                          <object class="GtkStack" id="per_codec_warning_stack">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
                             <property name="transition-duration">250</property>
                             <property name="transition-type">crossfade</property>
                             <child>
-                              <object class="GtkLabel" id="concurrent_tasks_restart_blank_label">
+                              <object class="GtkLabel" id="per_codec_restart_blank_label">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                               </object>
@@ -1252,11 +1251,9 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkImage" id="concurrent_tasks_restart_icon">
+                              <object class="GtkImage" id="per_codec_restart_icon">
                                 <property name="visible">True</property>
-                                <property name="sensitive">False</property>
                                 <property name="can-focus">False</property>
-                                <property name="tooltip-text" translatable="yes">Restart Render Watch to apply</property>
                                 <property name="icon-name">system-reboot-symbolic</property>
                               </object>
                               <packing>
@@ -1280,22 +1277,192 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkStack" id="concurrent_tasks_message_stack">
+                      <object class="GtkStack" id="parallel_tasks_stack">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
-                        <property name="margin-start">20</property>
+                        <property name="margin-start">10</property>
+                        <property name="vhomogeneous">False</property>
                         <property name="transition-duration">250</property>
-                        <property name="transition-type">slide-up-down</property>
+                        <property name="transition-type">slide-left-right</property>
+                        <property name="interpolate-size">True</property>
                         <child>
-                          <object class="GtkLabel" id="concurrent_tasks_message_8">
+                          <object class="GtkBox" id="parallel_tasks_all_codecs_box">
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
                             <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Recommended for 8 or more cores</property>
-                            <attributes>
-                              <attribute name="style" value="italic"/>
-                            </attributes>
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">10</property>
+                            <child>
+                              <object class="GtkBox" id="concurrent_tasks_widgets_box">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="spacing">10</property>
+                                <child>
+                                  <object class="GtkLabel" id="concurrent_tasks_label">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="label" translatable="yes">Concurrent Tasks:</property>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkComboBoxText" id="concurrent_tasks_combobox">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="tooltip-text" translatable="yes">Choose how many tasks will be processed simultaneously when running parallel tasks</property>
+                                    <signal name="changed" handler="on_concurrent_tasks_combobox_changed" swapped="no"/>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkStack" id="concurrent_tasks_restart_stack">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="transition-duration">250</property>
+                                    <property name="transition-type">crossfade</property>
+                                    <child>
+                                      <object class="GtkLabel" id="concurrent_tasks_restart_blank_label">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                      </object>
+                                      <packing>
+                                        <property name="name">page0</property>
+                                        <property name="title" translatable="yes">page0</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkImage" id="concurrent_tasks_restart_icon">
+                                        <property name="visible">True</property>
+                                        <property name="sensitive">False</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="tooltip-text" translatable="yes">Restart Render Watch to apply</property>
+                                        <property name="icon-name">system-reboot-symbolic</property>
+                                      </object>
+                                      <packing>
+                                        <property name="name">page1</property>
+                                        <property name="title" translatable="yes">page1</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">True</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkStack" id="concurrent_tasks_message_stack">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="margin-start">10</property>
+                                <property name="transition-duration">250</property>
+                                <property name="transition-type">slide-up-down</property>
+                                <child>
+                                  <object class="GtkLabel" id="concurrent_tasks_message_8">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Recommended for 8 or more cores</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="name">page0</property>
+                                    <property name="title" translatable="yes">page0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="concurrent_tasks_message_12">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Recommended for 12 or more cores</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="name">page1</property>
+                                    <property name="title" translatable="yes">page1</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="concurrent_tasks_message_24">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Recommended for 24 or more cores</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="name">page2</property>
+                                    <property name="title" translatable="yes">page2</property>
+                                    <property name="position">2</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="concurrent_tasks_message_32">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Recommended for 32 or more cores</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="name">page3</property>
+                                    <property name="title" translatable="yes">page3</property>
+                                    <property name="position">3</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <object class="GtkLabel" id="concurrent_tasks_message_max">
+                                    <property name="visible">True</property>
+                                    <property name="sensitive">False</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="halign">start</property>
+                                    <property name="label" translatable="yes">Use only if you know what you're doing</property>
+                                    <attributes>
+                                      <attribute name="style" value="italic"/>
+                                    </attributes>
+                                  </object>
+                                  <packing>
+                                    <property name="name">page4</property>
+                                    <property name="title" translatable="yes">page4</property>
+                                    <property name="position">4</property>
+                                  </packing>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
                           </object>
                           <packing>
                             <property name="name">page0</property>
@@ -1303,15 +1470,26 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkLabel" id="concurrent_tasks_message_12">
+                          <object class="GtkScrolledWindow" id="per_codec_scroller">
+                            <property name="height-request">225</property>
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Recommended for 12 or more cores</property>
-                            <attributes>
-                              <attribute name="style" value="italic"/>
-                            </attributes>
+                            <property name="can-focus">True</property>
+                            <property name="hscrollbar-policy">never</property>
+                            <property name="shadow-type">etched-in</property>
+                            <child>
+                              <object class="GtkViewport" id="per_codec_viewport">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <property name="shadow-type">none</property>
+                                <child>
+                                  <object class="GtkListBox" id="per_codec_list">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">False</property>
+                                    <property name="selection-mode">none</property>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
                           </object>
                           <packing>
                             <property name="name">page1</property>
@@ -1319,62 +1497,11 @@ If this doesn't work, then you'll have to set a dark version of the system theme
                             <property name="position">1</property>
                           </packing>
                         </child>
-                        <child>
-                          <object class="GtkLabel" id="concurrent_tasks_message_24">
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Recommended for 24 or more cores</property>
-                            <attributes>
-                              <attribute name="style" value="italic"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="name">page2</property>
-                            <property name="title" translatable="yes">page2</property>
-                            <property name="position">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="concurrent_tasks_message_32">
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Recommended for 32 or more cores</property>
-                            <attributes>
-                              <attribute name="style" value="italic"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="name">page3</property>
-                            <property name="title" translatable="yes">page3</property>
-                            <property name="position">3</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="concurrent_tasks_message_max">
-                            <property name="visible">True</property>
-                            <property name="sensitive">False</property>
-                            <property name="can-focus">False</property>
-                            <property name="halign">start</property>
-                            <property name="label" translatable="yes">Use only if you know what you're doing</property>
-                            <attributes>
-                              <attribute name="style" value="italic"/>
-                            </attributes>
-                          </object>
-                          <packing>
-                            <property name="name">page4</property>
-                            <property name="title" translatable="yes">page4</property>
-                            <property name="position">4</property>
-                          </packing>
-                        </child>
                       </object>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">2</property>
+                        <property name="position">3</property>
                       </packing>
                     </child>
                     <child>
@@ -1457,7 +1584,7 @@ Restart Render Watch for changes to take effect</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                     <child>
@@ -1476,7 +1603,7 @@ Restart Render Watch for changes to take effect</property>
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">5</property>
+                        <property name="position">4</property>
                       </packing>
                     </child>
                   </object>

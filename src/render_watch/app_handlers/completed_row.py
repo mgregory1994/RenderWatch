@@ -85,9 +85,12 @@ class CompletedRow(Gtk.ListBoxRow):
         self.completed_listbox_row_file_name_label.set_text(self.active_listbox_row.file_name)
         self.completed_listbox_row_file_path_link.set_label(output_file_path)
         self.completed_listbox_row_file_path_link.set_uri('file://' + output_file_path)
-        self.completed_listbox_row_bitrate_value_label.set_text(self.active_listbox_row.completed_listbox_row_bitrate_value_label.get_text())
-        self.completed_listbox_row_speed_value_label.set_text(self.active_listbox_row.completed_listbox_row_speed_value_label.get_text())
-        self.completed_listbox_row_file_size_value_label.set_text(self.active_listbox_row.completed_listbox_row_file_size_value_label.get_text())
+        self.completed_listbox_row_bitrate_value_label.set_text(
+            self.active_listbox_row.active_listbox_row_bitrate_value_label.get_text())
+        self.completed_listbox_row_speed_value_label.set_text(
+            self.active_listbox_row.active_listbox_row_speed_value_label.get_text())
+        self.completed_listbox_row_file_size_value_label.set_text(
+            self.active_listbox_row.active_listbox_row_file_size_value_label.get_text())
         self.completed_listbox_row_encode_time_value_label.set_text(total_task_duration)
 
     def _start_update_thumbnail_thread(self, ffmpeg):

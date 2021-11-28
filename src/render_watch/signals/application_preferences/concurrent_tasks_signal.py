@@ -24,8 +24,8 @@ class ConcurrentTasksSignal:
     Handles the signals emitted when Concurrency related options are changed in the preferences dialog.
     """
 
-    def __init__(self, prefs_handlers, application_preferences):
-        self.prefs_handlers = prefs_handlers
+    def __init__(self, application_preferences_handlers, application_preferences):
+        self.application_preferences_handlers = application_preferences_handlers
         self.application_preferences = application_preferences
 
     def on_concurrent_tasks_combobox_changed(self, concurrent_tasks_combobox):
@@ -37,8 +37,8 @@ class ConcurrentTasksSignal:
         parallel_tasks_value = ApplicationPreferences.PARALLEL_TASKS_VALUES[concurrent_tasks_combobox.get_active()]
         self.application_preferences.parallel_tasks = parallel_tasks_value
 
-        self.prefs_handlers.update_concurrent_tasks_restart_state()
-        self.prefs_handlers.update_concurrent_message(parallel_tasks_value)
+        self.application_preferences_handlers.update_concurrent_tasks_restart_state()
+        self.application_preferences_handlers.update_concurrent_message(parallel_tasks_value)
 
     def on_concurrent_nvenc_tasks_combobox_changed(self, concurrent_nvenc_tasks_combobox):
         """
@@ -49,9 +49,9 @@ class ConcurrentTasksSignal:
         concurrent_nvenc_text = ApplicationPreferences.CONCURRENT_NVENC_VALUES[
             concurrent_nvenc_tasks_combobox.get_active()
         ]
-        self.application_preferences.concurrent_nvenc_value = concurrent_nvenc_text
+        self.application_preferences.set_concurrent_nvenc_value(concurrent_nvenc_text)
 
-        self.prefs_handlers.update_nvenc_concurrent_tasks_restart_state(concurrent_nvenc_text)
+        self.application_preferences_handlers.update_nvenc_concurrent_tasks_restart_state(concurrent_nvenc_text)
 
     def on_simultaneous_concurrent_nvenc_tasks_checkbutton_toggled(self,
                                                                    simultaneous_concurrent_nvenc_tasks_checkbutton):

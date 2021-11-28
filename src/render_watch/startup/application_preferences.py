@@ -18,6 +18,7 @@
 
 import logging
 import os
+import re
 import shutil
 
 from render_watch.helpers import directory_helper
@@ -28,7 +29,8 @@ class ApplicationPreferences:
     Saves, loads, and stores application preferences.
     """
 
-    PARALLEL_TASKS_VALUES = ('2', '3', '4', '6', '8')
+    PARALLEL_TASKS_VALUES = ('2', '3', '4', '6', '8', '10', '12', '14', '16')
+    PER_CODEC_TASKS_VALUES = ('1', '2', '3', '4', '6', '8', '10', '12', '14', '16')
     CONCURRENT_NVENC_VALUES = ('auto', '1', '2', '3', '4', '5', '6', '7', '8')
     DEFAULT_APPLICATION_DATA_DIRECTORY = os.path.join(os.getenv('HOME'), '.config', 'Render Watch')
     DEFAULT_APPLICATION_TEMP_DIRECTORY = os.path.join(DEFAULT_APPLICATION_DATA_DIRECTORY, 'temp')
@@ -37,6 +39,12 @@ class ApplicationPreferences:
         self._parallel_tasks_value = 2
         self.is_concurrent_nvenc_enabled = True
         self._concurrent_nvenc_value = 0
+        self.is_per_codec_parallel_tasks_enabled = False
+        self.per_codec_parallel_tasks = {
+            'x264': 1,
+            'x265': 1,
+            'vp9': 1
+        }
         self.is_concurrent_watch_folder_enabled = False
         self.is_watch_folder_wait_for_tasks_enabled = True
         self.is_watch_folder_move_tasks_to_done_enabled = True
@@ -150,6 +158,8 @@ class ApplicationPreferences:
             ApplicationPreferences._get_overwriting_outputs_arg(application_preferences),
             ApplicationPreferences._get_output_directory_arg(application_preferences),
             ApplicationPreferences._get_parallel_tasks_arg(application_preferences),
+            ApplicationPreferences._get_per_codec_parallel_tasks_enabled_arg(application_preferences),
+            ApplicationPreferences._get_per_codec_parallel_tasks_arg(application_preferences),
             ApplicationPreferences._get_concurrent_nvenc_arg(application_preferences),
             ApplicationPreferences._get_concurrent_nvenc_value_arg(application_preferences),
             ApplicationPreferences._get_concurrent_watch_folder_arg(application_preferences),
@@ -168,6 +178,17 @@ class ApplicationPreferences:
     @staticmethod
     def _get_parallel_tasks_arg(application_preferences):
         return 'parallel_tasks=' + str(application_preferences.parallel_tasks) + '\n'
+
+    @staticmethod
+    def _get_per_codec_parallel_tasks_enabled_arg(application_preferences):
+        return 'per_codec_tasks_enabled=' + str(application_preferences.is_per_codec_parallel_tasks_enabled) + '\n'
+
+    @staticmethod
+    def _get_per_codec_parallel_tasks_arg(application_preferences):
+        return 'per_codec_task_values=' \
+               + 'x264:' + str(application_preferences.per_codec_parallel_tasks['x264']) + ',' \
+               + 'x265:' + str(application_preferences.per_codec_parallel_tasks['x265']) + ',' \
+               + 'vp9:' + str(application_preferences.per_codec_parallel_tasks['vp9']) + '\n'
 
     @staticmethod
     def _get_concurrent_nvenc_value_arg(application_preferences):
@@ -245,6 +266,10 @@ class ApplicationPreferences:
             return
         if ApplicationPreferences._set_parallel_tasks_arg(split_arg, application_preferences):
             return
+        if ApplicationPreferences._set_per_codec_parallel_tasks_enabled_arg(split_arg, application_preferences):
+            return
+        if ApplicationPreferences._set_per_codec_parallel_tasks_arg(split_arg, application_preferences):
+            return
         if ApplicationPreferences._set_concurrent_nvenc_value_arg(split_arg, application_preferences):
             return
         if ApplicationPreferences._set_concurrent_nvenc_arg(split_arg, application_preferences):
@@ -303,6 +328,48 @@ class ApplicationPreferences:
                 return False
         except:
             return False
+
+    @staticmethod
+    def _set_per_codec_parallel_tasks_enabled_arg(split_arg, application_preferences):
+        try:
+            if 'per_codec_tasks_enabled' in split_arg:
+                application_preferences.is_per_codec_parallel_tasks_enabled = split_arg[1] == 'True'
+
+                return True
+            else:
+                return False
+        except:
+            return False
+
+
+    @staticmethod
+    def _set_per_codec_parallel_tasks_arg(split_arg, application_preferences):
+        try:
+            if 'per_codec_task_values' in split_arg:
+                ApplicationPreferences._set_per_codec_x264_arg(split_arg, application_preferences)
+                ApplicationPreferences._set_per_codec_x265_arg(split_arg, application_preferences)
+                ApplicationPreferences._set_per_codec_vp9_arg(split_arg, application_preferences)
+
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    @staticmethod
+    def _set_per_codec_x264_arg(split_arg, application_preferences):
+        per_codec_x264_value = int(re.search('x264:\d+', split_arg[1]).group().split(':')[1])
+        application_preferences.per_codec_parallel_tasks['x264'] = per_codec_x264_value
+
+    @staticmethod
+    def _set_per_codec_x265_arg(split_arg, application_preferences):
+        per_codec_x265_value = int(re.search('x265:\d+', split_arg[1]).group().split(':')[1])
+        application_preferences.per_codec_parallel_tasks['x265'] = per_codec_x265_value
+
+    @staticmethod
+    def _set_per_codec_vp9_arg(split_arg, application_preferences):
+        per_codec_vp9_value = int(re.search('vp9:\d+', split_arg[1]).group().split(':')[1])
+        application_preferences.per_codec_parallel_tasks['vp9'] = per_codec_vp9_value
 
     @staticmethod
     def _set_concurrent_nvenc_value_arg(split_arg, application_preferences):

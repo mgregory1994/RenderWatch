@@ -81,6 +81,7 @@ class ApplicationUI:
 
     def _setup_preferences_dialog_widgets(self):
         self._setup_preferences_dialog_parallel_tasks_widgets()
+        self._setup_preferences_dialog_per_codec_tasks_widgets()
         self._setup_preferences_dialog_nvenc_concurrent_widgets()
         self._setup_preferences_dialog_temp_chooser_widgets()
         self._setup_preferences_dialog_clear_temp_widgets()
@@ -115,6 +116,18 @@ class ApplicationUI:
                 concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_max)
         except IndexError:
             logging.error('--- FAILED TO SETUP PARALLEL TASKS WIDGETS ---')
+
+    def _setup_preferences_dialog_per_codec_tasks_widgets(self):
+        try:
+            if self.application_preferences.is_per_codec_parallel_tasks_enabled:
+                per_codec_switch = self.gtk_builder.get_object('per_codec_switch')
+                parallel_tasks_stack = self.gtk_builder.get_object('parallel_tasks_stack')
+                per_codec_scroller = self.gtk_builder.get_object('per_codec_scroller')
+
+                per_codec_switch.set_active(True)
+                parallel_tasks_stack.set_visible_child(per_codec_scroller)
+        except IndexError:
+            logging.error('--- FAILED TO SETUP PER CODEC TASKS WIDGETS ---')
 
     def _setup_preferences_dialog_nvenc_concurrent_widgets(self):
         try:

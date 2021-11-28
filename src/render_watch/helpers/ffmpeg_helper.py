@@ -23,7 +23,7 @@ def get_duration_in_seconds(ffmpeg):
 
 
 def get_parsed_ffmpeg_args(ffmpeg):
-    ffmpeg_args = (ffmpeg.get_args())
+    ffmpeg_args = (ffmpeg.get_args(),)
 
     if '&&' in ffmpeg_args[0]:
         first_pass_args = ffmpeg_args[0][:ffmpeg_args[0].index('&&')]

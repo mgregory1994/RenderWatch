@@ -29,11 +29,11 @@ class HandlersManager(object):
 
     def __init__(self, gtk_builder, gtk_settings, encoder_queue, application_preferences):
         main_window_handlers = MainWindowHandlers(gtk_builder, encoder_queue, application_preferences)
-        prefs_handlers = ApplicationPreferencesHandlers(gtk_builder,
-                                                        gtk_settings,
-                                                        main_window_handlers,
-                                                        application_preferences)
-        self.__handlers_list = (main_window_handlers, prefs_handlers)
+        application_preferences_handlers = ApplicationPreferencesHandlers(gtk_builder,
+                                                                          gtk_settings,
+                                                                          main_window_handlers,
+                                                                          application_preferences)
+        self.__handlers_list = (main_window_handlers, application_preferences_handlers)
 
     def __getattr__(self, signal_name):
         """

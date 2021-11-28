@@ -316,7 +316,7 @@ class X264Handlers:
         self.x264_subme_combobox.set_active(video_settings.subme)
         self.x264_me_range_spinbutton.set_value(video_settings.me_range)
         self._setup_x264_partitions_widgets(video_settings)
-        self.x264_8x8dct_checkbox.set_active(video_settings.dct8x8)
+        self.x264_8x8dct_checkbutton.set_active(video_settings.dct8x8)
         self._setup_x264_psy_rd_widgets(video_settings)
         self.x264_trellis_combobox.set_active(video_settings.trellis)
         self.x264_direct_combobox.set_active(video_settings.direct)

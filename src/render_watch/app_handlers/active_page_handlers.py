@@ -51,13 +51,13 @@ class ActivePageHandlers:
         )
 
     def _setup_widgets(self, gtk_builder):
-        self.active_page_listbox = gtk_builder.get_object('active_list')
-        self.stop_all_processing_button = gtk_builder.get_object('stop_all_proc_button')
-        self.pause_all_processing_button = gtk_builder.get_object('pause_all_proc_button')
-        self.resume_all_processing_button = gtk_builder.get_object('resume_all_proc_button')
-        self.live_thumbnails_switch = gtk_builder.get_object('live_thumbnails_switch')
+        self.active_list = gtk_builder.get_object('active_list')
+        self.stop_all_tasks_button = gtk_builder.get_object('stop_all_tasks_button')
+        self.pause_all_tasks_button = gtk_builder.get_object('pause_all_tasks_button')
+        self.resume_all_tasks_button = gtk_builder.get_object('resume_all_tasks_button')
+        self.preview_encode_switch = gtk_builder.get_object('preview_encode_switch')
 
-        self.active_page_listbox.set_header_func(self._active_list_update_header_func, None)
+        self.active_list.set_header_func(self._active_list_update_header_func, None)
 
     def __getattr__(self, signal_name):
         """
@@ -85,17 +85,17 @@ class ActivePageHandlers:
                 active_page_listbox_row.set_header(active_page_listbox_row_header)
 
     def get_rows(self):
-        return self.active_page_listbox.get_children()
+        return self.active_list.get_children()
 
     def is_live_thumbnails_enabled(self):
-        return self.live_thumbnails_switch.get_active()
+        return self.preview_encode_switch.get_active()
 
     def add_row(self, active_row):
-        self.active_page_listbox.add(active_row)
-        self.active_page_listbox.show_all()
+        self.active_list.add(active_row)
+        self.active_list.show_all()
 
     def remove_row(self, active_row):
-        self.active_page_listbox.remove(active_row)
+        self.active_list.remove(active_row)
 
     def set_page_options_state(self, is_state_enabled):
         """
@@ -103,9 +103,9 @@ class ActivePageHandlers:
 
         :param is_state_enabled: Toggles the state of this page's options in the preferences menu.
         """
-        self.pause_all_processing_button.set_sensitive(is_state_enabled)
-        self.resume_all_processing_button.set_sensitive(is_state_enabled)
-        self.stop_all_processing_button.set_sensitive(is_state_enabled)
+        self.pause_all_tasks_button.set_sensitive(is_state_enabled)
+        self.resume_all_tasks_button.set_sensitive(is_state_enabled)
+        self.stop_all_tasks_button.set_sensitive(is_state_enabled)
 
     def signal_remove_row(self):
-        self.remove_row_signal.on_active_list_remove(self.active_page_listbox, None)
+        self.remove_row_signal.on_active_list_remove(self.active_list, None)

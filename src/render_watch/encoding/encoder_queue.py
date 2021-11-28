@@ -22,6 +22,7 @@ import time
 from render_watch.encoding.encoder import Encoder
 from render_watch.encoding.standard_encode_task import StandardEncodeTask
 from render_watch.encoding.parallel_encode_task import ParallelEncodeTask
+from render_watch.encoding.per_codec_parallel_encode_task import PerCodecParallelEncodeTask
 from render_watch.encoding.parallel_nvenc_encode_task import ParallelNvencEncodeTask
 from render_watch.encoding.folder_encode_task import FolderEncodeTask
 from render_watch.helpers import ffmpeg_helper
@@ -34,11 +35,13 @@ class EncoderQueue:
 
     def __init__(self, application_preferences):
         self.application_preferences = application_preferences
-        self.parallel_tasks_enabled = False
+        self.is_parallel_tasks_enabled = False
+        self.is_per_codec_parallel_tasks_enabled = application_preferences.is_per_codec_parallel_tasks_enabled
         self.running_tasks = []
         self._running_tasks_lock = threading.Lock()
         self.standard_encode_task = StandardEncodeTask(self)
         self.parallel_encode_task = ParallelEncodeTask(self, application_preferences)
+        self.per_codec_parallel_encode_task = PerCodecParallelEncodeTask(self, application_preferences)
         self.parallel_nvenc_encode_task = ParallelNvencEncodeTask(self)
         self.folder_encode_task = FolderEncodeTask(self, application_preferences)
 
@@ -50,7 +53,9 @@ class EncoderQueue:
         """
         if active_row.ffmpeg.watch_folder:
             self.folder_encode_task.add_task(active_row)
-        elif self.parallel_tasks_enabled:
+        elif self.is_per_codec_parallel_tasks_enabled and self.is_parallel_tasks_enabled:
+            self.per_codec_parallel_encode_task.add_task(active_row)
+        elif self.is_parallel_tasks_enabled:
             self._add_active_row_to_parallel_tasks(active_row)
         else:
             self.standard_encode_task.add_task(active_row)
@@ -77,11 +82,19 @@ class EncoderQueue:
         self.parallel_nvenc_encode_task.join_queue()
 
     def wait_for_standard_tasks(self):
-        if self.parallel_tasks_enabled and not self.standard_encode_task.is_queue_empty():
+        if self.is_parallel_tasks_enabled and not self.standard_encode_task.is_queue_empty():
             self.standard_encode_task.join_queue()
 
     def wait_for_parallel_tasks(self):
-        if not self.parallel_tasks_enabled and not self.parallel_encode_task.is_queue_empty():
+        self._wait_for_per_codec_tasks_queue()
+        self._wait_for_parallel_tasks_queue()
+
+    def _wait_for_per_codec_tasks_queue(self):
+        if not self.is_per_codec_parallel_tasks_enabled and not self.per_codec_parallel_encode_task.is_queue_empty():
+            self.per_codec_parallel_encode_task.join_queue()
+
+    def _wait_for_parallel_tasks_queue(self):
+        if not self.is_parallel_tasks_enabled and not self.parallel_encode_task.is_queue_empty():
             self.parallel_encode_task.join_queue()
 
     def wait_for_watch_folder_tasks(self):
@@ -97,6 +110,7 @@ class EncoderQueue:
 
     def wait_for_all_tasks(self):
         while not self.standard_encode_task.is_queue_empty() \
+                or not self.per_codec_parallel_encode_task.is_queue_empty() \
                 or not self.parallel_encode_task.is_queue_empty() \
                 or not self.parallel_nvenc_encode_task.is_queue_empty():
             self._join_on_all_encode_queues()
@@ -104,6 +118,7 @@ class EncoderQueue:
 
     def _join_on_all_encode_queues(self):
         self.standard_encode_task.join_queue()
+        self.per_codec_parallel_encode_task.join_queue()
         self.parallel_encode_task.join_queue()
         self.parallel_nvenc_encode_task.join_queue()
 
@@ -140,12 +155,14 @@ class EncoderQueue:
 
     def _empty_encode_queues(self):
         self.standard_encode_task.empty_queue()
+        self.per_codec_parallel_encode_task.empty_queue()
         self.parallel_encode_task.empty_queue()
         self.parallel_nvenc_encode_task.empty_queue()
         self.folder_encode_task.empty_queue()
 
     def _set_encode_queues_stop_state(self):
         self.standard_encode_task.set_stop_state()
+        self.per_codec_parallel_encode_task.set_stop_state()
         self.parallel_encode_task.set_stop_state()
         self.parallel_nvenc_encode_task.set_stop_state()
         self.folder_encode_task.set_stop_state()

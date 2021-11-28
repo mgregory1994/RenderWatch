@@ -31,5 +31,5 @@ class ParallelTasksSignal:
 
         :param parallel_tasks_type_radiobutton: Radiobutton that emitted the signal.
         """
-        self.encoder_queue.parallel_tasks_enabled = parallel_tasks_type_radiobutton.get_active()
+        self.encoder_queue.is_parallel_tasks_enabled = parallel_tasks_type_radiobutton.get_active()
         self.main_window_handlers.set_parallel_tasks_state(parallel_tasks_type_radiobutton.get_active())

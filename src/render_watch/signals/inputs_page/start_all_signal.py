@@ -41,6 +41,6 @@ class StartAllSignal:
 
     def _start_all_tasks(self):
         for row in self.inputs_page_handlers.get_rows():
-            row.on_start_button_clicked(None)
+            row.signal_start_button()
 
             time.sleep(.2)

@@ -34,8 +34,10 @@ class RemoveSignal:
         :param inputs_page_listbox: Gtk.Listbox that lost a row.
         :param inputs_row: Gtk.Listboxrow that's being removed.
         """
-        if self.inputs_page_handlers.get_rows() is None:
-            self.inputs_page_handlers.set_remove_all_state()
+        if self.inputs_page_handlers.get_rows():
+            return
 
-            if self.active_page_handlers.get_rows():
-                self.main_window_handlers.switch_to_active_page()
+        self.inputs_page_handlers.set_remove_all_state()
+
+        if self.active_page_handlers.get_rows():
+            self.main_window_handlers.switch_to_active_page()

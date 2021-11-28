@@ -310,7 +310,7 @@ class InputsRow(Gtk.ListBoxRow):
         while True:
             if self.ffmpeg.input_file == output_file_path:
                 output_file_path = self._fix_same_output_and_input_file_paths(file_name, counter)
-            elif not self.application_preferences.is_overwriting_outputs and os.path.exists(output_file_path):
+            elif not self.application_preferences.is_overwrite_outputs_enabled and os.path.exists(output_file_path):
                 output_file_path = self._fix_output_file_already_exists(file_name, counter)
             else:
                 output_file_path_found = False
