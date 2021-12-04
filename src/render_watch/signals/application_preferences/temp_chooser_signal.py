@@ -86,8 +86,7 @@ class TempChooserSignal:
                                            Gtk.MessageType.WARNING,
                                            Gtk.ButtonsType.YES_NO,
                                            'Directory \"' + temp_directory + '\" is not empty')
-        message_dialog.format_secondary_text('This can lead to potential data loss.'
-                                             '\n\nUse chosen directory?')
+        message_dialog.format_secondary_text('Use chosen directory?')
         response = message_dialog.run()
         message_dialog.destroy()
 

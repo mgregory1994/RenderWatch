@@ -47,8 +47,8 @@ class ClearTempFilesSignal:
                                            Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                            Gtk.MessageType.WARNING,
                                            Gtk.ButtonsType.OK,
-                                           'Warning')
-        message_dialog.format_secondary_text('This option deletes the chosen temp directory when closing '
-                                             'Render Watch.\nThis can lead to possible data loss.')
+                                           'Possible Data Loss')
+        message_dialog.format_secondary_text('This option deletes all files in the chosen temporary folder when the '
+                                             'application is closed.')
         message_dialog.run()
         message_dialog.destroy()
