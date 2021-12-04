@@ -47,7 +47,7 @@ class PerCodecVp9Row(Gtk.ListBoxRow):
 
         self.per_codec_listbox_row_box = gtk_builder.get_object('per_codec_listbox_row_box')
         self.per_codec_label = gtk_builder.get_object('per_codec_label')
-        self.per_codec_label.set_text('vp9 Tasks:')
+        self.per_codec_label.set_text('vp9')
         self.per_codec_subtext_label = gtk_builder.get_object('per_codec_subtext_label')
         self.per_codec_subtext_label.set_text('Number of tasks to run for the vp9 codec')
         self.per_codec_combobox = gtk_builder.get_object('per_codec_combobox')

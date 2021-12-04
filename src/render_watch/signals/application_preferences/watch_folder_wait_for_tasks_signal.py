@@ -24,10 +24,10 @@ class WatchFolderWaitForTasksSignal:
     def __init__(self, application_preferences):
         self.application_preferences = application_preferences
 
-    def on_wait_for_tasks_checkbutton_toggled(self, wait_for_tasks_checkbutton):
+    def on_wait_for_tasks_switch_state_set(self, wait_for_tasks_switch, user_data=None):
         """
         Applies the Watch Folder Wait For Other Tasks option in the application's preferences.
 
-        :param wait_for_tasks_checkbutton: Checkbutton that emitted the signal.
+        :param wait_for_tasks_switch: Switch that emitted the signal.
         """
-        self.application_preferences.is_watch_folder_wait_for_tasks_enabled = wait_for_tasks_checkbutton.get_active()
+        self.application_preferences.is_watch_folder_wait_for_tasks_enabled = wait_for_tasks_switch.get_active()

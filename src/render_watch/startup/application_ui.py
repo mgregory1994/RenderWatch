@@ -82,111 +82,19 @@ class ApplicationUI:
         return Gtk.main()
 
     def _setup_preferences_dialog_widgets(self):
-        self._setup_preferences_dialog_parallel_tasks_widgets()
         self._setup_preferences_dialog_per_codec_tasks_widgets()
-        self._setup_preferences_dialog_nvenc_concurrent_widgets()
-        self._setup_preferences_dialog_temp_chooser_widgets()
-        self._setup_preferences_dialog_clear_temp_widgets()
-        self._setup_preferences_dialog_overwrite_outputs_widgets()
-        self._setup_preferences_dialog_dark_mode_widgets()
-        self._setup_preferences_dialog_watch_folder_wait_for_tasks_widgets()
-        self._setup_preferences_dialog_watch_folder_concurrent_widgets()
-        self._setup_preferences_dialog_watch_folder_move_to_done_widgets()
-
-    def _setup_preferences_dialog_parallel_tasks_widgets(self):
-        try:
-            concurrent_tasks_combobox = self.gtk_builder.get_object('concurrent_tasks_combobox')
-            UIHelper.setup_combobox(concurrent_tasks_combobox, ApplicationPreferences.PARALLEL_TASKS_VALUES)
-            concurrent_tasks_message_stack = self.gtk_builder.get_object('concurrent_tasks_message_stack')
-            concurrent_tasks_message_8 = self.gtk_builder.get_object('concurrent_tasks_message_8')
-            concurrent_tasks_message_12 = self.gtk_builder.get_object('concurrent_tasks_message_12')
-            concurrent_tasks_message_24 = self.gtk_builder.get_object('concurrent_tasks_message_24')
-            concurrent_tasks_message_32 = self.gtk_builder.get_object('concurrent_tasks_message_32')
-            concurrent_tasks_message_max = self.gtk_builder.get_object('concurrent_tasks_message_max')
-
-            parallel_tasks = str(self.application_preferences.parallel_tasks)
-            concurrent_tasks_combobox.set_active(ApplicationPreferences.PARALLEL_TASKS_VALUES.index(parallel_tasks))
-            if parallel_tasks == '2':
-                concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_8)
-            elif parallel_tasks == '3':
-                concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_12)
-            elif parallel_tasks == '4':
-                concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_24)
-            elif parallel_tasks == '6':
-                concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_32)
-            else:
-                concurrent_tasks_message_stack.set_visible_child(concurrent_tasks_message_max)
-        except IndexError:
-            logging.error('--- FAILED TO SETUP PARALLEL TASKS WIDGETS ---')
 
     def _setup_preferences_dialog_per_codec_tasks_widgets(self):
         try:
             if self.application_preferences.is_per_codec_parallel_tasks_enabled:
                 per_codec_switch = self.gtk_builder.get_object('per_codec_switch')
                 parallel_tasks_stack = self.gtk_builder.get_object('parallel_tasks_stack')
-                per_codec_scroller = self.gtk_builder.get_object('per_codec_scroller')
+                per_codec_frame = self.gtk_builder.get_object('per_codec_frame')
 
                 per_codec_switch.set_active(True)
-                parallel_tasks_stack.set_visible_child(per_codec_scroller)
+                parallel_tasks_stack.set_visible_child(per_codec_frame)
         except IndexError:
             logging.error('--- FAILED TO SETUP PER CODEC TASKS WIDGETS ---')
-
-    def _setup_preferences_dialog_nvenc_concurrent_widgets(self):
-        try:
-            concurrent_nvenc_tasks_combobox = self.gtk_builder.get_object('concurrent_nvenc_tasks_combobox')
-            UIHelper.setup_combobox(concurrent_nvenc_tasks_combobox, ApplicationPreferences.CONCURRENT_NVENC_VALUES)
-            simultaneous_concurrent_nvenc_tasks_checkbutton = self.gtk_builder.get_object(
-                'simultaneous_concurrent_nvenc_tasks_checkbutton')
-            simultaneous_concurrent_nvenc_tasks_checkbutton.set_active(
-                self.application_preferences.is_concurrent_nvenc_enabled)
-            concurrent_nvenc_tasks_warning_stack = self.gtk_builder.get_object('concurrent_nvenc_tasks_warning_stack')
-            concurrent_nvenc_tasks_warning_blank_label = self.gtk_builder.get_object(
-                'concurrent_nvenc_tasks_warning_blank_label')
-            concurrent_nvenc_tasks_warning_icon = self.gtk_builder.get_object('concurrent_nvenc_tasks_warning_icon')
-
-            concurrent_nvenc = self.application_preferences.get_concurrent_nvenc_value(string=True)
-            concurrent_nvenc_tasks_combobox.set_active(
-                ApplicationPreferences.CONCURRENT_NVENC_VALUES.index(concurrent_nvenc))
-            if concurrent_nvenc != 'auto':
-                concurrent_nvenc_tasks_warning_stack.set_visible_child(concurrent_nvenc_tasks_warning_icon)
-            else:
-                concurrent_nvenc_tasks_warning_stack.set_visible_child(concurrent_nvenc_tasks_warning_blank_label)
-        except IndexError:
-            logging.error('--- FAILED TO SETUP NVENC PARALLEL TASKS WIDGETS ---')
-
-    def _setup_preferences_dialog_temp_chooser_widgets(self):
-        temporary_files_chooserbutton = self.gtk_builder.get_object('temporary_files_chooserbutton')
-        temporary_files_chooserbutton.set_current_folder(self.application_preferences.temp_directory)
-
-    def _setup_preferences_dialog_clear_temp_widgets(self):
-        clear_temporary_files_checkbutton = self.gtk_builder.get_object('clear_temporary_files_checkbutton')
-        clear_temporary_files_checkbutton.set_active(self.application_preferences.is_clear_temp_directory_enabled)
-
-    def _setup_preferences_dialog_overwrite_outputs_widgets(self):
-        overwrite_outputs_checkbutton = self.gtk_builder.get_object('overwrite_outputs_checkbutton')
-        overwrite_outputs_checkbutton.set_active(self.application_preferences.is_overwrite_outputs_enabled)
-
-    def _setup_preferences_dialog_dark_mode_widgets(self):
-        dark_mode_switch = self.gtk_builder.get_object('dark_mode_switch')
-        dark_mode_switch.set_active(self.application_preferences.is_dark_mode_enabled)
-        self.gtk_settings.set_property("gtk-application-prefer-dark-theme",
-                                       self.application_preferences.is_dark_mode_enabled)
-
-    def _setup_preferences_dialog_watch_folder_wait_for_tasks_widgets(self):
-        wait_for_tasks_checkbutton = self.gtk_builder.get_object('wait_for_tasks_checkbutton')
-        wait_for_tasks_checkbutton.set_active(self.application_preferences.is_watch_folder_wait_for_tasks_enabled)
-
-    def _setup_preferences_dialog_watch_folder_concurrent_widgets(self):
-        run_watch_folders_concurrently_checkbutton = self.gtk_builder.get_object(
-            'run_watch_folders_concurrently_checkbutton')
-        run_watch_folders_concurrently_checkbutton.set_active(
-            self.application_preferences.is_concurrent_watch_folder_enabled)
-
-    def _setup_preferences_dialog_watch_folder_move_to_done_widgets(self):
-        move_watch_folder_tasks_to_done_checkbutton = self.gtk_builder.get_object(
-            'move_watch_folder_tasks_to_done_checkbutton')
-        move_watch_folder_tasks_to_done_checkbutton.set_active(
-            self.application_preferences.is_watch_folder_move_tasks_to_done_enabled)
 
     def _setup_general_settings_widgets(self):
         self._setup_video_container_widgets()

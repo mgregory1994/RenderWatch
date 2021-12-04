@@ -25,10 +25,12 @@ class MoveWatchFolderTasksToDoneSignal:
     def __init__(self, application_preferences):
         self.application_preferences = application_preferences
 
-    def on_move_watch_folder_tasks_to_done_checkbutton_toggled(self, move_watch_folder_tasks_to_done_checkbutton):
+    def on_move_watch_folder_tasks_to_done_switch_state_set(self,
+                                                            move_watch_folder_tasks_to_done_switch,
+                                                            user_data=None):
         """
         Applies the Move Completed Watch Folder Tasks to the Done Folder option in the application's preferences.
 
-        :param move_watch_folder_tasks_to_done_checkbutton: Checkbutton that emitted the signal.
+        :param move_watch_folder_tasks_to_done_switch: Switch that emitted the signal.
         """
-        self.application_preferences.is_watch_folder_move_tasks_to_done_enabled = move_watch_folder_tasks_to_done_checkbutton.get_active()
+        self.application_preferences.is_watch_folder_move_tasks_to_done_enabled = move_watch_folder_tasks_to_done_switch.get_active()

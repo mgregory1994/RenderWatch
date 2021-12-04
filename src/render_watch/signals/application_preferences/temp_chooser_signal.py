@@ -47,7 +47,7 @@ class TempChooserSignal:
         except ImportError:
             logging.warning('--- CAN\'T SET TEMP FOLDER DIRECTORY: ' + temp_directory + ' ---')
         else:
-            self.application_preferences.temp_directory = temp_directory
+            self.application_preferences.set_temp_directory(temp_directory)
 
             self.prefs_handlers.update_temp_restart_state(temp_directory)
 

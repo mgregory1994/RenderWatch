@@ -30,13 +30,13 @@ class ClearTempFilesSignal:
         self.application_preferences = application_preferences
         self.original_temp_directory = original_temp_directory
 
-    def on_clear_temporary_files_checkbutton_toggled(self, clear_temporary_files_checkbutton):
+    def on_clear_temporary_files_switch_state_set(self, clear_temporary_files_switch, user_data=None):
         """
         Applies the Clear Temporary Files option to the application's preferences.
 
-        :param clear_temporary_files_checkbutton: Checkbox that emitted the signal.
+        :param clear_temporary_files_switch: Switch that emitted the signal.
         """
-        clear_temp_directory_enabled = clear_temporary_files_checkbutton.get_active()
+        clear_temp_directory_enabled = clear_temporary_files_switch.get_active()
         if clear_temp_directory_enabled:
             self._show_clear_temp_files_warning_dialog()
 

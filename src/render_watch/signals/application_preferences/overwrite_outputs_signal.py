@@ -24,10 +24,10 @@ class OverwriteOutputsSignal:
     def __init__(self, application_preferences):
         self.application_preferences = application_preferences
 
-    def on_overwrite_outputs_checkbutton_toggled(self, overwrite_outputs_checkbutton):
+    def on_overwrite_outputs_switch_state_set(self, overwrite_outputs_switch, user_data=None):
         """
         Applies the Overwrite Existing Outputs option in the application's preferences.
 
-        :param overwrite_outputs_checkbutton: Checkbox that emitted the signal.
+        :param overwrite_outputs_switch: Switch that emitted the signal.
         """
-        self.application_preferences.is_overwriting_outputs = overwrite_outputs_checkbutton.get_active()
+        self.application_preferences.is_overwriting_outputs = overwrite_outputs_switch.get_active()

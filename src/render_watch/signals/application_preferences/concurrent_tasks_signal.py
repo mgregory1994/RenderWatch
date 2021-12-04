@@ -53,19 +53,20 @@ class ConcurrentTasksSignal:
 
         self.application_preferences_handlers.update_nvenc_concurrent_tasks_restart_state(concurrent_nvenc_text)
 
-    def on_simultaneous_concurrent_nvenc_tasks_checkbutton_toggled(self,
-                                                                   simultaneous_concurrent_nvenc_tasks_checkbutton):
+    def on_simultaneous_concurrent_nvenc_tasks_switch_state_set(self,
+                                                                simultaneous_concurrent_nvenc_tasks_switch,
+                                                                user_data=None):
         """
         Toggles the NVENC Concurrent Tasks option in the application's preferences.
 
-        :param simultaneous_concurrent_nvenc_tasks_checkbutton: Checkbox that emitted the signal.
+        :param simultaneous_concurrent_nvenc_tasks_switch: Switch that emitted the signal.
         """
-        self.application_preferences.is_concurrent_nvenc_enabled = simultaneous_concurrent_nvenc_tasks_checkbutton.get_active()
+        self.application_preferences.is_concurrent_nvenc_enabled = simultaneous_concurrent_nvenc_tasks_switch.get_active()
 
-    def on_run_watch_folders_concurrently_checkbutton_toggled(self, run_watch_folders_concurrently_checkbutton):
+    def on_run_watch_folders_concurrently_switch_state_set(self, run_watch_folders_concurrently_switch, user_data=None):
         """
         Toggles the Run Watch Folder Tasks Concurrently option in the application's preferences.
 
-        :param run_watch_folders_concurrently_checkbutton: Checkbox that emitted the signal.
+        :param run_watch_folders_concurrently_switch: Switch that emitted the signal.
         """
-        self.application_preferences.is_concurrent_watch_folder_enabled = run_watch_folders_concurrently_checkbutton.get_active()
+        self.application_preferences.is_concurrent_watch_folder_enabled = run_watch_folders_concurrently_switch.get_active()
