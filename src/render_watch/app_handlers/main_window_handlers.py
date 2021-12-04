@@ -265,3 +265,6 @@ class MainWindowHandlers:
             return
 
         self.inputs_page_paned.set_position(self.main_window.get_size().width - self.inputs_page_paned_position)
+
+    def signal_add_button(self, inputs=None):
+        self.add_input_signal.on_add_inputs_button_clicked(self.add_inputs_button, inputs)

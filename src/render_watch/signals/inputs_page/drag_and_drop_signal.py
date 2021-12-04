@@ -63,7 +63,7 @@ class DragAndDropSignal:
                 self._parse_input(input_file_path, inputs)
 
             if inputs:
-                self.main_window_handlers.on_add_button_clicked(self.main_window_handlers.add_inputs_button, inputs=inputs)
+                self.main_window_handlers.signal_add_button(inputs=inputs)
 
     def _parse_input(self, input_file_path, inputs):
         if self.main_window_handlers.is_file_inputs_enabled():
