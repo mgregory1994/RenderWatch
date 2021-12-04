@@ -208,6 +208,9 @@ class InputsPageHandlers:
             return self.inputs_list.get_children()
         return [selected_row]
 
+    def is_preview_page_failed_state(self):
+        return self.preview_page_handlers.is_preview_failed_state()
+
     def set_importing_file_path_text(self, importing_inputs_file_path_text):
         self.adding_inputs_file_path_label.set_text(importing_inputs_file_path_text)
 

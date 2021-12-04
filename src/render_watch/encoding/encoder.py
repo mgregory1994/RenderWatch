@@ -74,32 +74,110 @@ class Encoder:
         Encoder._set_active_row_finished_state(active_row, folder_state)
 
     @staticmethod
+    def _pause_encode_process(encode_process, active_row):
+        os.kill(encode_process.pid, signal.SIGSTOP)
+        active_row.task_threading_event.wait()
+        os.kill(encode_process.pid, signal.SIGCONT)
+
+    @staticmethod
     def _update_active_row_encode_status(active_row,
                                          process_stdout,
                                          current_encode_pass,
                                          encode_passes,
                                          duration_in_seconds):
-        bitrate = Encoder._get_bitrate_as_float(process_stdout)
-        file_size_in_kilobytes = Encoder._get_file_size_in_kilobytes(process_stdout)
-        current_time_in_seconds = Encoder._get_current_time_in_seconds(process_stdout)
-        speed_as_float = Encoder._get_speed_as_float(process_stdout)
-        if current_encode_pass == 0:
-            progress = (current_time_in_seconds / duration_in_seconds) / encode_passes
-        else:
-            progress = .5 + ((current_time_in_seconds / duration_in_seconds) / encode_passes)
+        Encoder._update_bitrate_value(active_row, process_stdout)
+        Encoder._update_file_size_value(active_row, process_stdout)
 
-        if speed_as_float is not None:
-            active_row.time = Encoder._get_encode_time_left(current_time_in_seconds,
-                                                            duration_in_seconds,
-                                                            speed_as_float,
-                                                            current_encode_pass,
-                                                            encode_passes)
-        if file_size_in_kilobytes is not None:
-            active_row.file_size = format_converter.convert_kilobytes_to_bytes(file_size_in_kilobytes)
-        active_row.bitrate = bitrate
-        active_row.speed = speed_as_float
-        active_row.progress = progress
-        active_row.current_time = current_time_in_seconds
+        speed_as_a_float = Encoder._update_encode_speed_value(active_row, process_stdout)
+        current_time_in_seconds = Encoder._update_current_encode_time_position(active_row, process_stdout)
+
+        Encoder._update_encode_progress(active_row,
+                                        current_encode_pass,
+                                        encode_passes,
+                                        duration_in_seconds,
+                                        current_time_in_seconds)
+        Encoder._update_encode_time_left(active_row,
+                                         speed_as_a_float,
+                                         current_encode_pass,
+                                         encode_passes,
+                                         current_time_in_seconds,
+                                         duration_in_seconds)
+
+    @staticmethod
+    def _update_bitrate_value(active_row, process_stdout):
+        try:
+            bitrate = re.search('bitrate=\d+\.\d+|bitrate=\s+\d+\.\d+', process_stdout).group().split('=')[1]
+            active_row.bitrate = float(bitrate)
+        except:
+            pass
+
+    @staticmethod
+    def _update_file_size_value(active_row, process_stdout):
+        try:
+            file_size_in_kilobytes = re.search('size=\d+|size=\s+\d+', process_stdout).group().split('=')[1]
+            file_size_in_bytes = format_converter.convert_kilobytes_to_bytes(int(file_size_in_kilobytes))
+            active_row.file_size = file_size_in_bytes
+        except:
+            pass
+
+    @staticmethod
+    def _update_current_encode_time_position(active_row, process_stdout):
+        try:
+            current_time = re.search('time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
+                                     process_stdout).group().split('=')[1]
+            current_time_in_seconds = format_converter.get_seconds_from_timecode(current_time)
+            active_row.current_time = current_time_in_seconds
+        except:
+            pass
+        else:
+            return current_time_in_seconds
+
+    @staticmethod
+    def _update_encode_speed_value(active_row, process_stdout):
+        try:
+            speed = re.search('speed=\d+\.\d+|speed=\s+\d+\.\d+', process_stdout).group().split('=')[1]
+            active_row.speed = float(speed)
+        except:
+            pass
+        else:
+            return float(speed)
+
+    @staticmethod
+    def _update_encode_progress(active_row,
+                                current_encode_pass,
+                                encode_passes,
+                                duration_in_seconds,
+                                current_time_in_seconds):
+        try:
+            if current_encode_pass == 0:
+                progress = (current_time_in_seconds / duration_in_seconds) / encode_passes
+            else:
+                progress = .5 + ((current_time_in_seconds / duration_in_seconds) / encode_passes)
+
+            active_row.progress = progress
+        except:
+            pass
+
+    @staticmethod
+    def _update_encode_time_left(active_row,
+                                 speed_as_a_float,
+                                 current_encode_pass,
+                                 encode_passes,
+                                 current_time_in_seconds,
+                                 duration_in_seconds):
+        try:
+            if speed_as_a_float > 0.0:
+                if current_encode_pass == 0:
+                    duration_in_seconds *= encode_passes
+
+                if current_time_in_seconds >= duration_in_seconds:
+                    time_left = 0
+                else:
+                    time_left = (duration_in_seconds - current_time_in_seconds) / speed_as_a_float
+
+                active_row.time = time_left
+        except:
+            pass
 
     @staticmethod
     def _update_active_row_finished_state(active_row, encode_process, stdout_last_line):
@@ -120,56 +198,3 @@ class Encoder:
 
         if not folder_state:
             GLib.idle_add(active_row.set_finished_state)
-
-    @staticmethod
-    def _pause_encode_process(encode_process, active_row):
-        os.kill(encode_process.pid, signal.SIGSTOP)
-        active_row.task_threading_event.wait()
-        os.kill(encode_process.pid, signal.SIGCONT)
-
-    @staticmethod
-    def _get_bitrate_as_float(process_stdout):
-        try:
-            bitrate = re.search('bitrate=\d+\.\d+|bitrate=\s+\d+\.\d+', process_stdout).group().split('=')[1]
-            return float(bitrate)
-        except:
-            return 0.0
-
-    @staticmethod
-    def _get_speed_as_float(process_stdout):
-        try:
-            speed = re.search('speed=\d+\.\d+|speed=\s+\d+\.\d+', process_stdout).group().split('=')[1]
-            return float(speed)
-        except:
-            return 0
-
-    @staticmethod
-    def _get_file_size_in_kilobytes(process_stdout):
-        try:
-            file_size = re.search('size=\d+|size=\s+\d+', process_stdout).group().split('=')[1]
-            return int(file_size)
-        except:
-            return 0
-
-    @staticmethod
-    def _get_current_time_in_seconds(process_stdout):
-        try:
-            current_time = re.search('time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
-                                     process_stdout).group().split('=')[1]
-            return format_converter.get_seconds_from_timecode(current_time)
-        except:
-            return 0
-
-    @staticmethod
-    def _get_encode_time_left(current_time_in_seconds, duration_in_seconds, speed_as_float, encode_pass, encode_passes):
-        try:
-            if encode_pass == 0:
-                duration_in_seconds *= encode_passes
-
-            if current_time_in_seconds >= duration_in_seconds:
-                time_left = 0
-            else:
-                time_left = (duration_in_seconds - current_time_in_seconds) / speed_as_float
-            return time_left
-        except:
-            return 0

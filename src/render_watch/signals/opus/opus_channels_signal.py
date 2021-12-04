@@ -41,3 +41,6 @@ class OpusChannelsSignal:
             ffmpeg.audio_settings.channels = channels_index
 
             row.setup_labels()
+
+        if self.inputs_page_handlers.is_preview_page_failed_state():
+            self.inputs_page_handlers.update_preview_page()

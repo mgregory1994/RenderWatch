@@ -39,3 +39,6 @@ class OpusBitrateSignal:
             ffmpeg.audio_settings.bitrate = opus_bitrate_spinbutton.get_value_as_int()
 
             row.setup_labels()
+
+        if self.inputs_page_handlers.is_preview_page_failed_state():
+            self.inputs_page_handlers.update_preview_page()

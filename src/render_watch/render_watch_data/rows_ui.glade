@@ -88,7 +88,7 @@
             <property name="halign">start</property>
             <property name="label" translatable="yes">FILE NAME HHHHHHHHHHHHHHHHHHHHHHHHHHhhhh</property>
             <property name="ellipsize">end</property>
-            <property name="max-width-chars">35</property>
+            <property name="max-width-chars">44</property>
             <attributes>
               <attribute name="weight" value="semibold"/>
             </attributes>
@@ -1558,7 +1558,7 @@ Restart Render Watch for changes to take effect</property>
                 <property name="valign">end</property>
                 <property name="label" translatable="yes">FILE NAME HHHHHHHHHHHHHHHHHHHHHHHHHHHHHH</property>
                 <property name="ellipsize">end</property>
-                <property name="max-width-chars">35</property>
+                <property name="max-width-chars">41</property>
                 <attributes>
                   <attribute name="weight" value="semibold"/>
                 </attributes>
@@ -1574,9 +1574,9 @@ Restart Render Watch for changes to take effect</property>
                 <property name="sensitive">False</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">FOLDER FILE NAME HHHHHHHHHHHHHHHHH</property>
+                <property name="label" translatable="yes">FOLDER FILE NAME HHHHHHHHHHHHHHHHHHHH</property>
                 <property name="ellipsize">end</property>
-                <property name="max-width-chars">35</property>
+                <property name="max-width-chars">41</property>
                 <attributes>
                   <attribute name="weight" value="semibold"/>
                 </attributes>
@@ -1841,9 +1841,9 @@ Restart Render Watch for changes to take effect</property>
             <property name="valign">end</property>
             <property name="margin-top">5</property>
             <property name="vexpand">True</property>
-            <property name="label" translatable="yes">FILE NAME HHHHHHHHHHHHHHHHHHHHHH</property>
+            <property name="label" translatable="yes">FILE NAME HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH</property>
             <property name="ellipsize">end</property>
-            <property name="max-width-chars">35</property>
+            <property name="max-width-chars">45</property>
             <attributes>
               <attribute name="weight" value="semibold"/>
             </attributes>

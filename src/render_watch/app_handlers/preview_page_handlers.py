@@ -213,6 +213,9 @@ class PreviewPageHandlers:
     def get_preview_encode_state(self):
         return self.preview_stack.get_visible_child() == self.preview_progress_box
 
+    def is_preview_failed_state(self):
+        return self.preview_stack.get_visible_child() == self.preview_wrong_codec_label
+
     def set_progress_fraction(self, progress_bar_fraction_value):
         self.preview_progressbar.set_fraction(progress_bar_fraction_value)
 
