@@ -16,14 +16,20 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import threading
+
+from render_watch.helpers.nvidia_helper import NvidiaHelper
+
+
 class NvencAQSignal:
     """
     Handles the signals emitted when NVENC AQ related settings are changed.
     """
 
-    def __init__(self, nvenc_handlers, inputs_page_handlers):
+    def __init__(self, nvenc_handlers, inputs_page_handlers, main_window_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
+        self.main_window_handlers = main_window_handlers
 
     def on_nvenc_spatial_radiobutton_toggled(self, nvenc_spatial_radiobutton):
         """
@@ -37,6 +43,7 @@ class NvencAQSignal:
             return
 
         spatial_enabled = nvenc_spatial_radiobutton.get_active()
+        codec_settings = None
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
@@ -48,8 +55,13 @@ class NvencAQSignal:
             else:
                 ffmpeg.video_settings.aq_strength = None
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
 
     def on_nvenc_aq_strength_spinbutton_value_changed(self, nvenc_aq_strength_spinbutton):
@@ -62,11 +74,17 @@ class NvencAQSignal:
             return
 
         aq_strength_value = nvenc_aq_strength_spinbutton.get_value_as_int()
+        codec_settings = None
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.aq_strength = aq_strength_value
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()

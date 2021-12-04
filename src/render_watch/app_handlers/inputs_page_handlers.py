@@ -43,6 +43,7 @@ class InputsPageHandlers:
                                                                  trim_page_handlers,
                                                                  preview_page_handlers,
                                                                  self,
+                                                                 main_window_handlers,
                                                                  application_preferences)
         self.preview_page_handlers = preview_page_handlers
 

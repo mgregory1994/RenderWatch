@@ -21,6 +21,8 @@ import logging
 
 from concurrent.futures import ThreadPoolExecutor
 
+from render_watch.startup import Gtk, GLib
+
 
 class NvidiaHelper:
     """
@@ -57,7 +59,7 @@ class NvidiaHelper:
         ffmpeg_args.append('-f')
         ffmpeg_args.append('lavfi')
         ffmpeg_args.append('-i')
-        ffmpeg_args.append('nullsrc=s=256x256:d=10')
+        ffmpeg_args.append('nullsrc=s=256x256:d=5')
         ffmpeg_args.append('-c:v')
         ffmpeg_args.append('h264_nvenc')
         ffmpeg_args.append('-f')
@@ -176,3 +178,31 @@ class NvidiaHelper:
         another NVENC process from running.
         """
         return NvidiaHelper._run_test_process(NvidiaHelper._get_nvenc_test_args())
+
+    @staticmethod
+    def is_codec_settings_valid(video_codec_settings, main_window):
+        from render_watch.ffmpeg.settings import Settings
+
+        ffmpeg_args = Settings.FFMPEG_INIT_ARGS.copy()
+        ffmpeg_args.append('-f')
+        ffmpeg_args.append('lavfi')
+        ffmpeg_args.append('-i')
+        ffmpeg_args.append('nullsrc=s=256x256:d=5')
+        ffmpeg_args.extend(Settings.generate_video_settings_args(video_codec_settings.ffmpeg_args))
+        ffmpeg_args.extend(Settings.generate_video_settings_args(video_codec_settings.get_ffmpeg_advanced_args()))
+        ffmpeg_args.append('-f')
+        ffmpeg_args.append('null')
+        ffmpeg_args.append('-')
+
+        if not NvidiaHelper._run_test_process(ffmpeg_args):
+            GLib.idle_add(NvidiaHelper._show_codec_settings_not_supported_message, main_window)
+
+    @staticmethod
+    def _show_codec_settings_not_supported_message(main_window):
+        message_dialog = Gtk.MessageDialog(main_window,
+                                           Gtk.DialogFlags.DESTROY_WITH_PARENT,
+                                           Gtk.MessageType.WARNING,
+                                           Gtk.ButtonsType.OK,
+                                           'Current NVENC settings not supported on this system.')
+        message_dialog.run()
+        message_dialog.destroy()

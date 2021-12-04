@@ -58,6 +58,7 @@ class SettingsSidebarHandlers:
                  trim_page_handlers,
                  preview_page_handlers,
                  inputs_page_handlers,
+                 main_window_handlers,
                  application_preferences):
         self.gtk_builder = gtk_builder
         self.inputs_page_handlers = inputs_page_handlers
@@ -69,7 +70,7 @@ class SettingsSidebarHandlers:
         self.benchmark_thread_lock = threading.Lock()
         self.x264_handlers = X264Handlers(gtk_builder, inputs_page_handlers, application_preferences)
         self.x265_handlers = X265Handlers(gtk_builder, inputs_page_handlers, application_preferences)
-        self.nvenc_handlers = NvencHandlers(gtk_builder, inputs_page_handlers)
+        self.nvenc_handlers = NvencHandlers(gtk_builder, inputs_page_handlers, main_window_handlers)
         self.vp9_handlers = VP9Handlers(gtk_builder, inputs_page_handlers, application_preferences)
         self.aac_handlers = AacHandlers(gtk_builder, inputs_page_handlers)
         self.opus_handlers = OpusHandlers(gtk_builder, inputs_page_handlers)

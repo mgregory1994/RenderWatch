@@ -16,6 +16,8 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import threading
+
 from render_watch.ffmpeg.hevc_nvenc import HevcNvenc
 from render_watch.ffmpeg.h264_nvenc import H264Nvenc
 from render_watch.signals.nvenc.nvenc_qp_signal import NvencQpSignal
@@ -40,6 +42,7 @@ from render_watch.signals.nvenc.nvenc_surfaces_signal import NvencSurfacesSignal
 from render_watch.signals.nvenc.nvenc_tune_signal import NvencTuneSignal
 from render_watch.signals.nvenc.nvenc_weighted_prediction_signal import NvencWeightedPredictionSignal
 from render_watch.helpers.ui_helper import UIHelper
+from render_watch.helpers.nvidia_helper import NvidiaHelper
 from render_watch.startup import GLib
 
 
@@ -48,32 +51,35 @@ class NvencHandlers:
     Handles all widget changes for the NVENC codecs.
     """
 
-    def __init__(self, gtk_builder, inputs_page_handlers):
+    def __init__(self, gtk_builder, inputs_page_handlers, main_window_handlers):
         self.is_widgets_setting_up = False
         self.inputs_page_handlers = inputs_page_handlers
+        self.main_window_handlers = main_window_handlers
         self._is_h264_state = True
 
-        self.nvenc_qp_signal = NvencQpSignal(self, inputs_page_handlers)
-        self.nvenc_bitrate_signal = NvencBitrateSignal(self, inputs_page_handlers)
+        self.nvenc_qp_signal = NvencQpSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_bitrate_signal = NvencBitrateSignal(self, inputs_page_handlers, main_window_handlers)
         self.nvenc_advanced_settings_signal = NvencAdvancedSettingsSignal(self, inputs_page_handlers)
-        self.nvenc_aq_signal = NvencAQSignal(self, inputs_page_handlers)
-        self.nvenc_b_adapt_signal = NvencBAdaptSignal(self, inputs_page_handlers)
-        self.nvenc_bluray_compat_signal = NvencBlurayCompatSignal(self, inputs_page_handlers)
-        self.nvenc_b_ref_mode_signal = NvencBRefModeSignal(self, inputs_page_handlers)
-        self.nvenc_coder_signal = NvencCoderSignal(self, inputs_page_handlers)
-        self.nvenc_forced_idr_signal = NvencForcedIDRSignal(self, inputs_page_handlers)
-        self.nvenc_high_tier_signal = NvencHighTierSignal(self, inputs_page_handlers)
-        self.nvenc_level_signal = NvencLevelSignal(self, inputs_page_handlers)
-        self.nvenc_multi_pass_signal = NvencMultiPassSignal(self, inputs_page_handlers)
-        self.nvenc_no_scenecut_signal = NvencNoScenecutSignal(self, inputs_page_handlers)
-        self.nvenc_non_ref_p_frames_signal = NvencNonRefPFramesSignal(self, inputs_page_handlers)
-        self.nvenc_preset_signal = NvencPresetSignal(self, inputs_page_handlers)
-        self.nvenc_profile_signal = NvencProfileSignal(self, inputs_page_handlers)
-        self.nvenc_rate_control_signal = NvencRateControlSignal(self, inputs_page_handlers)
-        self.nvenc_strict_gop_signal = NvencStrictGOPSignal(self, inputs_page_handlers)
-        self.nvenc_surfaces_signal = NvencSurfacesSignal(self, inputs_page_handlers)
-        self.nvenc_tune_signal = NvencTuneSignal(self, inputs_page_handlers)
-        self.nvenc_weighted_prediction_signal = NvencWeightedPredictionSignal(self, inputs_page_handlers)
+        self.nvenc_aq_signal = NvencAQSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_b_adapt_signal = NvencBAdaptSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_bluray_compat_signal = NvencBlurayCompatSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_b_ref_mode_signal = NvencBRefModeSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_coder_signal = NvencCoderSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_forced_idr_signal = NvencForcedIDRSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_high_tier_signal = NvencHighTierSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_level_signal = NvencLevelSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_multi_pass_signal = NvencMultiPassSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_no_scenecut_signal = NvencNoScenecutSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_non_ref_p_frames_signal = NvencNonRefPFramesSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_preset_signal = NvencPresetSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_profile_signal = NvencProfileSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_rate_control_signal = NvencRateControlSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_strict_gop_signal = NvencStrictGOPSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_surfaces_signal = NvencSurfacesSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_tune_signal = NvencTuneSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_weighted_prediction_signal = NvencWeightedPredictionSignal(self,
+                                                                              inputs_page_handlers,
+                                                                              main_window_handlers)
         self.signals_list = (
             self.nvenc_qp_signal, self.nvenc_bitrate_signal, self.nvenc_advanced_settings_signal,
             self.nvenc_aq_signal, self.nvenc_b_adapt_signal, self.nvenc_bluray_compat_signal,
@@ -497,12 +503,19 @@ class NvencHandlers:
             self.nvenc_rate_type_buttonbox.set_sensitive(not advanced_enabled)
 
     def update_settings(self):
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             self.get_settings(ffmpeg)
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             GLib.idle_add(row.setup_labels)
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         GLib.idle_add(self.inputs_page_handlers.update_preview_page)
 
     def signal_average_radiobutton(self):

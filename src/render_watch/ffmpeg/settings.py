@@ -32,7 +32,7 @@ class Settings:
 
     VALID_INPUT_CONTAINERS = ('mp4', 'mkv', 'm4v', 'avi', 'ts', 'm2ts', 'mpg', 'vob', 'VOB', 'mov', 'webm', 'wmv')
 
-    #FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-loglevel', 'quiet', '-stats', "-y"]
+    # FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-loglevel', 'quiet', '-stats', "-y"]
     FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-stats', "-y"]
     FFMPEG_INIT_AUTO_CROP_ARGS = ['ffmpeg', '-hide_banner', '-y']
     FFMPEG_CONCATENATION_INIT_ARGS = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i']
@@ -315,24 +315,17 @@ class Settings:
 
     def _apply_video_settings_args(self, ffmpeg_args):
         if self.video_settings:
-            ffmpeg_args.extend(self._generate_video_settings_args())
-            ffmpeg_args.extend(self._generate_advanced_video_settings_args())
+            ffmpeg_args.extend(self.generate_video_settings_args(self.video_settings.ffmpeg_args))
+            ffmpeg_args.extend(self.generate_video_settings_args(self.video_settings.get_ffmpeg_advanced_args()))
         elif self.no_video:
             ffmpeg_args.append(self.VIDEO_NONE_ARG)
         else:
             ffmpeg_args.extend(self.VIDEO_COPY_ARGS)
 
-    def _generate_video_settings_args(self):
+    @staticmethod
+    def generate_video_settings_args(video_codec_settings):
         args = []
-        for setting, arg in self.video_settings.ffmpeg_args.items():
-            if arg is not None:
-                args.append(setting)
-                args.append(arg)
-        return args
-
-    def _generate_advanced_video_settings_args(self):
-        args = []
-        for setting, arg in self.video_settings.get_ffmpeg_advanced_args().items():
+        for setting, arg in video_codec_settings.items():
             if arg is not None:
                 args.append(setting)
                 args.append(arg)

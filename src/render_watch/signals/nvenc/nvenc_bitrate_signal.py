@@ -16,14 +16,20 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import threading
+
+from render_watch.helpers.nvidia_helper import NvidiaHelper
+
+
 class NvencBitrateSignal:
     """
     Handles the signals emitted when NVENC Bitrate related options are changed.
     """
 
-    def __init__(self, nvenc_handlers, inputs_page_handlers):
+    def __init__(self, nvenc_handlers, inputs_page_handlers, main_window_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
+        self.main_window_handlers = main_window_handlers
 
     def on_nvenc_bitrate_radiobutton_toggled(self, nvenc_bitrate_radiobutton):
         """
@@ -43,12 +49,19 @@ class NvencBitrateSignal:
         self.nvenc_handlers.signal_constant_radiobutton()
         self.nvenc_handlers.signal_2pass_radiobutton()
 
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.bitrate = self.nvenc_handlers.get_bitrate_value()
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
 
     def on_nvenc_average_radiobutton_toggled(self, nvenc_average_radiobutton):
@@ -65,14 +78,21 @@ class NvencBitrateSignal:
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.dual_pass_enabled = False
             ffmpeg.video_settings.multi_pass = None
             ffmpeg.video_settings.cbr = None
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
 
     def on_nvenc_constant_radiobutton_toggled(self, nvenc_constant_radiobutton):
@@ -89,14 +109,21 @@ class NvencBitrateSignal:
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.dual_pass_enabled = False
             ffmpeg.video_settings.multi_pass = None
             ffmpeg.video_settings.cbr = True
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
 
     def on_nvenc_2_pass_radiobutton_toggled(self, nvenc_2_pass_radiobutton):
@@ -117,13 +144,20 @@ class NvencBitrateSignal:
 
         self.nvenc_handlers.signal_multi_pass_combobox()
 
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.cbr = None
             ffmpeg.video_settings.dual_pass_enabled = True
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
 
     def on_nvenc_bitrate_spinbutton_value_changed(self, nvenc_bitrate_spinbutton):
@@ -135,10 +169,17 @@ class NvencBitrateSignal:
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.bitrate = nvenc_bitrate_spinbutton.get_value_as_int()
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()

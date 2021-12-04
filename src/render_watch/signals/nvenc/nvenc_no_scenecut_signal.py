@@ -16,14 +16,20 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import threading
+
+from render_watch.helpers.nvidia_helper import NvidiaHelper
+
+
 class NvencNoScenecutSignal:
     """
     Handles the signal emitted when the NVENC No Scenecut option is changed.
     """
 
-    def __init__(self, nvenc_handlers, inputs_page_handlers):
+    def __init__(self, nvenc_handlers, inputs_page_handlers, main_window_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
+        self.main_window_handlers = main_window_handlers
 
     def on_nvenc_no_scenecut_checkbutton_toggled(self, nvenc_no_scenecut_checkbutton):
         """
@@ -35,11 +41,17 @@ class NvencNoScenecutSignal:
             return
 
         no_scenecut_enabled = nvenc_no_scenecut_checkbutton.get_active()
+        codec_settings = None
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.no_scenecut = no_scenecut_enabled
 
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
