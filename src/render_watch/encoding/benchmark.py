@@ -16,6 +16,8 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import os
+import signal
 import subprocess
 import logging
 import re
@@ -104,7 +106,7 @@ def _run_benchmark_process(ffmpeg, settings_sidebar_handlers, duration, origin_d
             while True:
                 with settings_sidebar_handlers.benchmark_thread_lock:
                     if settings_sidebar_handlers.is_benchmark_thread_stopping:
-                        benchmark_process.terminate()
+                        os.kill(benchmark_process.pid, signal.SIGKILL)
                         break
 
                 stdout = benchmark_process.stdout.readline().strip()

@@ -24,34 +24,48 @@ from render_watch.ffmpeg.settings import Settings
 from render_watch.helpers.nvidia_helper import NvidiaHelper
 
 
-def get_chunks(ffmpeg, preferences):
+def get_chunks(ffmpeg, application_preferences):
     """
     Splits ffmpeg settings object into homogeneous chunks.
 
     :param ffmpeg: ffmpeg settings.
-    :param preferences: Application preferences.
+    :param application_preferences: Application preferences.
     """
-    number_of_chunks = _get_number_of_chunks(ffmpeg, preferences)
+    number_of_chunks = _get_number_of_chunks(ffmpeg, application_preferences)
 
     if is_ffmpeg_viable_for_chunking(ffmpeg, number_of_chunks):
-        return _get_chunks_list(ffmpeg, number_of_chunks, preferences)
+        return _get_chunks_list(ffmpeg, number_of_chunks, application_preferences)
 
     return None
 
 
-def _get_number_of_chunks(ffmpeg, preferences):
+def _get_number_of_chunks(ffmpeg, application_preferences):
     if ffmpeg.is_video_settings_nvenc():
         return NvidiaHelper.nvenc_max_workers
 
-    return preferences.parallel_tasks
+    if application_preferences.is_per_codec_parallel_tasks_enabled:
+        return _get_per_codec_number_of_chunks(ffmpeg, application_preferences)
+
+    return application_preferences.parallel_tasks
 
 
-def _get_chunks_list(ffmpeg, number_of_chunks, preferences):
+def _get_per_codec_number_of_chunks(ffmpeg, application_preferences):
+    if ffmpeg.is_video_settings_x264():
+        return application_preferences.per_codec_parallel_tasks['x264']
+    elif ffmpeg.is_video_settings_x265():
+        return application_preferences.per_codec_parallel_tasks['x265']
+    elif ffmpeg.is_video_settings_vp9():
+        return application_preferences.per_codec_parallel_tasks['vp9']
+    else:
+        return 1
+
+
+def _get_chunks_list(ffmpeg, number_of_chunks, application_preferences):
     chunks = []
 
     for chunk_index in range(1, (number_of_chunks + 1)):
-        chunks.append(_generate_video_chunk(ffmpeg, number_of_chunks, chunk_index, preferences))
-    chunks.append(_generate_audio_chunk(ffmpeg, preferences))
+        chunks.append(_generate_video_chunk(ffmpeg, number_of_chunks, chunk_index, application_preferences))
+    chunks.append(_generate_audio_chunk(ffmpeg, application_preferences))
 
     return chunks
 
