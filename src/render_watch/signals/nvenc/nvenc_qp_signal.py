@@ -223,7 +223,7 @@ class NvencQpSignal:
         self.on_nvenc_qp_p_scale_button_release_event(nvenc_qp_p_scale, event, user_data)
 
     # Unused parameters needed for this signal
-    def on_nvenc_qp_b_scale_key_release_event(self, nvenc_qp_b_scale, event=None, user_data=None):
+    def on_nvenc_qp_b_scale_button_release_event(self, nvenc_qp_b_scale, event=None, user_data=None):
         """
         Applies the QP_b value option and updates the preview page.
 
@@ -250,7 +250,7 @@ class NvencQpSignal:
                          args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()
 
-    def on_nvenc_qp_b_scale_button_release_event(self, nvenc_qp_b_scale, event, user_data):
+    def on_nvenc_qp_b_scale_key_release_event(self, nvenc_qp_b_scale, event, user_data):
         """
         Applies the QP_b value option and updates the preview page.
 
@@ -258,4 +258,4 @@ class NvencQpSignal:
         :param event: Signal event.
         :param user_data: Signal user data.
         """
-        self.on_nvenc_qp_b_scale_key_release_event(nvenc_qp_b_scale, event, user_data)
+        self.on_nvenc_qp_b_scale_button_release_event(nvenc_qp_b_scale, event, user_data)

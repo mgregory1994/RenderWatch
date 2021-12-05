@@ -342,6 +342,44 @@ class H264Nvenc:
             self._ffmpeg_advanced_args['-surfaces'] = str(surfaces)
 
     @property
+    def b_frames(self):
+        """
+        Returns b frames as an int.
+        """
+        if '-bf' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['-bf'])
+        return 0
+
+    @b_frames.setter
+    def b_frames(self, b_frames):
+        """
+        Stores b frames as a string.
+        """
+        if b_frames is None or b_frames < 1:
+            self._ffmpeg_advanced_args.pop('-bf', 0)
+        else:
+            self._ffmpeg_advanced_args['-bf'] = str(b_frames)
+
+    @property
+    def refs(self):
+        """
+        Returns refs as an int.
+        """
+        if '-refs' in self._ffmpeg_advanced_args:
+            return int(self._ffmpeg_advanced_args['-refs'])
+        return 0
+
+    @refs.setter
+    def refs(self, refs):
+        """
+        Stores refs as a string.
+        """
+        if refs is None or refs < 1:
+            self._ffmpeg_advanced_args.pop('-refs', 0)
+        else:
+            self._ffmpeg_advanced_args['-refs'] = str(refs)
+
+    @property
     def no_scenecut(self):
         """
         Returns no scenecut as a boolean.

@@ -212,7 +212,7 @@ class X264Handlers:
             video_settings.keyint = self.x264_keyint_spinbutton.get_value_as_int()
             video_settings.min_keyint = self.x264_min_keyint_spinbutton.get_value_as_int()
             video_settings.me_range = self.x264_me_range_spinbutton.get_value_as_int()
-            video_settings.dct8x8 = self.x264_8x8dct_checkbox.get_active()
+            video_settings.dct8x8 = self.x264_8x8dct_checkbutton.get_active()
             psy_rd_value = round(self.x264_psy_rd_spinbutton.get_value(), 1)
             psy_rd_trellis_value = round(self.x264_psy_rd_trellis_spinbutton.get_value(), 2)
             video_settings.psy_rd = (psy_rd_value, psy_rd_trellis_value)

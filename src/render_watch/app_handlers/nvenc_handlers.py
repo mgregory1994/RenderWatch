@@ -24,6 +24,8 @@ from render_watch.signals.nvenc.nvenc_qp_signal import NvencQpSignal
 from render_watch.signals.nvenc.nvenc_bitrate_signal import NvencBitrateSignal
 from render_watch.signals.nvenc.nvenc_advanced_settings_signal import NvencAdvancedSettingsSignal
 from render_watch.signals.nvenc.nvenc_aq_signal import NvencAQSignal
+from render_watch.signals.nvenc.nvenc_b_frames_signal import NvencBFramesSignal
+from render_watch.signals.nvenc.nvenc_refs_signal import NvencRefsSignal
 from render_watch.signals.nvenc.nvenc_b_adapt_signal import NvencBAdaptSignal
 from render_watch.signals.nvenc.nvenc_bluray_compat_signal import NvencBlurayCompatSignal
 from render_watch.signals.nvenc.nvenc_b_ref_mode_signal import NvencBRefModeSignal
@@ -60,6 +62,8 @@ class NvencHandlers:
         self.nvenc_qp_signal = NvencQpSignal(self, inputs_page_handlers, main_window_handlers)
         self.nvenc_bitrate_signal = NvencBitrateSignal(self, inputs_page_handlers, main_window_handlers)
         self.nvenc_advanced_settings_signal = NvencAdvancedSettingsSignal(self, inputs_page_handlers)
+        self.nvenc_b_frames_signal = NvencBFramesSignal(self, inputs_page_handlers, main_window_handlers)
+        self.nvenc_refs_signal = NvencRefsSignal(self, inputs_page_handlers, main_window_handlers)
         self.nvenc_aq_signal = NvencAQSignal(self, inputs_page_handlers, main_window_handlers)
         self.nvenc_b_adapt_signal = NvencBAdaptSignal(self, inputs_page_handlers, main_window_handlers)
         self.nvenc_bluray_compat_signal = NvencBlurayCompatSignal(self, inputs_page_handlers, main_window_handlers)
@@ -83,11 +87,12 @@ class NvencHandlers:
         self.signals_list = (
             self.nvenc_qp_signal, self.nvenc_bitrate_signal, self.nvenc_advanced_settings_signal,
             self.nvenc_aq_signal, self.nvenc_b_adapt_signal, self.nvenc_bluray_compat_signal,
-            self.nvenc_b_ref_mode_signal, self.nvenc_coder_signal, self.nvenc_forced_idr_signal,
-            self.nvenc_high_tier_signal, self.nvenc_level_signal, self.nvenc_multi_pass_signal,
-            self.nvenc_no_scenecut_signal, self.nvenc_non_ref_p_frames_signal, self.nvenc_preset_signal,
-            self.nvenc_profile_signal, self.nvenc_rate_control_signal, self.nvenc_strict_gop_signal,
-            self.nvenc_surfaces_signal, self.nvenc_tune_signal, self.nvenc_weighted_prediction_signal
+            self.nvenc_b_frames_signal, self.nvenc_refs_signal, self.nvenc_b_ref_mode_signal,
+            self.nvenc_coder_signal, self.nvenc_forced_idr_signal, self.nvenc_high_tier_signal,
+            self.nvenc_level_signal, self.nvenc_multi_pass_signal, self.nvenc_no_scenecut_signal,
+            self.nvenc_non_ref_p_frames_signal, self.nvenc_preset_signal, self.nvenc_profile_signal,
+            self.nvenc_rate_control_signal, self.nvenc_strict_gop_signal, self.nvenc_surfaces_signal,
+            self.nvenc_tune_signal, self.nvenc_weighted_prediction_signal
         )
 
         self.nvenc_preset_combobox = gtk_builder.get_object('nvenc_preset_combobox')
@@ -99,7 +104,7 @@ class NvencHandlers:
         self.nvenc_rate_type_stack = gtk_builder.get_object('nvenc_rate_type_stack')
         self.nvenc_rate_type_buttonbox = gtk_builder.get_object('nvenc_rate_type_buttonbox')
         self.nvenc_qp_scale = gtk_builder.get_object('nvenc_qp_scale')
-        self.nvenc_bitrate_box = gtk_builder.get_object('nvenc_bitrate_box')
+        self.nvenc_bitrate_widgets_box = gtk_builder.get_object('nvenc_bitrate_widgets_box')
         self.nvenc_bitrate_spinbutton = gtk_builder.get_object('nvenc_bitrate_spinbutton')
         self.nvenc_bitrate_radiobutton = gtk_builder.get_object('nvenc_bitrate_radiobutton')
         self.nvenc_average_radiobutton = gtk_builder.get_object('nvenc_average_radiobutton')
@@ -118,6 +123,8 @@ class NvencHandlers:
         self.nvenc_rate_control_combobox = gtk_builder.get_object('nvenc_rate_control_combobox')
         self.nvenc_rate_control_lookahead_spinbutton = gtk_builder.get_object('nvenc_rate_control_lookahead_spinbutton')
         self.nvenc_surfaces_spinbutton = gtk_builder.get_object('nvenc_surfaces_spinbutton')
+        self.nvenc_refs_spinbutton = gtk_builder.get_object('nvenc_refs_spinbutton')
+        self.nvenc_b_frames_spinbutton = gtk_builder.get_object('nvenc_b_frames_spinbutton')
         self.nvenc_b_ref_mode_combobox = gtk_builder.get_object('nvenc_b_ref_mode_combobox')
         self.nvenc_non_ref_p_frames_checkbutton = gtk_builder.get_object('nvenc_non_ref_p_frames_checkbutton')
         self.nvenc_b_adapt_checkbutton = gtk_builder.get_object('nvenc_b_adapt_checkbutton')
@@ -187,6 +194,8 @@ class NvencHandlers:
             video_settings.weighted_pred = self.nvenc_weighted_prediction_checkbutton.get_active()
             video_settings.rc_lookahead = self.nvenc_rate_control_lookahead_spinbutton.get_value_as_int()
             video_settings.surfaces = self.nvenc_surfaces_spinbutton.get_value_as_int()
+            video_settings.b_frames = self.nvenc_b_frames_spinbutton.get_value_as_int()
+            video_settings.refs = self.nvenc_refs_spinbutton.get_value_as_int()
             video_settings.b_ref_mode = self.nvenc_b_ref_mode_combobox.get_active()
             if self.nvenc_spatial_radiobutton.get_active():
                 video_settings.aq_strength = self.nvenc_aq_strength_spinbutton.get_value_as_int()
@@ -259,6 +268,8 @@ class NvencHandlers:
         self.nvenc_rate_control_combobox.set_active(video_settings.rc)
         self.nvenc_rate_control_lookahead_spinbutton.set_value(video_settings.rc_lookahead)
         self.nvenc_surfaces_spinbutton.set_value(video_settings.surfaces)
+        self.nvenc_refs_spinbutton.set_value(video_settings.refs)
+        self.nvenc_b_frames_spinbutton.set_value(video_settings.b_frames)
         self.nvenc_no_scenecut_checkbutton.set_active(video_settings.no_scenecut)
         self.nvenc_forced_idr_checkbutton.set_active(video_settings.forced_idr)
         self.nvenc_spatial_radiobutton.set_active(video_settings.spatial_aq)
@@ -318,6 +329,8 @@ class NvencHandlers:
         self.nvenc_rate_control_combobox.set_active(0)
         self.nvenc_rate_control_lookahead_spinbutton.set_value(0)
         self.nvenc_surfaces_spinbutton.set_value(0)
+        self.nvenc_refs_spinbutton.set_value(0)
+        self.nvenc_b_frames_spinbutton.set_value(0)
         self.nvenc_b_ref_mode_combobox.set_active(0)
         self.nvenc_non_ref_p_frames_checkbutton.set_active(False)
         self.nvenc_b_adapt_checkbutton.set_active(False)
@@ -391,7 +404,7 @@ class NvencHandlers:
         self.nvenc_rate_type_stack.set_visible_child(self.nvenc_qp_scale)
 
     def set_bitrate_state(self):
-        self.nvenc_rate_type_stack.set_visible_child(self.nvenc_bitrate_box)
+        self.nvenc_rate_type_stack.set_visible_child(self.nvenc_bitrate_widgets_box)
 
     def set_multi_pass_state(self, is_multi_pass_state_enabled):
         self.nvenc_multi_pass_box.set_sensitive(is_multi_pass_state_enabled)
@@ -406,7 +419,7 @@ class NvencHandlers:
         self.nvenc_qp_scales_box.set_sensitive(is_qp_custom_state_enabled)
         self.nvenc_qp_radiobutton.set_active(is_qp_custom_state_enabled)
         self.nvenc_qp_scale.set_sensitive(not is_qp_custom_state_enabled)
-        self.nvenc_bitrate_box.set_sensitive(not is_qp_custom_state_enabled)
+        self.nvenc_bitrate_widgets_box.set_sensitive(not is_qp_custom_state_enabled)
         self.nvenc_rate_type_buttonbox.set_sensitive(not is_qp_custom_state_enabled)
 
     def set_aq_strength_state(self, is_aq_strength_state_enabled):
@@ -499,7 +512,7 @@ class NvencHandlers:
             if advanced_enabled:
                 self.nvenc_qp_radiobutton.set_active(True)
             self.nvenc_qp_scale.set_sensitive(not advanced_enabled)
-            self.nvenc_bitrate_box.set_sensitive(not advanced_enabled)
+            self.nvenc_bitrate_widgets_box.set_sensitive(not advanced_enabled)
             self.nvenc_rate_type_buttonbox.set_sensitive(not advanced_enabled)
 
     def update_settings(self):

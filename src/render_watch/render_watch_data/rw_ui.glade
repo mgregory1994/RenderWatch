@@ -64,6 +64,11 @@ Author: Michael Gregory
     <property name="step-increment">1</property>
     <property name="page-increment">1</property>
   </object>
+  <object class="GtkAdjustment" id="nvenc_b_frames_adjustment">
+    <property name="upper">4</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">1</property>
+  </object>
   <object class="GtkAdjustment" id="nvenc_bitrate_adjustment">
     <property name="lower">100</property>
     <property name="upper">99999</property>
@@ -102,6 +107,11 @@ Author: Michael Gregory
     <property name="upper">1000</property>
     <property name="step-increment">10</property>
     <property name="page-increment">50</property>
+  </object>
+  <object class="GtkAdjustment" id="nvenc_refs_adjustment">
+    <property name="upper">16</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
   </object>
   <object class="GtkAdjustment" id="nvenc_surfaces_adjustment">
     <property name="upper">64</property>
@@ -8546,6 +8556,112 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   </packing>
                                                 </child>
                                                 <child>
+                                                  <object class="GtkBox" id="nvenc_refs_box">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <child type="center">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel" id="nvenc_refs_label">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">Reference Frames:</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="nvenc_refs_spinbutton">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="width-chars">2</property>
+                                                        <property name="text" translatable="yes">0</property>
+                                                        <property name="input-purpose">digits</property>
+                                                        <property name="adjustment">nvenc_refs_adjustment</property>
+                                                        <property name="snap-to-ticks">True</property>
+                                                        <property name="numeric">True</property>
+                                                        <signal name="value-changed" handler="on_nvenc_refs_spinbutton_value_changed" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="pack-type">end</property>
+                                                        <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">6</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
+                                                  <object class="GtkBox" id="nvenc_b_frames_box">
+                                                    <property name="visible">True</property>
+                                                    <property name="can-focus">False</property>
+                                                    <child type="center">
+                                                      <object class="GtkLabel">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">2</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkLabel" id="nvenc_b_frames_label">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">False</property>
+                                                        <property name="label" translatable="yes">B-Frames:</property>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">False</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="position">0</property>
+                                                      </packing>
+                                                    </child>
+                                                    <child>
+                                                      <object class="GtkSpinButton" id="nvenc_b_frames_spinbutton">
+                                                        <property name="visible">True</property>
+                                                        <property name="can-focus">True</property>
+                                                        <property name="width-chars">1</property>
+                                                        <property name="text" translatable="yes">0</property>
+                                                        <property name="input-purpose">digits</property>
+                                                        <property name="adjustment">nvenc_b_frames_adjustment</property>
+                                                        <property name="snap-to-ticks">True</property>
+                                                        <property name="numeric">True</property>
+                                                        <signal name="value-changed" handler="on_nvenc_b_frames_spinbutton_value_changed" swapped="no"/>
+                                                      </object>
+                                                      <packing>
+                                                        <property name="expand">True</property>
+                                                        <property name="fill">True</property>
+                                                        <property name="pack-type">end</property>
+                                                        <property name="position">1</property>
+                                                      </packing>
+                                                    </child>
+                                                  </object>
+                                                  <packing>
+                                                    <property name="expand">False</property>
+                                                    <property name="fill">True</property>
+                                                    <property name="position">7</property>
+                                                  </packing>
+                                                </child>
+                                                <child>
                                                   <object class="GtkBox" id="nvenc_b_ref_mode_box">
                                                     <property name="visible">True</property>
                                                     <property name="can-focus">False</property>
@@ -8589,7 +8705,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">6</property>
+                                                    <property name="position">8</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8605,7 +8721,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">7</property>
+                                                    <property name="position">9</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8621,7 +8737,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">8</property>
+                                                    <property name="position">10</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8634,7 +8750,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">9</property>
+                                                    <property name="position">11</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8714,7 +8830,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">10</property>
+                                                    <property name="position">12</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8768,7 +8884,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">11</property>
+                                                    <property name="position">13</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8781,7 +8897,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">12</property>
+                                                    <property name="position">14</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8861,7 +8977,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">13</property>
+                                                    <property name="position">15</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8877,7 +8993,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">14</property>
+                                                    <property name="position">16</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8893,7 +9009,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">15</property>
+                                                    <property name="position">17</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8909,7 +9025,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">16</property>
+                                                    <property name="position">18</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8925,7 +9041,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">17</property>
+                                                    <property name="position">19</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8938,7 +9054,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">18</property>
+                                                    <property name="position">20</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -8985,7 +9101,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">19</property>
+                                                    <property name="position">21</property>
                                                   </packing>
                                                 </child>
                                                 <child>
@@ -9001,7 +9117,7 @@ Constant: The bitrate specified will be used throughout the entirety of the vide
                                                   <packing>
                                                     <property name="expand">False</property>
                                                     <property name="fill">True</property>
-                                                    <property name="position">20</property>
+                                                    <property name="position">22</property>
                                                   </packing>
                                                 </child>
                                               </object>
