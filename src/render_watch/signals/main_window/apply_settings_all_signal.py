@@ -55,7 +55,7 @@ class ApplySettingsAllSignal:
         audio_settings = ffmpeg_template.audio_settings
         is_general_settings_custom = general_settings.frame_rate or general_settings.fast_start
 
-        if video_settings or audio_settings or is_general_settings_custom:
+        if video_settings or audio_settings or is_general_settings_custom or ffmpeg_template.is_output_container_set():
             self._setup_settings_sidebar(ffmpeg_template)
         else:
             self._reset_settings_sidebar()
