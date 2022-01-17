@@ -134,6 +134,7 @@ class PreviewPageHandlers:
         self._preview_thread.start()
 
     def _set_preview_thumbnail(self):
+        GLib.idle_add(self.preview_icon.set_opacity, 0.5)
         output_file = preview.generate_preview_file(self.ffmpeg,
                                                     self._preview_queue.get(),
                                                     self.application_preferences)
@@ -142,7 +143,8 @@ class PreviewPageHandlers:
             return
 
         if output_file is None:
-            self.preview_stack.set_visible_child(self.preview_wrong_codec_label)
+            GLib.idle_add(self.preview_stack.set_visible_child, self.preview_wrong_codec_label)
+            GLib.idle_add(self.preview_selection_box.set_sensitive, False)
 
             return
 
@@ -151,6 +153,7 @@ class PreviewPageHandlers:
         viewport_width = self.preview_viewport.get_allocated_width()
         viewport_height = self.preview_viewport.get_allocated_height()
         GLib.idle_add(self.set_thumbnail_size, viewport_width, viewport_height)
+        GLib.idle_add(self.preview_icon.set_opacity, 1.0)
 
     def set_thumbnail_size(self, viewport_width, viewport_height):
         """
@@ -216,6 +219,9 @@ class PreviewPageHandlers:
     def is_preview_failed_state(self):
         return self.preview_stack.get_visible_child() == self.preview_wrong_codec_label
 
+    def is_preview_not_available_state(self):
+        return self.preview_stack.get_visible_child() == self.preview_not_available_label
+
     def set_progress_fraction(self, progress_bar_fraction_value):
         self.preview_progressbar.set_fraction(progress_bar_fraction_value)
 
@@ -250,6 +256,10 @@ class PreviewPageHandlers:
         if self.ffmpeg.video_settings is None:
             self._set_not_available_state(True)
         else:
+            if self.is_preview_not_available_state() or self.is_preview_failed_state():
+                self.setup_preview_page()
+                return
+
             self._set_not_available_state(False)
             self.preview_location_signal.on_preview_position_scale_button_release_event(self.preview_position_scale)
 
