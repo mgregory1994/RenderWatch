@@ -42,6 +42,10 @@ class AudioCodecSignal:
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
+
+            if not ffmpeg.input_file_info['audio_streams']:
+                continue
+
             ffmpeg.audio_settings = audio_settings
 
             row.setup_labels()

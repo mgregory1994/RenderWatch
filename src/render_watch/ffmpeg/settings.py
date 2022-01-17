@@ -159,9 +159,9 @@ class Settings:
     def general_settings(self, settings):
         if settings:
             self._general_settings = settings
-
-        logging.error('--- CANNOT SET GENERAL SETTINGS TO NONE ---')
-        raise ValueError()
+        else:
+            logging.error('--- CANNOT SET GENERAL SETTINGS TO NONE ---')
+            raise ValueError()
 
     @property
     def output_container(self):

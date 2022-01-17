@@ -79,10 +79,11 @@ class ApplySettingsAllSignal:
             else:
                 row_ffmpeg.video_settings = None
 
-            if ffmpeg_template.audio_settings:
-                row_ffmpeg.audio_settings = copy.deepcopy(ffmpeg_template.audio_settings)
-            else:
-                row.ffmpeg.audio_settings = None
+            if row_ffmpeg.input_file_info['audio_streams']:
+                if ffmpeg_template.audio_settings:
+                    row_ffmpeg.audio_settings = copy.deepcopy(ffmpeg_template.audio_settings)
+                else:
+                    row.ffmpeg.audio_settings = None
 
             if row_ffmpeg.is_video_settings_2_pass():
                 row_ffmpeg.video_settings.stats = self.application_preferences.temp_directory \

@@ -34,6 +34,8 @@ class AudioStreamSignal:
         audio_stream_combobox_index = audio_stream_combobox.get_active()
         audio_streams = list(ffmpeg.input_file_info['audio_streams'].items())
 
+
+
         self._set_audio_stream_index(ffmpeg, audio_streams, audio_stream_combobox_index)
         self._set_audio_stream_codec_name(ffmpeg, audio_streams, audio_stream_combobox_index)
         self._set_audio_stream_sample_rate(ffmpeg, audio_streams, audio_stream_combobox_index)

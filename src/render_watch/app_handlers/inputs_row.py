@@ -158,6 +158,10 @@ class InputsRow(Gtk.ListBoxRow):
     def _setup_audio_stream_combobox(self):
         self.audio_stream_combobox.remove_all()
 
+        if not self.ffmpeg.input_file_info['audio_streams']:
+            self.audio_stream_combobox.set_sensitive(False)
+            return
+
         for index, items in enumerate(self.ffmpeg.input_file_info['audio_streams'].items()):
             self.audio_stream_combobox.append_text('[' + str(index) + ']' + items[1]['info'])
 

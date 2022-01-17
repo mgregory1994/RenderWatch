@@ -139,10 +139,10 @@ class AddInputsSignal:
 
                 continue
 
-            if self.inputs_page_handlers.is_apply_all_selected():
-                self._apply_ffmpeg_template_settings(ffmpeg)
-
             if InputInformation.generate_input_information(ffmpeg):
+                if self.inputs_page_handlers.is_apply_all_selected():
+                    self._apply_ffmpeg_template_settings(ffmpeg)
+
                 self._setup_picture_settings(ffmpeg, file_inputs_enabled)
                 ffmpeg.setup_subtitles_settings()
 
@@ -202,7 +202,7 @@ class AddInputsSignal:
 
     @staticmethod
     def _apply_ffmpeg_template_audio_settings(ffmpeg, ffmpeg_template):
-        if ffmpeg_template.audio_settings:
+        if ffmpeg_template.audio_settings and ffmpeg.input_file_info['audio_streams']:
             ffmpeg.audio_settings = copy.deepcopy(ffmpeg_template.audio_settings)
         else:
             ffmpeg.audio_settings = None
