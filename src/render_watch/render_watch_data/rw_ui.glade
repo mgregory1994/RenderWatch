@@ -3143,7 +3143,7 @@ Warning: May cause stuttering if the frame rate is different from the input's fr
                                       <packing>
                                         <property name="expand">False</property>
                                         <property name="fill">True</property>
-                                        <property name="position">5</property>
+                                        <property name="position">6</property>
                                       </packing>
                                     </child>
                                   </object>
@@ -9450,13 +9450,95 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                                 <property name="margin-end">10</property>
                                 <property name="label-fill">True</property>
                                 <child>
-                                  <object class="GtkLabel" id="subtitle_settings_not_available_label">
+                                  <object class="GtkStack" id="subtitle_settings_stack">
                                     <property name="visible">True</property>
-                                    <property name="sensitive">False</property>
                                     <property name="can-focus">False</property>
+                                    <property name="margin-start">20</property>
                                     <property name="margin-top">10</property>
-                                    <property name="margin-bottom">10</property>
-                                    <property name="label" translatable="yes">Subtitle settings not available</property>
+                                    <property name="vhomogeneous">False</property>
+                                    <property name="transition-duration">250</property>
+                                    <property name="transition-type">slide-left-right</property>
+                                    <property name="interpolate-size">True</property>
+                                    <child>
+                                      <object class="GtkBox" id="subtitle_settings_box">
+                                        <property name="visible">True</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="orientation">vertical</property>
+                                        <property name="spacing">10</property>
+                                        <child>
+                                          <object class="GtkFrame" id="subtitle_settings_frame">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">False</property>
+                                            <property name="label-xalign">0</property>
+                                            <property name="label-yalign">0</property>
+                                            <property name="shadow-type">in</property>
+                                            <child>
+                                              <object class="GtkListBox" id="subtitle_streams_list">
+                                                <property name="height-request">150</property>
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="selection-mode">none</property>
+                                                <property name="activate-on-single-click">False</property>
+                                                <child type="placeholder">
+                                                  <object class="GtkLabel" id="no_subtitle_streams_added_label">
+                                                    <property name="visible">True</property>
+                                                    <property name="sensitive">False</property>
+                                                    <property name="can-focus">False</property>
+                                                    <property name="label" translatable="yes">No Subtitle Streams Added</property>
+                                                  </object>
+                                                </child>
+                                              </object>
+                                            </child>
+                                            <child type="label_item">
+                                              <placeholder/>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkButton" id="subtitle_streams_list_add_button">
+                                            <property name="visible">True</property>
+                                            <property name="can-focus">True</property>
+                                            <property name="receives-default">True</property>
+                                            <property name="valign">center</property>
+                                            <signal name="clicked" handler="on_subtitle_streams_list_add_button_clicked" swapped="no"/>
+                                            <child>
+                                              <object class="GtkImage" id="subtitle_streams_list_add_icon">
+                                                <property name="visible">True</property>
+                                                <property name="can-focus">False</property>
+                                                <property name="icon-name">list-add</property>
+                                              </object>
+                                            </child>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">True</property>
+                                            <property name="position">2</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                      <packing>
+                                        <property name="name">page1</property>
+                                        <property name="title" translatable="yes">page1</property>
+                                      </packing>
+                                    </child>
+                                    <child>
+                                      <object class="GtkLabel" id="subtitle_settings_not_available_label">
+                                        <property name="visible">True</property>
+                                        <property name="sensitive">False</property>
+                                        <property name="can-focus">False</property>
+                                        <property name="label" translatable="yes">Subtitle settings not available</property>
+                                      </object>
+                                      <packing>
+                                        <property name="name">page0</property>
+                                        <property name="title" translatable="yes">page0</property>
+                                        <property name="position">1</property>
+                                      </packing>
+                                    </child>
                                   </object>
                                 </child>
                                 <child type="label">

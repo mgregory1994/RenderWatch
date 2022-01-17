@@ -34,5 +34,5 @@ class DarkModeSignal:
         :param user_data: Signal user data.
         """
         dark_mode = dark_mode_switch.get_active()
-        self.application_preferences.is_dark_mode = dark_mode
+        self.application_preferences.is_dark_mode_enabled = dark_mode
         self.gtk_settings.set_property('gtk-application-prefer-dark-theme', dark_mode)

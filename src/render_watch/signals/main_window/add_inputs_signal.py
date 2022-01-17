@@ -110,7 +110,7 @@ class AddInputsSignal:
         output_dir = self.main_window_handlers.get_output_chooser_dir()
 
         if file_chooser_response == Gtk.ResponseType.OK and filtered_inputs:
-            GLib.idle_add(self.main_window_handlers.set_processing_inputs_state, True, filtered_inputs[0])
+            GLib.idle_add(lambda: self.main_window_handlers.set_processing_inputs_state(True, filtered_inputs[0]))
 
             threading.Thread(target=self._process_inputs,
                              args=(filtered_inputs, output_dir, file_inputs_enabled),
@@ -144,10 +144,11 @@ class AddInputsSignal:
 
             if InputInformation.generate_input_information(ffmpeg):
                 self._setup_picture_settings(ffmpeg, file_inputs_enabled)
+                ffmpeg.setup_subtitles_settings()
 
                 GLib.idle_add(self._add_to_inputs_page, ffmpeg)
 
-        GLib.idle_add(self.main_window_handlers.set_processing_inputs_state, False, None)
+        GLib.idle_add(lambda: self.main_window_handlers.set_processing_inputs_state(False, None))
 
     def _setup_settings_sidebar_ffmpeg_template(self):
         if self.inputs_page_handlers.is_apply_all_selected():

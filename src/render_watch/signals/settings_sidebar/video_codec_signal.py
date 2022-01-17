@@ -58,4 +58,5 @@ class VideoCodecSignal:
         is_copy_video_codec_enabled = video_codec_combobox.get_active() == 0
         if is_copy_video_codec_enabled:
             self.settings_sidebar_handlers.signal_framerate_auto_radiobutton()
+            self.settings_sidebar_handlers.subtitles_handlers.remove_burn_in_for_all_streams()
         self.settings_sidebar_handlers.set_framerate_locked_state(is_copy_video_codec_enabled)

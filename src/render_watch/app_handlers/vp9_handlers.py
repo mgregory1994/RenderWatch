@@ -131,7 +131,7 @@ class VP9Handlers:
             self.is_widgets_setting_up = True
             self.vp9_quality_combobox.set_active(video_settings.quality)
             self.vp9_speed_combobox.set_active(video_settings.speed)
-            self.vp9_row_multithreading_checkbox.set_active(video_settings.row_multithreading)
+            self.vp9_row_multithreading_checkbutton.set_active(video_settings.row_multithreading)
             self._setup_vp9_rate_control_widgets(video_settings)
             self._setup_vp9_encode_pass_widgets(video_settings)
             self.is_widgets_setting_up = False
@@ -173,9 +173,9 @@ class VP9Handlers:
 
     def _setup_vp9_encode_pass_widgets(self, video_settings):
         if video_settings.encode_pass:
-            self.vp9_2_pass_checkbox.set_active(True)
+            self.vp9_2_pass_checkbutton.set_active(True)
         else:
-            self.vp9_2_pass_checkbox.set_active(False)
+            self.vp9_2_pass_checkbutton.set_active(False)
 
     def reset_settings(self):
         """

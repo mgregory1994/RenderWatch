@@ -31,7 +31,6 @@ from render_watch.signals.main_window.parallel_tasks_signal import ParallelTasks
 from render_watch.signals.main_window.parallel_chunks_signal import ParallelChunksSignal
 from render_watch.signals.main_window.application_preferences_signal import ApplicationPreferencesSignal
 from render_watch.signals.main_window.settings_sidebar_signal import SettingsSidebarSignal
-from render_watch.startup import GLib
 
 
 class MainWindowHandlers:
@@ -55,6 +54,8 @@ class MainWindowHandlers:
         self.ffmpeg_template = None
         self.inputs_page_paned_position = self.application_preferences.settings_sidebar_position
         self.is_sidebar_pane_resizing = False
+        self.main_window_width = 0
+
         self._setup_signals()
         self._setup_widgets(gtk_builder)
 
@@ -247,24 +248,38 @@ class MainWindowHandlers:
             is_toggled_settings_sidebar_visible = not self.settings_sidebar_box.get_visible()
 
         if is_toggled_settings_sidebar_visible:
-            self.inputs_page_paned.set_position(self.inputs_page_paned_position)
-        else:
-            self.inputs_page_paned.set_position(-1)
+            self.inputs_page_paned.set_position(self.main_window.get_size().width - self.inputs_page_paned_position)
 
-        GLib.idle_add(self.settings_sidebar_box.set_visible, is_toggled_settings_sidebar_visible)
+        self.settings_sidebar_box.set_visible(is_toggled_settings_sidebar_visible)
 
     def popdown_app_preferences_popover(self):
         self.application_options_popover.popdown()
 
     def update_settings_sidebar_paned_position(self):
-        self.inputs_page_paned_position = self.main_window.get_size().width - self.inputs_page_paned.get_position()
-        self.application_preferences.settings_sidebar_position = self.inputs_page_paned_position
+        if self.settings_sidebar_box.is_visible():
+            self.inputs_page_paned_position = self.main_window.get_size().width - self.inputs_page_paned.get_position()
+            self.application_preferences.settings_sidebar_position = self.inputs_page_paned_position
 
     def update_settings_sidebar_paned_allocation(self):
-        if self.is_sidebar_pane_resizing or self.inputs_page_paned_position < 0:
-            return
+        if self._is_sidebar_pane_allocation_available():
+            self.inputs_page_paned.set_position(self.main_window.get_size().width - self.inputs_page_paned_position)
+        else:
+            self.main_window_width = self.main_window.get_size()[0]
 
-        self.inputs_page_paned.set_position(self.main_window.get_size().width - self.inputs_page_paned_position)
+    def _is_sidebar_pane_allocation_available(self):
+        if self.is_sidebar_pane_resizing:
+            return False
+
+        if not self.settings_sidebar_box.is_visible():
+            return False
+
+        if self.inputs_page_paned.get_position() == (self.main_window.get_size().width - self.inputs_page_paned_position):
+            return False
+
+        if self.main_window.get_size()[0] == self.main_window_width:
+            return False
+
+        return True
 
     def signal_add_button(self, inputs=None):
         self.add_input_signal.on_add_inputs_button_clicked(self.add_inputs_button, inputs)

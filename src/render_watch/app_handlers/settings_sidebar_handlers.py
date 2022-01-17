@@ -32,6 +32,7 @@ from render_watch.app_handlers.nvenc_handlers import NvencHandlers
 from render_watch.app_handlers.vp9_handlers import VP9Handlers
 from render_watch.app_handlers.aac_handlers import AacHandlers
 from render_watch.app_handlers.opus_handlers import OpusHandlers
+from render_watch.app_handlers.subtitles_handlers import SubtitlesHandlers
 from render_watch.signals.settings_sidebar.audio_codec_signal import AudioCodecSignal
 from render_watch.signals.settings_sidebar.start_benchmark_signal import StartBenchmarkSignal
 from render_watch.signals.settings_sidebar.stop_benchmark_signal import StopBenchmarkSignal
@@ -74,6 +75,7 @@ class SettingsSidebarHandlers:
         self.vp9_handlers = VP9Handlers(gtk_builder, inputs_page_handlers, application_preferences)
         self.aac_handlers = AacHandlers(gtk_builder, inputs_page_handlers)
         self.opus_handlers = OpusHandlers(gtk_builder, inputs_page_handlers)
+        self.subtitles_handlers = SubtitlesHandlers(gtk_builder, inputs_page_handlers)
 
         self.audio_codec_signal = AudioCodecSignal(self, inputs_page_handlers)
         self.benchmark_start_signal = StartBenchmarkSignal(self, inputs_page_handlers, application_preferences)
@@ -87,8 +89,8 @@ class SettingsSidebarHandlers:
         self.video_codec_signal = VideoCodecSignal(self, inputs_page_handlers)
         self.handlers_list = (
             self.x264_handlers, self.x265_handlers, self.nvenc_handlers, self.vp9_handlers,
-            self.aac_handlers, self.opus_handlers, self.audio_codec_signal, self.video_codec_signal,
-            self.streaming_signal, self.framerate_signal, self.benchmark_start_signal,
+            self.aac_handlers, self.opus_handlers, self.subtitles_handlers, self.audio_codec_signal,
+            self.video_codec_signal, self.streaming_signal, self.framerate_signal, self.benchmark_start_signal,
             self.benchmark_stop_signal, self.container_signal, self.crop_signal, self.trim_signal,
             self.preview_signal
         )
@@ -198,6 +200,7 @@ class SettingsSidebarHandlers:
         self._set_settings_for_vp9_handlers(ffmpeg_param)
         self._set_settings_for_aac_handlers(ffmpeg_param)
         self._set_settings_for_opus_handlers(ffmpeg_param)
+        self.subtitles_handlers.set_settings()
         self.set_benchmark_state()
 
     def _set_general_settings(self, ffmpeg):
@@ -445,6 +448,8 @@ class SettingsSidebarHandlers:
         self._setup_mp4_audio_codec_widgets(audio_codec_text)
         self.is_widgets_setting_up = False
 
+        self.subtitles_handlers.set_restricted_state()
+
     def _rebuild_mp4_video_codec_combobox(self):
         if NvidiaHelper.is_nvenc_supported():
             self._rebuild_video_codec_combobox(GeneralSettings.VIDEO_CODEC_MP4_NVENC_UI_LIST)
@@ -519,6 +524,8 @@ class SettingsSidebarHandlers:
         self._setup_mkv_audio_codec_widgets(audio_codec_text)
         self.is_widgets_setting_up = False
 
+        self.subtitles_handlers.set_unrestricted_state()
+
     def _rebuild_mkv_video_codec_combobox(self):
         if NvidiaHelper.is_nvenc_supported():
             self._rebuild_video_codec_combobox(GeneralSettings.VIDEO_CODEC_MKV_NVENC_UI_LIST)
@@ -574,6 +581,8 @@ class SettingsSidebarHandlers:
         self._setup_ts_video_codec_widgets(video_codec_text)
         self._setup_ts_audio_codec_widgets(audio_codec_text)
         self.is_widgets_setting_up = False
+
+        self.subtitles_handlers.set_restricted_state()
 
     def _rebuild_ts_video_codec_combobox(self):
         if NvidiaHelper.is_nvenc_supported():
@@ -631,6 +640,8 @@ class SettingsSidebarHandlers:
         self._setup_webm_video_codec_widgets(video_codec_text)
         self._setup_webm_audio_codec_widgets(audio_codec_text)
         self.is_widgets_setting_up = False
+
+        self.subtitles_handlers.set_restricted_state()
 
     def _rebuild_webm_video_codec_combobox(self):
         self._rebuild_video_codec_combobox(GeneralSettings.VIDEO_CODEC_WEBM_UI_LIST)

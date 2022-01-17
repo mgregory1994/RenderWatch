@@ -19,6 +19,7 @@
 import subprocess
 import logging
 import re
+import copy
 
 from render_watch.app_formatting import format_converter
 from render_watch.ffmpeg.settings import Settings
@@ -124,6 +125,9 @@ def _get_crop_preview_origin_dimensions(origin_width, origin_height, preview_hei
 
 
 def _get_crop_preview_args(ffmpeg, start_time, preview_width, preview_height, output_file_path):
+    picture_settings = copy.deepcopy(ffmpeg.picture_settings)
+    picture_settings.scale = int(preview_width), preview_height
+
     args = Settings.FFMPEG_INIT_ARGS.copy()
     args.append('-ss')
     args.append(str(start_time))
@@ -132,10 +136,8 @@ def _get_crop_preview_args(ffmpeg, start_time, preview_width, preview_height, ou
     args.append('-vframes')
     args.append('1')
     if ffmpeg.picture_settings.crop:
-        args.append('-filter:v')
-        args.append(ffmpeg.picture_settings.ffmpeg_args['-filter:v'])
-    args.append('-s')
-    args.append(str(int(preview_width)) + 'x' + str(preview_height))
+        args.append('-filter_complex')
+        args.append(picture_settings.ffmpeg_args['-filter_complex'])
     args.append(output_file_path)
     return args
 

@@ -134,6 +134,7 @@ class InputsPageHandlers:
         """
         Shows the tasks list for imported inputs.
         """
+        self.adding_inputs_progressbar.set_fraction(1.0)
         self.inputs_page_stack.set_visible_child(self.inputs_list)
         self.inputs_list.show_all()
 

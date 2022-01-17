@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-
-
+import logging
 import threading
 import time
 
@@ -71,8 +70,11 @@ class EncoderQueue:
             self.running_tasks.append(active_row)
 
     def remove_from_running_tasks(self, active_row):
-        with self._running_tasks_lock:
-            self.running_tasks.remove(active_row)
+        try:
+            with self._running_tasks_lock:
+                self.running_tasks.remove(active_row)
+        except ValueError:
+            logging.exception('--- TASK NOT IN RUNNING TASKS LIST ---')
 
     def start_folder_task(self, active_row):
         self.folder_encode_task.start_folder_task(active_row)

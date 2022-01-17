@@ -25,7 +25,9 @@
       <object class="GtkBox" id="clear_temp_files_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="clear_temp_files_label">
             <property name="visible">True</property>
@@ -48,6 +50,7 @@
             <property name="label" translatable="yes">Deletes the temporary folder and all files within</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -426,7 +429,9 @@
       <object class="GtkBox" id="concurrent_nvenc_tasks_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="concurrent_nvenc_tasks_label">
             <property name="visible">True</property>
@@ -449,6 +454,7 @@
             <property name="label" translatable="yes">Number of tasks to run that use the NVENC codec</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -472,6 +478,7 @@
           <object class="GtkComboBoxText" id="concurrent_nvenc_tasks_combobox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="valign">center</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -537,7 +544,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="dark_mode_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="dark_mode_label">
             <property name="visible">True</property>
@@ -559,6 +568,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Use dark variant of the current UI theme</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -598,7 +608,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="move_watch_folder_tasks_to_done_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="move_watch_folder_tasks_to_done_label">
             <property name="visible">True</property>
@@ -621,6 +633,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Move each sub-task's input to a "done" folder in the output directory</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -660,7 +673,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="overwrite_outputs_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="overwrite_outputs_label">
             <property name="visible">True</property>
@@ -682,6 +697,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Overwrites any files that already exist with the same name as the output</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -721,7 +737,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="concurrent_tasks_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="concurrent_tasks_label">
             <property name="visible">True</property>
@@ -751,6 +769,7 @@ Restart Render Watch for changes to take effect</property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                   <attribute name="weight" value="light"/>
+                  <attribute name="size" value="10240"/>
                 </attributes>
               </object>
               <packing>
@@ -768,6 +787,7 @@ Restart Render Watch for changes to take effect</property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                   <attribute name="weight" value="light"/>
+                  <attribute name="size" value="10240"/>
                 </attributes>
               </object>
               <packing>
@@ -786,6 +806,7 @@ Restart Render Watch for changes to take effect</property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                   <attribute name="weight" value="light"/>
+                  <attribute name="size" value="10240"/>
                 </attributes>
               </object>
               <packing>
@@ -804,6 +825,7 @@ Restart Render Watch for changes to take effect</property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                   <attribute name="weight" value="light"/>
+                  <attribute name="size" value="10240"/>
                 </attributes>
               </object>
               <packing>
@@ -822,6 +844,7 @@ Restart Render Watch for changes to take effect</property>
                 <attributes>
                   <attribute name="style" value="italic"/>
                   <attribute name="weight" value="light"/>
+                  <attribute name="size" value="10240"/>
                 </attributes>
               </object>
               <packing>
@@ -918,6 +941,7 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkComboBoxText" id="per_codec_combobox">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -930,7 +954,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="per_codec_text_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="per_codec_label">
             <property name="visible">True</property>
@@ -953,6 +979,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Subtext that talks about the above codec name</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -977,7 +1004,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="run_watch_folders_concurrently_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="run_watch_folders_concurrently_label">
             <property name="visible">True</property>
@@ -1000,6 +1029,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Run all folder tasks at the same time</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -1038,7 +1068,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="simultaneous_nvenc_tasks_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="simultaneous_nvenc_tasks_label">
             <property name="visible">True</property>
@@ -1061,6 +1093,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Allows NVENC tasks to run with other tasks using different codecs</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -1092,15 +1125,87 @@ Restart Render Watch for changes to take effect</property>
       </packing>
     </child>
   </object>
+  <object class="GtkBox" id="subtitle_stream_row_box">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="border-width">5</property>
+    <property name="spacing">10</property>
+    <child>
+      <object class="GtkButton" id="remove_subtitle_stream_button">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="receives-default">True</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <child>
+          <object class="GtkImage" id="remove_subtitle_stream_icon">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="icon-name">list-remove-symbolic</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="pack-type">end</property>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkComboBoxText" id="subtitle_stream_combobox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="valign">center</property>
+      </object>
+      <packing>
+        <property name="expand">True</property>
+        <property name="fill">True</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkComboBoxText" id="subtitle_stream_method_combobox">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="active">0</property>
+        <items>
+          <item translatable="yes">Copy</item>
+          <item translatable="yes">Burn In</item>
+        </items>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="pack-type">end</property>
+        <property name="position">2</property>
+      </packing>
+    </child>
+  </object>
   <object class="GtkBox" id="temproray_files_row_box">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="border-width">10</property>
+    <child type="center">
+      <object class="GtkLabel">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="position">2</property>
+      </packing>
+    </child>
     <child>
       <object class="GtkBox" id="temporary_files_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="temporary_files_label">
             <property name="visible">True</property>
@@ -1123,6 +1228,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Choose the directory to store temporary files</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>
@@ -1148,7 +1254,9 @@ Restart Render Watch for changes to take effect</property>
             <property name="can-focus">False</property>
             <property name="halign">center</property>
             <property name="valign">center</property>
+            <property name="action">select-folder</property>
             <property name="title" translatable="yes"/>
+            <property name="width-chars">64</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -1211,7 +1319,9 @@ Restart Render Watch for changes to take effect</property>
       <object class="GtkBox" id="wait_for_tasks_labels_box">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="valign">center</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">5</property>
         <child>
           <object class="GtkLabel" id="wait_for_tasks_label">
             <property name="visible">True</property>
@@ -1234,6 +1344,7 @@ Restart Render Watch for changes to take effect</property>
             <property name="label" translatable="yes">Wait for non-folder tasks to finish first</property>
             <attributes>
               <attribute name="weight" value="light"/>
+              <attribute name="size" value="10240"/>
             </attributes>
           </object>
           <packing>

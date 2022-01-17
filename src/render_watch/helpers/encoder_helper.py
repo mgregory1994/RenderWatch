@@ -282,4 +282,4 @@ def _run_mux_audio_chunk_process(ffmpeg, ffmpeg_args):
 
 def is_file_extension_valid(file_path):
     container = file_path.split('.')[-1]
-    return container in Settings.VALID_INPUT_CONTAINERS
+    return container.lower() in Settings.VALID_INPUT_CONTAINERS

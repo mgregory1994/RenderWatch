@@ -30,15 +30,16 @@ class Settings:
     Stores all ffmpeg settings.
     """
 
-    VALID_INPUT_CONTAINERS = ('mp4', 'mkv', 'm4v', 'avi', 'ts', 'm2ts', 'mpg', 'vob', 'VOB', 'mov', 'webm', 'wmv')
+    VALID_INPUT_CONTAINERS = ('mp4', 'mkv', 'm4v', 'avi', 'ts', 'm2ts', 'mpg', 'vob', 'mov', 'webm', 'wmv')
 
-    FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-loglevel', 'quiet', '-stats', "-y"]
+    # FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-loglevel', 'quiet', '-stats', "-y"]
+    FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-stats', "-y"]
     FFMPEG_INIT_AUTO_CROP_ARGS = ['ffmpeg', '-hide_banner', '-y']
     FFMPEG_CONCATENATION_INIT_ARGS = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i']
 
     FFPROBE_ARGS = [
         'ffprobe', '-hide_banner', '-loglevel', 'warning', '-show_entries',
-        'stream=codec_name,codec_type,width,height,r_frame_rate,bit_rate,channels,sample_rate,index:format=duration'
+        'stream=codec_name,codec_type,width,height,r_frame_rate,bit_rate,channels,sample_rate,index:stream_tags=language:format=duration'
     ]
 
     FFPLAY_INIT_ARGS = ['ffplay']
@@ -145,6 +146,10 @@ class Settings:
 
         logging.error('--- CANNOT SET PICTURE SETTINGS TO NONE ---')
         raise ValueError()
+
+    @property
+    def subtitles_settings(self):
+        return self.picture_settings.subtitles_settings
 
     @property
     def general_settings(self):
@@ -260,6 +265,9 @@ class Settings:
     def audio_sample_rate_origin(self, value):
         self.input_file_info['sample_rate'] = value
 
+    def setup_subtitles_settings(self):
+        self.picture_settings.setup_subtitles_settings(self.input_file_info)
+
     def get_args(self, cmd_args_enabled=False):
         """
         Returns ffmpeg arguments for all settings applied.
@@ -360,6 +368,12 @@ class Settings:
             args.extend(self.picture_settings.get_scale_nvenc_args())
         else:
             for setting, arg in self.picture_settings.ffmpeg_args.items():
+                if setting == '-map':
+                    for subtitle_stream_arg in arg:
+                        args.append(setting)
+                        args.append(subtitle_stream_arg)
+                    continue
+
                 if arg is not None:
                     args.append(setting)
                     args.append(arg)
@@ -447,6 +461,9 @@ class Settings:
             ffmpeg_copy.temp_file_name = self.temp_file_name
             ffmpeg_copy.general_settings.ffmpeg_args = self.general_settings.ffmpeg_args.copy()
             ffmpeg_copy.picture_settings.ffmpeg_args = self.picture_settings.ffmpeg_args.copy()
+            ffmpeg_copy.picture_settings.crop_arg = self.picture_settings.crop_arg
+            ffmpeg_copy.picture_settings.scale_arg = self.picture_settings.scale_arg
+            ffmpeg_copy.picture_settings.subtitles_settings = copy.deepcopy(self.picture_settings.subtitles_settings)
             ffmpeg_copy.video_stream_index = self.video_stream_index
             ffmpeg_copy.audio_stream_index = self.audio_stream_index
             ffmpeg_copy.no_video = self.no_video

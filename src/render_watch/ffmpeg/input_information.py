@@ -29,6 +29,8 @@ class InputInformation:
     Gathers various information about an ffmpeg setting's input file.
     """
 
+    VALID_SUBTITLE_CODECS = ['hdmv_pgs_subtitle']
+
     def __init__(self):
         self.width, self.height = None, None
         self.codec_type = None
@@ -37,10 +39,12 @@ class InputInformation:
         self.duration = None
         self.sample_rate = None
         self.channels = None
+        self.language = None
         self.index = None
         self.audio_done, self.video_done, self.duration_done = False, False, False
         self.video_streams = {}
         self.audio_streams = {}
+        self.subtitle_streams = {}
 
     def reset_stream_information(self):
         self.width, self.height = None, None
@@ -57,6 +61,9 @@ class InputInformation:
 
     def is_audio_codec(self):
         return self.codec_type == 'audio'
+
+    def is_subtitle_codec(self):
+        return self.codec_type == 'subtitle'
 
     @staticmethod
     def generate_input_information(ffmpeg):
@@ -112,6 +119,8 @@ class InputInformation:
                 InputInformation._add_video_stream_information_to_ffmpeg_settings(ffmpeg, input_information)
             elif input_information.is_audio_codec():
                 InputInformation._add_audio_stream_information_to_ffmpeg_settings(ffmpeg, input_information)
+            elif input_information.is_subtitle_codec():
+                InputInformation._add_subtitle_stream_information_to_ffmpeg_settings(input_information)
         except:
             pass
 
@@ -156,6 +165,19 @@ class InputInformation:
         ffmpeg.audio_sample_rate_origin = sample_rate
 
     @staticmethod
+    def _add_subtitle_stream_information_to_ffmpeg_settings(input_information):
+        if input_information.codec_name in InputInformation.VALID_SUBTITLE_CODECS:
+            index = input_information.index
+            codec_name = input_information.codec_name
+            language = input_information.language
+            stream_info = '[' + index + ']' + language + ':' + codec_name
+            input_information.subtitle_streams[index] = {
+                'codec_name': codec_name,
+                'language': language,
+                'info': stream_info
+            }
+
+    @staticmethod
     def _process_stream_information_item(stdout, input_information):
         split_stdout = stdout.split('=')
 
@@ -174,6 +196,8 @@ class InputInformation:
         if InputInformation._set_channels_item(split_stdout, input_information):
             return
         if InputInformation._set_sample_rate_item(split_stdout, input_information):
+            return
+        if InputInformation._set_language_item(split_stdout, input_information):
             return
         if InputInformation._set_duration_item(split_stdout, input_information):
             return
@@ -230,6 +254,11 @@ class InputInformation:
             input_information.sample_rate = split_stdout[1]
 
     @staticmethod
+    def _set_language_item(split_stdout, input_information):
+        if 'TAG:language' in split_stdout:
+            input_information.language = split_stdout[1]
+
+    @staticmethod
     def _set_duration_item(split_stdout, input_information):
         try:
             if 'duration' in split_stdout:
@@ -246,6 +275,7 @@ class InputInformation:
     def _set_processed_streams(ffmpeg, input_information):
         ffmpeg.input_file_info['video_streams'] = input_information.video_streams
         ffmpeg.input_file_info['audio_streams'] = input_information.audio_streams
+        ffmpeg.input_file_info['subtitle_streams'] = input_information.subtitle_streams
 
     @staticmethod
     def _set_non_critical_input_information(ffmpeg):

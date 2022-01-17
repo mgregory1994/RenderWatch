@@ -83,6 +83,7 @@ class ApplicationUI:
 
     def _setup_preferences_dialog_widgets(self):
         self._setup_preferences_dialog_per_codec_tasks_widgets()
+        self._setup_preferences_dialog_dark_mode_widgets()
 
     def _setup_preferences_dialog_per_codec_tasks_widgets(self):
         try:
@@ -95,6 +96,10 @@ class ApplicationUI:
                 parallel_tasks_stack.set_visible_child(per_codec_frame)
         except IndexError:
             logging.error('--- FAILED TO SETUP PER CODEC TASKS WIDGETS ---')
+
+    def _setup_preferences_dialog_dark_mode_widgets(self):
+        dark_mode = self.application_preferences.is_dark_mode_enabled
+        self.gtk_settings.set_property('gtk-application-prefer-dark-theme', dark_mode)
 
     def _setup_general_settings_widgets(self):
         self._setup_video_container_widgets()

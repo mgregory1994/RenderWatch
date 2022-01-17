@@ -43,8 +43,12 @@ class PerCodecParallelEncodeTask:
     def _setup_codec_queues(self, application_preferences):
         threading.Thread(target=self._setup_x264_codec_queue, args=(application_preferences,), daemon=True).start()
         threading.Thread(target=self._setup_x265_codec_queue, args=(application_preferences,), daemon=True).start()
-        threading.Thread(target=self._setup_nvenc_codec_queue, args=(), daemon=True).start()
         threading.Thread(target=self._setup_vp9_codec_queue, args=(application_preferences,), daemon=True).start()
+
+        if NvidiaHelper.is_nvenc_supported():
+            threading.Thread(target=self._setup_nvenc_codec_queue, args=(), daemon=True).start()
+        else:
+            logging.info('--- NVENC ENCODING THREAD DISABLED ---')
 
     def _setup_x264_codec_queue(self, application_preferences):
         self.x264_codec_queue = queue.Queue()
@@ -65,13 +69,16 @@ class PerCodecParallelEncodeTask:
                                 repeat(self.x265_codec_queue))
 
     def _setup_nvenc_codec_queue(self):
-        self.nvenc_codec_queue = queue.Queue()
-        self.number_of_nvenc_tasks = NvidiaHelper.nvenc_max_workers
+        try:
+            self.nvenc_codec_queue = queue.Queue()
+            self.number_of_nvenc_tasks = NvidiaHelper.nvenc_max_workers
 
-        with ThreadPoolExecutor(max_workers=self.number_of_nvenc_tasks) as future_executor:
-            future_executor.map(self._parse_per_codec_queue,
-                                range(self.number_of_nvenc_tasks),
-                                repeat(self.nvenc_codec_queue))
+            with ThreadPoolExecutor(max_workers=self.number_of_nvenc_tasks) as future_executor:
+                future_executor.map(self._parse_per_codec_queue,
+                                    range(self.number_of_nvenc_tasks),
+                                    repeat(self.nvenc_codec_queue))
+        except ValueError:
+            logging.info('--- NVENC ENCODING THREAD DISABLED ---')
 
     def _setup_vp9_codec_queue(self, application_preferences):
         self.vp9_codec_queue = queue.Queue()
@@ -174,8 +181,10 @@ class PerCodecParallelEncodeTask:
         """
         self._set_codec_queue_stop_state(self.x264_codec_queue, self.number_of_x264_tasks)
         self._set_codec_queue_stop_state(self.x265_codec_queue, self.number_of_x265_tasks)
-        self._set_codec_queue_stop_state(self.nvenc_codec_queue, self.number_of_nvenc_tasks)
         self._set_codec_queue_stop_state(self.vp9_codec_queue, self.number_of_vp9_tasks)
+
+        if NvidiaHelper.is_nvenc_supported():
+            self._set_codec_queue_stop_state(self.nvenc_codec_queue, self.number_of_nvenc_tasks)
 
     @staticmethod
     def _set_codec_queue_stop_state(codec_queue, number_of_tasks):
@@ -197,8 +206,10 @@ class PerCodecParallelEncodeTask:
     def empty_queue(self):
         self._empty_codec_queue(self.x264_codec_queue)
         self._empty_codec_queue(self.x265_codec_queue)
-        self._empty_codec_queue(self.nvenc_codec_queue)
         self._empty_codec_queue(self.vp9_codec_queue)
+
+        if NvidiaHelper.is_nvenc_supported():
+            self._empty_codec_queue(self.nvenc_codec_queue)
 
     @staticmethod
     def _empty_codec_queue(codec_queue):
