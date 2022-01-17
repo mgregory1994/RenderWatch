@@ -9980,7 +9980,7 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                           <object class="GtkImage" id="preview_button_icon">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
-                            <property name="icon-name">tv-symbolic</property>
+                            <property name="icon-name">video-display</property>
                           </object>
                         </child>
                       </object>
