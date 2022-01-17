@@ -101,8 +101,9 @@ class SubtitlesHandlers:
             for subtitle_stream_row in self.subtitle_streams_list.get_children()[1:]:
                 self.remove_stream(subtitle_stream_row)
 
-        self.subtitle_streams_list.get_children()[0].set_burn_in_method()
-        self.subtitle_streams_list.get_children()[0].is_restricted_mode_enabled = True
+        if self.subtitle_streams_list.get_children():
+            self.subtitle_streams_list.get_children()[0].set_burn_in_method()
+            self.subtitle_streams_list.get_children()[0].is_restricted_mode_enabled = True
         self.is_restricted_mode_enabled = True
 
     def set_unrestricted_state(self):
@@ -124,6 +125,9 @@ class SubtitlesHandlers:
         if stream_row.get_selected_stream():
             ffmpeg = self.inputs_page_handlers.get_selected_row().ffmpeg
             ffmpeg.subtitles_settings.use_stream(stream_row.get_selected_stream())
+
+            if self.is_restricted_mode_enabled:
+                stream_row.set_burn_in_method()
 
             self.subtitle_streams_list.add(stream_row)
             self.update_streams()

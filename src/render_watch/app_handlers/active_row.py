@@ -101,7 +101,7 @@ class ActiveRow(Gtk.ListBoxRow):
         self.active_listbox_row_start_button = gtk_builder.get_object('active_listbox_row_start_button')
         self.active_listbox_row_task_state_stack = gtk_builder.get_object('active_listbox_row_task_state_stack')
         self.active_listbox_row_stop_button = gtk_builder.get_object('active_listbox_row_stop_button')
-        self.active_listbox_row_chunks_revealer = gtk_builder.get_object('active_listbox_row_chunks_revealer')
+        self.active_listbox_row_chunks_menubutton = gtk_builder.get_object('active_listbox_row_chunks_menubutton')
         self.chunks_listbox = gtk_builder.get_object('chunks_listbox')
         self.chunks_popover = gtk_builder.get_object('chunks_popover')
 
@@ -186,12 +186,15 @@ class ActiveRow(Gtk.ListBoxRow):
         self.chunk_row_list.append(chunk_row)
         self.chunks_listbox.add(chunk_row)
         self.chunks_listbox.show_all()
-        self.active_listbox_row_chunks_revealer.set_reveal_child(True)
+        self.active_listbox_row_chunks_menubutton.show_all()
 
     def add_audio_chunk_row(self, audio_chunk_row):
         self.audio_chunk_row = audio_chunk_row
         self.chunks_listbox.add(audio_chunk_row)
         self.chunks_listbox.show_all()
+
+    def hide_chunks_menubutton(self):
+        self.active_listbox_row_chunks_menubutton.hide()
 
     def set_start_state(self):
         """

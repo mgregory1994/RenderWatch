@@ -93,6 +93,7 @@ class ActivePageHandlers:
     def add_row(self, active_row):
         self.active_list.add(active_row)
         self.active_list.show_all()
+        active_row.hide_chunks_menubutton()
 
     def remove_row(self, active_row):
         self.active_list.remove(active_row)
