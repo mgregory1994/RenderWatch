@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='Render Watch',
-    version='0.1.1',
+    version='0.2.0',
     url='https://github.com/mgregory1994/RenderWatch',
     license='GPLV3',
     author='Michael Gregory',
@@ -19,9 +19,10 @@ setup(
         'render_watch/signals/aac', 'render_watch/signals/active_page', 'render_watch/signals/active_row',
         'render_watch/signals/completed_page', 'render_watch/signals/completed_row', 'render_watch/signals/crop',
         'render_watch/signals/inputs_page', 'render_watch/signals/inputs_row', 'render_watch/signals/main_window',
-        'render_watch/signals/nvenc', 'render_watch/signals/opus', 'render_watch/signals/prefs',
-        'render_watch/signals/preview', 'render_watch/signals/settings_sidebar', 'render_watch/signals/trim',
-        'render_watch/signals/vp9', 'render_watch/signals/x264', 'render_watch/signals/x265', 'render_watch/startup'
+        'render_watch/signals/nvenc', 'render_watch/signals/opus', 'render_watch/signals/application_preferences',
+        'render_watch/signals/preview', 'render_watch/signals/settings_sidebar', 'render_watch/signals/subtitles',
+        'render_watch/signals/trim', 'render_watch/signals/vp9', 'render_watch/signals/x264',
+        'render_watch/signals/x265', 'render_watch/startup'
     ],
     install_requires=[
         'PyGObject',
