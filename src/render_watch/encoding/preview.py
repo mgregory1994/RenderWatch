@@ -135,9 +135,8 @@ def _get_crop_preview_args(ffmpeg, start_time, preview_width, preview_height, ou
     args.append(ffmpeg.input_file)
     args.append('-vframes')
     args.append('1')
-    if ffmpeg.picture_settings.crop:
-        args.append('-filter_complex')
-        args.append(picture_settings.ffmpeg_args['-filter_complex'])
+    args.append('-filter_complex')
+    args.append(picture_settings.ffmpeg_args['-filter_complex'])
     args.append(output_file_path)
     return args
 

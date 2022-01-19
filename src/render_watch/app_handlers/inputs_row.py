@@ -135,7 +135,7 @@ class InputsRow(Gtk.ListBoxRow):
         """
         Generates and applies a preview thumbnail.
         """
-        output_file = preview.generate_crop_preview_file(self.ffmpeg, self.application_preferences, 96)
+        output_file = preview.generate_crop_preview_file(self.ffmpeg, self.application_preferences, preview_height=96)
         GLib.idle_add(self.inputs_listbox_row_preview_icon.set_from_file, output_file)
 
     def _setup_streams(self):
