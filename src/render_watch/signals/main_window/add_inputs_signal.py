@@ -177,7 +177,7 @@ class AddInputsSignal:
         return False
 
     def _show_input_exists_dialog(self, ffmpeg):
-        message_dialog = Gtk.MessageDialog(self.main_window,
+        message_dialog = Gtk.MessageDialog(self.main_window_handlers.main_window,
                                            Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                            Gtk.MessageType.WARNING,
                                            Gtk.ButtonsType.OK,

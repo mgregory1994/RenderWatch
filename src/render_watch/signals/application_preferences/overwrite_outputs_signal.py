@@ -30,4 +30,4 @@ class OverwriteOutputsSignal:
 
         :param overwrite_outputs_switch: Switch that emitted the signal.
         """
-        self.application_preferences.is_overwriting_outputs = overwrite_outputs_switch.get_active()
+        self.application_preferences.is_overwrite_outputs_enabled = overwrite_outputs_switch.get_active()

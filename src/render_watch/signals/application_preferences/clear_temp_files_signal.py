@@ -40,7 +40,7 @@ class ClearTempFilesSignal:
         if clear_temp_directory_enabled:
             self._show_clear_temp_files_warning_dialog()
 
-        self.application_preferences.is_clearing_temp_directory = clear_temp_directory_enabled
+        self.application_preferences.is_clear_temp_directory_enabled = clear_temp_directory_enabled
 
     def _show_clear_temp_files_warning_dialog(self):
         message_dialog = Gtk.MessageDialog(self.main_window_handlers.main_window,

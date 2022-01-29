@@ -232,7 +232,7 @@ class VP9Handlers:
         self.vp9_crf_scale.set_sensitive(True)
         self.vp9_bitrate_spinbutton.set_sensitive(True)
         self.vp9_average_radiobutton.set_active(True)
-        self.vp9_bitrate_type_buttonsbox.set_sensitive(False)
+        self.vp9_bitrate_type_buttonbox.set_sensitive(False)
 
     def update_vbr_widgets(self, bitrate_value):
         if bitrate_value < self.get_min_bitrate_value():

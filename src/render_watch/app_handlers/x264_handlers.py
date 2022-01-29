@@ -444,11 +444,11 @@ class X264Handlers:
     def get_partitions_settings(self):
         partitions = []
 
-        i4x4 = self.x264_i4x4_checkbox.get_active()
-        i8x8 = self.x264_i8x8_checkbox.get_active()
-        p4x4 = self.x264_p4x4_checkbox.get_active()
-        p8x8 = self.x264_p8x8_checkbox.get_active()
-        b8x8 = self.x264_b8x8_checkbox.get_active()
+        i4x4 = self.x264_i4x4_checkbutton.get_active()
+        i8x8 = self.x264_i8x8_checkbutton.get_active()
+        p4x4 = self.x264_p4x4_checkbutton.get_active()
+        p8x8 = self.x264_p8x8_checkbutton.get_active()
+        b8x8 = self.x264_b8x8_checkbutton.get_active()
 
         if not (i4x4 or i8x8 or p4x4 or p8x8 or b8x8):
             partitions = 'none'
