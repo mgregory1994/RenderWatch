@@ -31,6 +31,7 @@ from render_watch.signals.main_window.parallel_tasks_signal import ParallelTasks
 from render_watch.signals.main_window.parallel_chunks_signal import ParallelChunksSignal
 from render_watch.signals.main_window.application_preferences_signal import ApplicationPreferencesSignal
 from render_watch.signals.main_window.settings_sidebar_signal import SettingsSidebarSignal
+from render_watch.startup import GLib
 
 
 class MainWindowHandlers:
@@ -248,9 +249,11 @@ class MainWindowHandlers:
             is_toggled_settings_sidebar_visible = not self.settings_sidebar_box.get_visible()
 
         if is_toggled_settings_sidebar_visible:
-            self.inputs_page_paned.set_position(self.main_window.get_size().width - self.inputs_page_paned_position)
+            GLib.idle_add(self.inputs_page_paned.set_position,
+                          (self.main_window.get_size().width - self.inputs_page_paned_position))
 
         self.settings_sidebar_box.set_visible(is_toggled_settings_sidebar_visible)
+
 
     def popdown_app_preferences_popover(self):
         self.application_options_popover.popdown()

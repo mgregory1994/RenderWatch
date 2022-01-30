@@ -40,6 +40,7 @@ class PreviewPageHandlers:
         self.preview_thumbnail_thread = None
         self.resize_thumbnail_thread = None
         self.is_preview_thread_stopping = False
+        self._has_preview_initialized = False
         self.preview_preview_viewport_width = 0
         self.preview_preview_viewport_height = 0
         self.image_buffer = None
@@ -86,7 +87,7 @@ class PreviewPageHandlers:
                 return getattr(signal, signal_name)
         raise AttributeError
 
-    def setup_preview_page(self):
+    def setup_preview_page(self, is_updating=False):
         """
         Configures the preview page widgets to match the selected task's ffmpeg settings.
         """
@@ -103,13 +104,15 @@ class PreviewPageHandlers:
         else:
             self._set_not_available_state(False)
 
-        duration = self.ffmpeg.duration_origin
-        duration_timecode = format_converter.get_timecode_from_seconds(duration)
-        current_timecode = format_converter.get_timecode_from_seconds(duration / 4)
+        if not is_updating or not self._has_preview_initialized:
+            duration = self.ffmpeg.duration_origin
+            duration_timecode = format_converter.get_timecode_from_seconds(duration)
+            current_timecode = format_converter.get_timecode_from_seconds(duration / 4)
 
-        self.preview_time_adjustment.set_upper(duration)
-        self.preview_position_scale.set_value(duration / 4)
-        self.preview_time_selection_label.set_text(current_timecode + ' / ' + duration_timecode)
+            self.preview_time_adjustment.set_upper(duration)
+            self.preview_position_scale.set_value(duration / 4)
+            self.preview_time_selection_label.set_text(current_timecode + ' / ' + duration_timecode)
+            self._has_preview_initialized = True
         self._preview_queue.put(self.preview_position_scale.get_value())
         self._run_set_preview_thumbnail_thread()
 
@@ -185,6 +188,7 @@ class PreviewPageHandlers:
     def reset_preview_page(self):
         self.preview_icon.set_from_icon_name('camera-video-symbolic', 192)
         self.preview_icon.set_opacity(0.5)
+        self._has_preview_initialized = False
 
     def reset_preview_buttons(self):
         self.preview_live_radiobutton.set_active(True)
@@ -257,7 +261,7 @@ class PreviewPageHandlers:
             self._set_not_available_state(True)
         else:
             if self.is_preview_not_available_state() or self.is_preview_failed_state():
-                self.setup_preview_page()
+                self.setup_preview_page(is_updating=True)
                 return
 
             self._set_not_available_state(False)

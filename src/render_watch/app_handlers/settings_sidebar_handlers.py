@@ -260,7 +260,8 @@ class SettingsSidebarHandlers:
             self.on_video_codec_combobox_changed(self.video_codec_combobox)
 
     def _setup_audio_codec(self, audio_settings):
-        if not self.inputs_page_handlers.get_selected_row_ffmpeg().input_file_info['audio_streams']:
+        ffmpeg = self.inputs_page_handlers.get_selected_row_ffmpeg()
+        if not ffmpeg.input_file_info['audio_streams'] and not ffmpeg.folder_state:
             self._reset_audio_codec_combobox()
             self.audio_codec_combobox.set_sensitive(False)
         else:

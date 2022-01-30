@@ -39,14 +39,13 @@ class VideoCodecSignal:
         if self.settings_sidebar_handlers.is_widgets_setting_up:
             return
 
-        self._set_copy_video_codec_state(video_codec_combobox)
-
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings = video_settings
 
             row.setup_labels()
 
+        self._set_copy_video_codec_state(video_codec_combobox)
         self.settings_sidebar_handlers.set_benchmark_state()
         self.inputs_page_handlers.update_preview_page()
 
