@@ -144,6 +144,6 @@ def fix_same_name_occurences(ffmpeg, application_preferences):
 
 
 def _output_file_path_exists(output_file_path, application_preferences):
-    if application_preferences.is_overwriting_outputs:
+    if application_preferences.is_overwrite_outputs_enabled:
         return False
     return os.path.exists(output_file_path)

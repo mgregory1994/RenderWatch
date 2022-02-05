@@ -95,26 +95,12 @@ class EncoderQueue:
         self._wait_for_parallel_tasks_queue()
 
     def _wait_for_per_codec_tasks_queue(self):
-        print('-------------------------------')
-        print('Waiting for per codec tasks...')
-        print('is_per_codec_parallel_tasks_enabled:', str(self.is_per_codec_parallel_tasks_enabled))
-        print('per_codec_parallel_encode_task queue empty:', str(self.per_codec_parallel_encode_task.is_queue_empty()))
         if not self.is_per_codec_parallel_tasks_enabled:
-            print('Joining per codec queues...')
             self.per_codec_parallel_encode_task.join_queue()
-            print('Done waiting for per codec queues...')
-        print('-------------------------------')
 
     def _wait_for_parallel_tasks_queue(self):
-        print('-------------------------------')
-        print('Waiting for parallel tasks...')
-        print('is_parallel_tasks_enabled:', str(self.is_parallel_tasks_enabled))
-        print('parallel_encode_task queue empty:', str(self.parallel_encode_task.is_queue_empty()))
         if not self.is_parallel_tasks_enabled:
-            print('Joining parallel tasks queue...')
             self.parallel_encode_task.join_queue()
-            print('Done waiting for parallel tasks queue...')
-        print('-------------------------------')
 
     def wait_for_watch_folder_tasks(self):
         while self._check_watch_folder_task_running():

@@ -164,7 +164,7 @@ class FolderEncodeTask:
                 if parent_ffmpeg.folder_auto_crop:
                     auto_crop_helper.process_auto_crop(child_ffmpeg)
 
-                self.encoder_queue.run_standard_folder_encode_task(active_row, child_ffmpeg)
+                self.encoder_queue.run_folder_encode_task(active_row, child_ffmpeg)
 
         active_row.ffmpeg = parent_ffmpeg
 

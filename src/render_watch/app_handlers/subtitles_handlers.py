@@ -75,8 +75,10 @@ class SubtitlesHandlers:
             self.subtitle_streams_list.remove(row)
 
     def _populate_list(self):
-        ffmpeg = self.inputs_page_handlers.get_selected_row().ffmpeg
+        if self.inputs_page_handlers.is_apply_all_selected():
+            return
 
+        ffmpeg = self.inputs_page_handlers.get_selected_row().ffmpeg
         if ffmpeg.subtitles_settings.subtitle_streams:
             self.set_settings_available_state()
         else:
