@@ -65,6 +65,7 @@ class ParallelEncodeTask:
                         self.encoder_queue.remove_from_running_tasks(active_row)
 
                     self.parallel_tasks_queue.task_done()
+                    print('--- TASK DONE ---')
         except:
             logging.exception('--- PARALLEL TASKS THREAD FAILED ---')
 

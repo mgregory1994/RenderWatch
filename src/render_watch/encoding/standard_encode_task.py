@@ -48,6 +48,7 @@ class StandardEncodeTask:
             if not active_row:
                 break
 
+            self.encoder_queue.wait_for_parallel_tasks()
             self.encoder_queue.add_to_running_tasks(active_row)
             self._run_standard_encode_task(active_row)
 
