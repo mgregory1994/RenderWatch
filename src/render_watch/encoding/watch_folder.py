@@ -119,6 +119,12 @@ class WatchFolderInstance:
 
     def _add_new_files(self):
         for file in os.listdir(self._folder_path):
+            if os.path.isdir(os.path.join(self._folder_path, file)):
+                print(os.path.join(self._folder_path, file), 'is a directory')
+                continue
+            else:
+                print(os.path.join(self._folder_path, file), 'is not a directory')
+
             if file not in self._files_found_in_folder:
                 file_path = os.path.join(self._folder_path, file)
                 file_size = os.path.getsize(file_path)

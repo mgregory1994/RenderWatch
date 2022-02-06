@@ -34,4 +34,4 @@ class ResumeAllTasksSignal:
         self.main_window_handlers.popdown_app_preferences_popover()
 
         for row in self.active_page_handlers.get_rows():
-            row.on_start_button_clicked(None)
+            row.signal_start_button()

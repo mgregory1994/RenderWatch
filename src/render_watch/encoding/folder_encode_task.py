@@ -134,14 +134,17 @@ class FolderEncodeTask:
 
     @staticmethod
     def _is_folder_task_valid(child_ffmpeg):
-        return encoder_helper.is_file_extension_valid(child_ffmpeg.input_file) \
-               and InputInformation.generate_input_information(child_ffmpeg)
+        try:
+            return encoder_helper.is_file_extension_valid(child_ffmpeg.input_file) \
+                   and InputInformation.generate_input_information(child_ffmpeg)
+        except:
+            return False
 
     @staticmethod
     def _move_input_file_to_done_folder(input_file_path):
         file_name = os.path.basename(input_file_path)
-        input_file_path = os.path.dirname(input_file_path)
-        done_file_path = os.path.join(input_file_path, 'done')
+        input_file_dir = os.path.dirname(input_file_path)
+        done_file_path = os.path.join(input_file_dir, 'done')
         done_file = os.path.join(done_file_path, file_name)
 
         if not os.path.exists(done_file_path):

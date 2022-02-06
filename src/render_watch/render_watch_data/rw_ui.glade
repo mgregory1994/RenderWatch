@@ -10211,6 +10211,7 @@ Recommended: Auto unless you're downmixing the audio to fewer channels</property
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="icon-name">sidebar-show-right-symbolic</property>
+                <property name="use-fallback">True</property>
               </object>
             </child>
           </object>

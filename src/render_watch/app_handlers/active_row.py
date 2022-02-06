@@ -428,6 +428,12 @@ class ActiveRow(Gtk.ListBoxRow):
 
         GLib.idle_add(self.active_page_handlers.remove_row, self)
 
+    def signal_pause_button(self):
+        self.pause_signal.on_pause_button_clicked(self.active_listbox_row_pause_button)
+
+    def signal_start_button(self):
+        self.start_signal.on_start_button_clicked(self.active_listbox_row_start_button)
+
     @staticmethod
     def _wait_for_update_row_thumbnail_thread(update_row_thumbnail_thread):
         if update_row_thumbnail_thread.is_alive():
