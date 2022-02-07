@@ -82,9 +82,11 @@ class EncoderQueue:
     def start_folder_task(self, active_row):
         self.folder_encode_task.start_folder_task(active_row)
 
-    def start_parallel_nvenc_task(self, active_row):
+    def start_parallel_nvenc_task(self, active_row, wait=True):
         self.parallel_nvenc_encode_task.add_task(active_row)
-        self.parallel_nvenc_encode_task.join_queue()
+
+        if wait:
+            self.parallel_nvenc_encode_task.join_queue()
 
     def wait_for_standard_tasks(self):
         if self.is_parallel_tasks_enabled or self.is_per_codec_parallel_tasks_enabled:

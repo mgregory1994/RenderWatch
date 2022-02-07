@@ -120,6 +120,9 @@ class FolderEncodeTask:
                 if parent_ffmpeg.folder_auto_crop:
                     auto_crop_helper.process_auto_crop(child_ffmpeg)
 
+                if active_row.ffmpeg.is_video_settings_nvenc():
+                    self.encoder_queue.parallel_nvenc_encode_task.wait_until_nvenc_available(active_row)
+
                 self.encoder_queue.run_folder_encode_task(active_row, child_ffmpeg, watch_folder=True)
 
                 if self.application_preferences.is_watch_folder_move_tasks_to_done_enabled:
@@ -166,6 +169,9 @@ class FolderEncodeTask:
 
                 if parent_ffmpeg.folder_auto_crop:
                     auto_crop_helper.process_auto_crop(child_ffmpeg)
+
+                if active_row.ffmpeg.is_video_settings_nvenc():
+                    self.encoder_queue.parallel_nvenc_encode_task.wait_until_nvenc_available(active_row)
 
                 self.encoder_queue.run_folder_encode_task(active_row, child_ffmpeg)
 

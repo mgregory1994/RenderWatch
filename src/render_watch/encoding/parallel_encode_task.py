@@ -74,9 +74,7 @@ class ParallelEncodeTask:
 
         with ThreadPoolExecutor(max_workers=2) as future_executor:
             if active_row.ffmpeg.is_video_settings_nvenc():
-                self.encoder_queue.remove_from_running_tasks(active_row)
-                self.encoder_queue.start_parallel_nvenc_task(active_row)
-                self.parallel_tasks_queue.task_done()
+                self.encoder_queue.start_parallel_nvenc_task(active_row, wait=False)
 
                 return
             elif active_row.ffmpeg.folder_state:

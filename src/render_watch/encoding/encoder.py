@@ -67,7 +67,7 @@ class Encoder:
                                                                  encode_passes,
                                                                  duration_in_seconds)
                     except Exception as exception:
-                        logging.info(exception)
+                        logging.exception(exception)
                         continue
 
         Encoder._update_active_row_finished_state(active_row, encode_process, stdout_last_line)

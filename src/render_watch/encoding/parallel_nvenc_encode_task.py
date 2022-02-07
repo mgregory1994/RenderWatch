@@ -58,7 +58,7 @@ class ParallelNvencEncodeTask:
             if not active_row:
                 break
 
-            self._wait_until_nvenc_available(active_row)
+            self.wait_until_nvenc_available(active_row)
             self.encoder_queue.wait_for_standard_tasks()
 
             self.encoder_queue.add_to_running_tasks(active_row)
@@ -72,7 +72,7 @@ class ParallelNvencEncodeTask:
             self.parallel_nvenc_tasks_queue.task_done()
 
     @staticmethod
-    def _wait_until_nvenc_available(active_row):
+    def wait_until_nvenc_available(active_row):
         while True:
             if NvidiaHelper.is_nvenc_available() or active_row.stopped:
                 break

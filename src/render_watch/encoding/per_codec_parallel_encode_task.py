@@ -109,6 +109,10 @@ class PerCodecParallelEncodeTask:
                 if not active_row:
                     break
 
+                nvenc_skip = active_row.ffmpeg.is_video_settings_nvenc() \
+                             and active_row.ffmpeg.folder_state \
+                             and not active_row.ffmpeg.watch_folder
+
                 try:
                     self.encoder_queue.wait_for_standard_tasks()
                     self._wait_for_current_codec_queue(codec_queue)
@@ -118,10 +122,11 @@ class PerCodecParallelEncodeTask:
                 except:
                     logging.exception('--- FAILED TO RUN PER CODEC PARALLEL TASK PROCESS ---')
                 finally:
-                    if active_row.ffmpeg.folder_state and not active_row.ffmpeg.watch_folder:
-                        GLib.idle_add(active_row.set_finished_state)
-                    if not active_row.ffmpeg.watch_folder:
-                        self.encoder_queue.remove_from_running_tasks(active_row)
+                    if not nvenc_skip:
+                        if active_row.ffmpeg.folder_state and not active_row.ffmpeg.watch_folder:
+                            GLib.idle_add(active_row.set_finished_state)
+                        if not active_row.ffmpeg.watch_folder:
+                            self.encoder_queue.remove_from_running_tasks(active_row)
 
                     codec_queue.task_done()
         except:
@@ -146,17 +151,18 @@ class PerCodecParallelEncodeTask:
 
         with ThreadPoolExecutor(max_workers=2) as future_executor:
             if active_row.ffmpeg.is_video_settings_nvenc():
-                self.encoder_queue.remove_from_running_tasks(active_row)
-                self.encoder_queue.start_parallel_nvenc_task(active_row)
-                codec_queue.task_done()
-
-                return
-            elif active_row.ffmpeg.folder_state:
-                future_executor.submit(self.encoder_queue.start_folder_task, active_row)
+                if active_row.ffmpeg.folder_state and not active_row.ffmpeg.watch_folder:
+                    future_executor.submit(self.encoder_queue.start_parallel_nvenc_task, active_row)
+                else:
+                    self.encoder_queue.start_parallel_nvenc_task(active_row, wait=False)
+                    return
             else:
-                future_executor.submit(self.encoder_queue.run_encode_task, active_row)
+                if active_row.ffmpeg.folder_state:
+                    future_executor.submit(self.encoder_queue.start_folder_task, active_row)
+                else:
+                    future_executor.submit(self.encoder_queue.run_encode_task, active_row)
 
-            future_executor.submit(active_row.set_start_state)
+                future_executor.submit(active_row.set_start_state)
 
     def add_task(self, active_row):
         """
