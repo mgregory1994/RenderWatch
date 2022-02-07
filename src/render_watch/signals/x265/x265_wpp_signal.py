@@ -17,25 +17,29 @@
 
 
 class X265WppSignal:
-    """Handles the signal emitted when the x265 WPP option is changed."""
+    """
+    Handles the signal emitted when the x265 WPP option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_wpp_checkbox_toggled(self, wpp_checkbox):
-        """Toggles the WPP option and updates the preview page.
+    def on_x265_wpp_checkbutton_toggled(self, x265_wpp_checkbutton):
+        """
+        Toggles the WPP option and updates the preview page.
 
-        :param wpp_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_wpp_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        wpp_enabled = wpp_checkbox.get_active()
+        is_wpp_enabled = x265_wpp_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.wpp = wpp_enabled
+            ffmpeg.video_settings.wpp = is_wpp_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

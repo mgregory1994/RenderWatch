@@ -17,86 +17,100 @@
 
 
 class X265SaoSignal:
-    """Handles the signals emitted when the x265 SAO related options are changed."""
+    """
+    Handles the signals emitted when x265 SAO related options are changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_sao_checkbox_toggled(self, sao_checkbox):
-        """Configures the x265 widgets for SAO options, applies the SAO option, and updates the preview page.
-
-        :param sao_checkbox:
-            Checkbox that emitted the signal.
+    def on_x265_sao_checkbutton_toggled(self, x265_sao_checkbutton):
         """
-        self.x265_handlers.set_sao_state(sao_checkbox.get_active())
+        Configures the x265 widgets for SAO options, applies the SAO option, and updates the preview page.
+
+        :param x265_sao_checkbutton: Checkbutton that emitted the signal.
+        """
+        self.x265_handlers.set_sao_state(x265_sao_checkbutton.get_active())
 
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        sao_enabled = sao_checkbox.get_active()
+        is_sao_enabled = x265_sao_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
-            ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_sao = not sao_enabled
-            if sao_enabled:
-                ffmpeg.video_settings.sao_non_deblock = self.x265_handlers.is_sao_non_deblock_enabled()
-                ffmpeg.video_settings.limit_sao = self.x265_handlers.is_limit_sao_enabled()
-                ffmpeg.video_settings.selective_sao = self.x265_handlers.get_selective_sao_value()
-            else:
-                ffmpeg.video_settings.sao_non_deblock = False
-                ffmpeg.video_settings.limit_sao = False
-                ffmpeg.video_settings.selective_sao = None
+            self._apply_x265_sao_settings(row, is_sao_enabled)
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_sao_nodeblock_checkbox_toggled(self, sao_no_deblock_checkbox):
-        """Toggles the No SAO option and updates the preview page.
+    def _apply_x265_sao_settings(self, row, is_sao_enabled):
+        ffmpeg = row.ffmpeg
+        ffmpeg.video_settings.no_sao = not is_sao_enabled
 
-        :param sao_no_deblock_checkbox:
-            Checkbox that emitted the signal.
+        if is_sao_enabled:
+            ffmpeg.video_settings.sao_non_deblock = self.x265_handlers.is_sao_non_deblock_enabled()
+            ffmpeg.video_settings.limit_sao = self.x265_handlers.is_limit_sao_enabled()
+            ffmpeg.video_settings.selective_sao = self.x265_handlers.get_selective_sao_value()
+        else:
+            ffmpeg.video_settings.sao_non_deblock = False
+            ffmpeg.video_settings.limit_sao = False
+            ffmpeg.video_settings.selective_sao = None
+
+    def on_x265_sao_no_deblock_checkbutton_toggled(self, x265_sao_no_deblock_checkbutton):
+        """
+        Toggles the No SAO option and updates the preview page.
+
+        :param x265_sao_no_deblock_checkbutton: Checkbox that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        sao_no_deblock_enabled = sao_no_deblock_checkbox.get_active()
+        is_sao_no_deblock_enabled = x265_sao_no_deblock_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.sao_non_deblock = sao_no_deblock_enabled
+            ffmpeg.video_settings.sao_non_deblock = is_sao_no_deblock_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_sao_limit_checkbox_toggled(self, sao_limit_checkbox):
-        """Toggles the Limit SAO option and updates the preview page.
+    def on_x265_sao_limit_checkbutton_toggled(self, x265_sao_limit_checkbutton):
+        """
+        Toggles the Limit SAO option and updates the preview page.
 
-        :param sao_limit_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_sao_limit_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        sao_limit_enabled = sao_limit_checkbox.get_active()
+        is_sao_limit_enabled = x265_sao_limit_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.limit_sao = sao_limit_enabled
+            ffmpeg.video_settings.limit_sao = is_sao_limit_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_sao_selective_spinbutton_value_changed(self, sao_selective_spinbutton):
-        """Toggles the Selective SAO option and updates the preview page.
+    def on_x265_sao_selective_spinbutton_value_changed(self, x265_sao_selective_spinbutton):
+        """
+        Toggles the Selective SAO option and updates the preview page.
 
-        :param sao_selective_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_sao_selective_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        sao_selective_value = sao_selective_spinbutton.get_value_as_int()
+        sao_selective_value = x265_sao_selective_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.selective_sao = sao_selective_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

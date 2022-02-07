@@ -6,47 +6,48 @@
 Render Watch is an open source video transcoder for Linux.
 
 ## Compatibility
-Render Watch is available as a flatpak(version 0.2.0) and can also be installed from source.
+Render Watch is available as a flatpak(version 1.0.0) and can also be installed from source.
 Render Watch should theoretically work on any Linux distribution that has the ability to run Python, Gtk, PyGObject, and
 ffmpeg/ffinfo/ffplay.
 
 ## Installation
 #### Flatpak:
-###### Available starting version 0.2.0
+###### Available starting version 1.0.0
    
 #### From source:
 1. Install dependencies
-    * ffmpeg
-    * [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html)
-    * pip
+   * ffmpeg
+   * [PyGObject](https://pygobject.readthedocs.io/en/latest/getting_started.html)
+   * python-pip
 2. Clone repository
-    ```bash
-    git clone https://github.com/mgregory1994/RenderWatch.git
-    ```
+   ```bash
+   git clone https://github.com/mgregory1994/RenderWatch.git
+   ```
 3. Manually install Render Watch
-    ```bash
-    cd RenderWatch
-    sudo python setup.py install
-    ```
+   ```bash
+   cd RenderWatch
+   git checkout v0.2.0-beta
+   sudo python setup.py install
+   ```
 4. Copy .desktop file and program icons
-    ```bash
-    cp data/render-watch.desktop ~/.local/share/applications
-    cp -r data/icons/. ~/.icons
-    ```
+   ```bash
+   cp data/render-watch.desktop ~/.local/share/applications
+   cp -r data/icons/. ~/.icons
+   ```
 
 ## Uninstall
 #### Flatpak:
-###### Available starting version 0.2.0
+###### Available starting version 1.0.0
 
 #### From source:
 1. Remove .desktop file
-    ```bash
-    rm ~/.local/share/applications/render-watch.desktop
-    ```
+   ```bash
+   rm ~/.local/share/applications/render-watch.desktop
+   ```
 2. Remove Render Watch using pip
-    ```bash
-    sudo pip uninstall render-watch
-    ```
+   ```bash
+   sudo pip uninstall render-watch
+   ```
 
 ## Usage
 Once you have installed Render Watch, you can find it among your installed

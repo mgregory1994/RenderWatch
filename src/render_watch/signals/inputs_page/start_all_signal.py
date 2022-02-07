@@ -21,24 +21,26 @@ import time
 
 
 class StartAllSignal:
-    """Handles the signal emitted from the start all button on the inputs page's options menu."""
+    """
+    Handles the signal emitted from the start all button on the inputs page's options menu.
+    """
 
     def __init__(self, inputs_page_handlers, main_window_handlers):
         self.inputs_page_handlers = inputs_page_handlers
         self.main_window_handlers = main_window_handlers
 
     def on_start_all_button_clicked(self, start_all_button):  # Unused parameters needed for this signal
-        """Sends all inputs rows to the active page as encoding tasks.
+        """
+        Sends all input rows to the active page as encoding tasks.
 
-        :param start_all_button:
-            Button that emitted the signal.
+        :param start_all_button: Button that emitted the signal.
         """
         self.main_window_handlers.popdown_app_preferences_popover()
+
         threading.Thread(target=self._start_all_tasks, args=()).start()
 
     def _start_all_tasks(self):
-        # Starts every inputs row on the inputs page.
-        time.sleep(.2)
-
         for row in self.inputs_page_handlers.get_rows():
-            row.on_start_button_clicked(None)
+            row.signal_start_button()
+
+            time.sleep(.2)

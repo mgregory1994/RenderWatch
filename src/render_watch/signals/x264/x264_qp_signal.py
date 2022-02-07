@@ -17,19 +17,21 @@
 
 
 class X264QpSignal:
-    """Handles the signal emitted when the x264 QP option is changed."""
+    """
+    Handles the signal emitted when the x264 QP option is changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_qp_radiobutton_clicked(self, qp_radiobutton):
-        """Configures the x264 widgets for QP options, applies the QP option, and updates the preview page.
-
-        :param qp_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_x264_qp_radiobutton_clicked(self, x264_qp_radiobutton):
         """
-        if not qp_radiobutton.get_active():
+        Applies the QP option, configures the x264 widgets for QP, and updates the preview page.
+
+        :param x264_qp_radiobutton: Radiobutton that emitted the signal.
+        """
+        if not x264_qp_radiobutton.get_active():
             return
 
         self.x264_handlers.set_crf_state()
@@ -46,6 +48,7 @@ class X264QpSignal:
             ffmpeg.video_settings.constant_bitrate = None
             ffmpeg.video_settings.vbv_maxrate = None
             ffmpeg.video_settings.vbv_bufsize = None
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

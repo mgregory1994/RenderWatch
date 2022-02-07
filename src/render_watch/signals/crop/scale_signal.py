@@ -20,20 +20,24 @@ import threading
 
 
 class ScaleSignal:
-    """Handles the signal emitted when the scale settings are enabled."""
+    """
+    Handles the signal emitted when scale settings are toggled.
+    """
 
     def __init__(self, crop_page_handlers):
         self.crop_page_handlers = crop_page_handlers
 
-    def on_scale_enabled_button_toggled(self, scale_enabled_checkbox):
-        """Updates the scale widgets, applies the scale settings, and updates the crop preview.
-
-        :param scale_enabled_checkbox:
-            Checkbox that emitted the signal.
+    def on_scale_enabled_checkbutton_toggled(self, scale_enabled_checkbutton):
         """
-        self.crop_page_handlers.set_scale_state(scale_enabled_checkbox.get_active())
+        Applies scale settings, updates the crop page's widgets, and updates the crop preview.
+
+        :param scale_enabled_checkbutton: Checkbutton that emitted the signal.
+        """
+        self.crop_page_handlers.set_scale_state(scale_enabled_checkbutton.get_active())
+
         if self.crop_page_handlers.is_widgets_setting_up:
             return
 
         self.crop_page_handlers.apply_crop_settings()
+
         threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()

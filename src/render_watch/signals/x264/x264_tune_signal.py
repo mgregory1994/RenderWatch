@@ -17,25 +17,29 @@
 
 
 class X264TuneSignal:
-    """Handles the signal emitted when the x264 Tune option is changed."""
+    """
+    Handles the signal emitted when the x264 Tune option is changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_tune_combobox_changed(self, tune_combobox):
-        """Applies the Tune option and updates the preview page.
+    def on_x264_tune_combobox_changed(self, x264_tune_combobox):
+        """
+        Applies the Tune option and updates the preview page.
 
-        :param tune_combobox:
-            Combobox that emitted the signal.
+        :param x264_tune_combobox: Combobox that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        tune_index = tune_combobox.get_active()
+        tune_index = x264_tune_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.tune = tune_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

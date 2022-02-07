@@ -20,22 +20,22 @@ import threading
 
 
 class X264AdvancedSettingsSignal:
-    """Handles the signal emitted when the x264 Advanced Settings option is toggled."""
+    """
+    Handles the signal emitted when the x264 Advanced Settings options are toggled.
+    """
 
-    def __init__(self, x264_handlers, inputs_page_handlers):
+    def __init__(self, x264_handlers):
         self.x264_handlers = x264_handlers
-        self.inputs_page_handlers = inputs_page_handlers
 
     # Unused parameters needed for this signal
-    def on_x264_advanced_settings_switch_state_set(self, advanced_settings_switch, user_data):
-        """Toggles the Advanced Settings widgets and applies the advanced settings.
-
-        :param advanced_settings_switch:
-            Switch that emitted the signal.
-        :param user_data:
-            Unused parameter.
+    def on_x264_advanced_settings_switch_state_set(self, x264_advanced_settings_switch, user_data=None):
         """
-        self.x264_handlers.set_advanced_settings_state(advanced_settings_switch.get_active())
+        Toggles the Advanced Settings widgets and applies the advanced settings.
+
+        :param x264_advanced_settings_switch: Switch that emitted the signal.
+        :param user_data: Signal user data.
+        """
+        self.x264_handlers.set_advanced_settings_state(x264_advanced_settings_switch.get_active())
 
         if self.x264_handlers.is_widgets_setting_up:
             return

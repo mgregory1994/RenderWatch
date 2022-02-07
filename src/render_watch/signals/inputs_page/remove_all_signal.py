@@ -20,17 +20,19 @@ from render_watch.startup import Gtk
 
 
 class RemoveAllSignal:
-    """Handles the signal emitted from the remove all button on the inputs page's options menu."""
+    """
+    Handles the signal emitted from the remove all button on the inputs page's options menu.
+    """
 
     def __init__(self, inputs_page_handlers, main_window_handlers):
         self.inputs_page_handlers = inputs_page_handlers
         self.main_window_handlers = main_window_handlers
 
     def on_remove_all_button_clicked(self, remove_all_button):  # Unused parameters needed for this signal
-        """On user confirmation, removes all inputs from the inputs page.
+        """
+        On user confirmation, removes all inputs from the inputs page.
 
-        :param remove_all_button:
-            Button that emitted the signal.
+        :param remove_all_button: Button that emitted the signal.
         """
         message_dialog = Gtk.MessageDialog(self.main_window_handlers.main_window,
                                            Gtk.DialogFlags.DESTROY_WITH_PARENT,
@@ -38,9 +40,11 @@ class RemoveAllSignal:
                                            Gtk.ButtonsType.YES_NO,
                                            'Remove all inputs?')
         message_dialog.format_secondary_text('This will remove all of your imports along with any settings applied')
+
         response = message_dialog.run()
         if response == Gtk.ResponseType.YES:
             self.inputs_page_handlers.remove_all_rows()
+
         message_dialog.destroy()
 
         self.main_window_handlers.popdown_app_preferences_popover()

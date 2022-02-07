@@ -20,47 +20,54 @@ from render_watch.app_formatting import format_converter
 
 
 class TrimStartSignal:
-    """Handles the signals emitted from the Trim Start related options in the trim page."""
+    """
+    Handles the signals emitted from the Trim Start option is changed.
+    """
 
-    def __init__(self, trim_page_handlers, inputs_page_handlers):
+    def __init__(self, trim_page_handlers):
         self.trim_page_handlers = trim_page_handlers
-        self.inputs_page_handlers = inputs_page_handlers
 
-    def on_trim_start_scale_value_changed(self, trim_start_scale):
-        """Updates the Trim End scale widget and updates the Trim Start widgets.
-
-        :param trim_start_scale:
-            Scale that emitted the signal.
+    def on_trim_start_time_scale_value_changed(self, trim_start_time_scale):
         """
-        start_time_in_seconds = round(trim_start_scale.get_value(), 1)
-        if start_time_in_seconds >= self.trim_page_handlers.get_trim_end_value():
-            self.trim_page_handlers.set_trim_end_value(start_time_in_seconds + 1)
-        ffmpeg = self.trim_page_handlers.ffmpeg
-        if start_time_in_seconds == ffmpeg.duration_origin:
-            trim_start_scale.set_value(start_time_in_seconds - 1)
+        Applies the trim end option and updates the trim start time constraints.
+
+        :param trim_start_time_scale: Scale that emitted the signal.
+        """
+        start_time_in_seconds = round(trim_start_time_scale.get_value(), 1)
         start_timecode = format_converter.get_timecode_from_seconds(start_time_in_seconds)
+
+        self._update_trim_start_time_constraints(trim_start_time_scale, start_time_in_seconds)
         self.trim_page_handlers.set_trim_start_text(start_timecode, True)
 
-    def on_trim_start_scale_button_release_event(self, event, data):  # Unused parameters needed for this signal
-        """Applies the Trim Start value option and updates the trim preview.
+    def _update_trim_start_time_constraints(self, trim_start_time_scale, start_time_in_seconds):
+        ffmpeg = self.trim_page_handlers.ffmpeg
 
-        :param event:
-            Unused parameter.
-        :param data:
-            Unused parameter.
+        if start_time_in_seconds >= self.trim_page_handlers.get_trim_end_value():
+            self.trim_page_handlers.set_trim_end_value(start_time_in_seconds + 1)
+        if start_time_in_seconds == ffmpeg.duration_origin:
+            trim_start_time_scale.set_value(start_time_in_seconds - 1)
+
+    # Unused parameters needed for this signal
+    def on_trim_start_time_scale_button_release_event(self, trim_start_time_scale, event=None, user_data=None):
+        """
+        Applies the Trim Start option and updates the trim preview.
+
+        :param trim_start_time_scale: Scale that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
         """
         if self.trim_page_handlers.is_widgets_setting_up:
             return
 
         self.trim_page_handlers.run_trim_preview_thread()
-        self.trim_page_handlers.update_trim_settings()
+        self.trim_page_handlers.apply_trim_settings()
 
-    def on_trim_start_scale_key_release_event(self, event, data):  # Unused parameters needed for this signal
-        """Applies the Trim Start value option and updates the trim preview.
-
-        :param event:
-            Unused parameter.
-        :param data:
-            Unused parameter.
+    def on_trim_start_time_scale_key_release_event(self, trim_start_time_scale, event=None, user_data=None):
         """
-        self.on_trim_start_scale_button_release_event(None, None)
+        Applies the Trim Start option and updates the trim preview.
+
+        :param trim_start_time_scale: Scale that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
+        """
+        self.on_trim_start_time_scale_button_release_event(trim_start_time_scale, event, user_data)

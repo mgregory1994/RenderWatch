@@ -17,24 +17,27 @@
 
 
 class X264NoCabacSignal:
-    """Handles the signal emitted when the x264 No CABAC option is changed."""
+    """
+    Handles the signal emitted when the x264 No CABAC option is changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_no_cabac_checkbox_toggled(self, no_cabac_checkbox):
-        """Applies the No CABAC option and updates the preview page.
+    def on_x264_no_cabac_checkbutton_toggled(self, x264_no_cabac_checkbutton):
+        """
+        Applies the No CABAC option and updates the preview page.
 
-        :param no_cabac_checkbox:
-            Checkbox that emitted the signal.
+        :param x264_no_cabac_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.no_cabac = no_cabac_checkbox.get_active()
+            ffmpeg.video_settings.no_cabac = x264_no_cabac_checkbutton.get_active()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

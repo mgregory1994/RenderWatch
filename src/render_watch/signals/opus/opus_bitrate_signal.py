@@ -17,22 +17,28 @@
 
 
 class OpusBitrateSignal:
-    """Handles the signal emitted when the Opus Bitrate option is changed."""
+    """
+    Handles the signal emitted when the Opus Bitrate option is changed.
+    """
 
     def __init__(self, opus_handlers, inputs_page_handlers):
         self.opus_handlers = opus_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_opus_bitrate_spinbutton_value_changed(self, bitrate_spinbutton):
-        """Applies the Bitrate value option.
+    def on_opus_bitrate_spinbutton_value_changed(self, opus_bitrate_spinbutton):
+        """
+        Applies the Bitrate option.
 
-        :param bitrate_spinbutton:
-            Spinbutton that emitted the signal.
+        :param opus_bitrate_spinbutton: Spinbutton that emitted the signal.
         """
         if self.opus_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.audio_settings.bitrate = bitrate_spinbutton.get_value_as_int()
+            ffmpeg.audio_settings.bitrate = opus_bitrate_spinbutton.get_value_as_int()
+
             row.setup_labels()
+
+        if self.inputs_page_handlers.is_preview_page_failed_state():
+            self.inputs_page_handlers.update_preview_page()

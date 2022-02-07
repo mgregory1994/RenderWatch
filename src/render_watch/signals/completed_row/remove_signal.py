@@ -17,16 +17,18 @@
 
 
 class RemoveSignal:
-    """Handles the signal emitted from the remove button on a completed page's listbox row."""
+    """
+    Handles the signal emitted from the remove button on a completed task.
+    """
 
     def __init__(self, completed_row, completed_page_handlers):
         self.completed_row = completed_row
         self.completed_page_handlers = completed_page_handlers
 
-    def on_remove_button_clicked(self, remove_button):  # Unused parameters needed for this signal
-        """Removes this completed task.
+    def on_remove_button_clicked(self, completed_listbox_row_remove_button):  # Unused parameters needed for this signal
+        """
+        Removes this task from the completed page.
 
-        :param remove_button:
-            Button that emitted the signal.
+        :param completed_listbox_row_remove_button: Button that emitted the signal.
         """
         self.completed_page_handlers.remove_row(self.completed_row)

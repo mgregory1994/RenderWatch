@@ -17,25 +17,29 @@
 
 
 class Vp9SpeedSignal:
-    """Handles the signal emitted when the VP9 Speed option is changed."""
+    """
+    Handles the signal emitted when the VP9 Speed option is changed.
+    """
 
     def __init__(self, vp9_handlers, inputs_page_handlers):
         self.vp9_handlers = vp9_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_vp9_speed_combobox_changed(self, speed_combobox):
-        """Applies the Speed option and updates the preview page.
+    def on_vp9_speed_combobox_changed(self, vp9_speed_combobox):
+        """
+        Applies the Speed option and updates the preview page.
 
-        :param speed_combobox:
-            Combobox that emitted the signal.
+        :param vp9_speed_combobox: Combobox that emitted the signal.
         """
         if self.vp9_handlers.is_widgets_setting_up:
             return
 
-        speed_setting_index = speed_combobox.get_active()
+        speed_index = vp9_speed_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.speed = speed_setting_index
+            ffmpeg.video_settings.speed = speed_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

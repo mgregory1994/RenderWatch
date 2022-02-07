@@ -17,42 +17,48 @@
 
 
 class X265CuSignal:
-    """Handles the signals emitted when the x265 CU related options are changed."""
+    """
+    Handles the signals emitted when x265 CU related options are changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_max_cu_combobox_changed(self, max_cu_combobox):
-        """Applies the Max CU option and updates the preview page.
+    def on_x265_max_cu_combobox_changed(self, x265_max_cu_combobox):
+        """
+        Applies the Max CU option and updates the preview page.
 
-        :param max_cu_combobox:
-            Combobox that emitted the signal.
+        :param x265_max_cu_combobox: Combobox that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        max_cu_index = max_cu_combobox.get_active()
+        max_cu_index = x265_max_cu_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.ctu = max_cu_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_min_cu_combobox_changed(self, min_cu_combobox):
-        """Applies the Min CU option and updates the preview page.
+    def on_x265_min_cu_combobox_changed(self, x265_min_cu_combobox):
+        """
+        Applies the Min CU option and updates the preview page.
 
-        :param min_cu_combobox:
-            Combobox that emitted the signal.
+        :param x265_min_cu_combobox: Combobox that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        min_cu_index = min_cu_combobox.get_active()
+        min_cu_index = x265_min_cu_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.min_cu_size = min_cu_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

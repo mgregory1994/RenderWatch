@@ -16,26 +16,42 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class NvencBlurayCompatSignal:
-    """Handles the signal emitted when the NVENC Blu-Ray Compatibility option is changed."""
+import threading
 
-    def __init__(self, nvenc_handlers, inputs_page_handlers):
+from render_watch.helpers.nvidia_helper import NvidiaHelper
+
+
+class NvencBlurayCompatSignal:
+    """
+    Handles the signal emitted when the NVENC Blu-Ray Compatibility option is changed.
+    """
+
+    def __init__(self, nvenc_handlers, inputs_page_handlers, main_window_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
+        self.main_window_handlers = main_window_handlers
 
-    def on_nvenc_bluray_compat_checkbox_toggled(self, bluray_compat_checkbox):
-        """Applies the NVENC Blu-Ray Compatibility option and updates the preview page.
+    def on_nvenc_bluray_compat_checkbutton_toggled(self, nvenc_bluray_compat_checkbutton):
+        """
+        Applies the NVENC Blu-Ray Compatibility option and updates the preview page.
 
-        :param bluray_compat_checkbox:
-            Checkbox that emitted the signal.
+        :param nvenc_bluray_compat_checkbutton: Checkbox that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        bluray_compat_enabled = bluray_compat_checkbox.get_active()
+        bluray_compat_enabled = nvenc_bluray_compat_checkbutton.get_active()
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.bluray_compat = bluray_compat_enabled
+
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()

@@ -17,40 +17,44 @@
 
 
 class X264RefsSignal:
-    """Handles the signals emitted when the x264 References Frames related options are changed."""
+    """
+    Handles the signals emitted when x264 References Frames related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_reference_frames_spinbutton_value_changed(self, ref_spinbutton):
-        """Applies the Reference Frames option and updates the preview page.
+    def on_x264_refs_spinbutton_value_changed(self, x264_refs_spinbutton):
+        """
+        Applies the Reference Frames option and updates the preview page.
 
-        :param ref_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x264_refs_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.ref = ref_spinbutton.get_value_as_int()
+            ffmpeg.video_settings.ref = x264_refs_spinbutton.get_value_as_int()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_mixed_refs_checkbox_toggled(self, mixed_refs_checkbox):
-        """Applies the Mixed Reference Frames option and updates the preview page.
+    def on_x264_mixed_refs_checkbutton_toggled(self, x264_mixed_refs_checkbutton):
+        """
+        Applies the Mixed Reference Frames option and updates the preview page.
 
-        :param mixed_refs_checkbox:
-            Checkbox that emitted the signal.
+        :param x264_mixed_refs_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.mixed_refs = mixed_refs_checkbox.get_active()
+            ffmpeg.video_settings.mixed_refs = x264_mixed_refs_checkbutton.get_active()
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

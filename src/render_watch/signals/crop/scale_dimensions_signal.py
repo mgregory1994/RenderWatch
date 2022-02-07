@@ -20,20 +20,63 @@ import threading
 
 
 class ScaleDimensionsSignal:
+    """
+    Handles the signals emitted when scale dimensions are changed.
+    """
 
-    """Handles the signals emitted when the scale dimension settings are changed."""
     def __init__(self, crop_page_handlers):
         self.crop_page_handlers = crop_page_handlers
 
     # Unused parameters needed for this signal
-    def on_scale_spinbutton_value_changed(self, scale_spinbutton, event=None):
-        """Applies the scale settings and updates the crop preview.
+    def _apply_scale(self, scale_spinbutton, event=None, user_data=None):
+        """
+        Applies the scale settings and updates the crop preview.
 
-        :param scale_spinbutton:
-            Spinbutton that emitted the signal.
+        :param scale_spinbutton: Spinbutton that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
         """
         if self.crop_page_handlers.is_widgets_setting_up:
             return
 
         self.crop_page_handlers.apply_crop_settings()
+
         threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()
+
+    def on_scale_width_spinbutton_activate(self, scale_width_spinbutton, event=None):
+        """
+        Applies scale settings and updates the crop preview.
+
+        :param scale_width_spinbutton: Spinbutton that emitted the signal.
+        :param event: Signal event.
+        """
+        self._apply_scale(scale_width_spinbutton, event)
+
+    def on_scale_width_spinbutton_button_release_event(self, scale_width_spinbutton, event=None, user_data=None):
+        """
+        Applies scale settings and updates the crop preview.
+
+        :param scale_width_spinbutton: Spinbutton that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
+        """
+        self._apply_scale(scale_width_spinbutton, event, user_data)
+
+    def on_scale_height_spinbutton_activate(self, scale_height_spinbutton, event=None):
+        """
+        Applies scale settings and updates the crop preview.
+
+        :param scale_height_spinbutton: Spinbutton that emitted the signal.
+        :param event: Signal event.
+        """
+        self._apply_scale(scale_height_spinbutton, event)
+
+    def on_scale_height_spinbutton_button_release_event(self, scale_height_spinbutton, event=None, user_data=None):
+        """
+        Applies scale settings and updates the crop preview.
+
+        :param scale_height_spinbutton: Spinbutton that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
+        """
+        self._apply_scale(scale_height_spinbutton, event, user_data)

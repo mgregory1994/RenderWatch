@@ -16,6 +16,9 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from datetime import datetime
+
+
 counter = -1
 
 
@@ -25,16 +28,14 @@ class AliasGenerator:
 
     @staticmethod
     def generate_alias_from_name(name):
-        """Use the first character of the name and concatenate the global counter to make an alias name.
+        """
+        Creates a unique alias based off of the first character of the name.
 
-        The global counter is incremented each time this function is called in order to keep all generated
-        aliases unique.
-
-        :param name:
-            Name string to generate an alias from.
+        :param name: Name to generate an alias from.
         """
         global counter
         counter += 1
 
-        alias = name[0] + '_' + str(counter)
-        return alias
+        current_date_time = datetime.now().strftime('_%m-%d-%Y_%H%M%S')
+
+        return name[0] + str(counter) + current_date_time

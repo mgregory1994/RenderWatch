@@ -17,59 +17,67 @@
 
 
 class X265RdSignal:
-    """Handles the signals emitted when the x265 Rate Distortion related options are changed."""
+    """
+    Handles the signals emitted when x265 Rate Distortion related options are changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_rdo_level_spinbutton_value_changed(self, rdo_level_spinbutton):
-        """Applies the RDO Level option and updates the preview page.
+    def on_x265_rdo_level_spinbutton_value_changed(self, x265_rdo_level_spinbutton):
+        """
+        Applies the RDO Level option and updates the preview page.
 
-        :param rdo_level_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_rdo_level_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        rdo_level_value = rdo_level_spinbutton.get_value_as_int()
+        rdo_level_value = x265_rdo_level_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.rd = rdo_level_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_rdoq_level_combobox_changed(self, rdoq_level_combobox):
-        """Applies the RDOQ Level option and updates the preview page.
+    def on_x265_rdoq_level_combobox_changed(self, x265_rdoq_level_combobox):
+        """
+        Applies the RDOQ Level option and updates the preview page.
 
-        :param rdoq_level_combobox:
-            Combobox that emitted the signal.
+        :param x265_rdoq_level_combobox: Combobox that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        rdoq_level_index = rdoq_level_combobox.get_active()
+        rdoq_level_index = x265_rdoq_level_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.rdoq_level = rdoq_level_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x265_rd_refine_checkbox_toggled(self, rd_refine_checkbox):
-        """Applies the RD Refine option and updates the preview page.
+    def on_x265_rd_refine_checkbutton_toggled(self, x265_rd_refine_checkbutton):
+        """
+        Applies the RD Refine option and updates the preview page.
 
-        :param rd_refine_checkbox:
-            Checkbox that emitted the signal.
+        :param x265_rd_refine_checkbutton: Checkbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        rd_refine_enabled = rd_refine_checkbox.get_active()
+        is_rd_refine_enabled = x265_rd_refine_checkbutton.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
-            ffmpeg.video_settings.rd_refine = rd_refine_enabled
+            ffmpeg.video_settings.rd_refine = is_rd_refine_enabled
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

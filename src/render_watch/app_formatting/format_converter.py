@@ -22,21 +22,25 @@ KILOBYTE_IN_BYTES = 1024
 
 
 def get_timecode_from_seconds(seconds):
-    """Creates and returns a time code string using the number of seconds provided.
+    """
+    Creates and returns a time code string using the number of seconds.
 
-    The time code format is HH:MM:SS.
+    Time code format: HH:MM:SS.
 
-    :param seconds:
-        Number of seconds.
+    :param seconds: Number of seconds.
     """
     hours = int(seconds / 3600)
     seconds_left = seconds % 3600
     minutes = int(seconds_left / 60)
     seconds_left = round(seconds_left % 60, 1)
+    return _generate_timecode(hours, minutes, seconds_left)
+
+
+def _generate_timecode(hours, minutes, seconds):
     timecode = ''
     timecode += _generate_hours_timecode_portion(hours)
     timecode += _generate_minutes_timecode_portion(minutes)
-    timecode += _generate_seconds_timecode_portion(seconds_left)
+    timecode += _generate_seconds_timecode_portion(seconds)
     return timecode
 
 
@@ -71,12 +75,10 @@ def _generate_seconds_timecode_portion(seconds):
 
 
 def get_seconds_from_timecode(timecode):
-    """Returns the total seconds that makes up the given time code.
+    """
+    Returns the total seconds that makes up the given timecode.
 
-    The hours and minutes are converted into seconds and added to the remaining seconds.
-
-    :param timecode:
-        Time code string HH:MM:SS.
+    :param timecode: Timecode string formatted as: HH:MM:SS.
     """
     timecode_values = timecode.split(':')
     hours = int(timecode_values[0]) * 3600
@@ -86,25 +88,24 @@ def get_seconds_from_timecode(timecode):
 
 
 def get_file_size_from_bytes(bytes_value):
-    """Converts the given bytes into a more sensible file size string.
-
+    """
+    Converts the given bytes value into a file size string.
     Depending on the bytes value, this will return a string with file sizes as large as GBs and as low as KBs.
 
-    :param bytes_value:
-        Amount of bytes.
+    :param bytes_value: Amount of bytes.
     """
-    if _has_gigabytes(bytes_value):
+    if _is_gigabytes(bytes_value):
         return _get_gigabytes_from_bytes(bytes_value)
-    if _has_megabytes(bytes_value):
+    if _is_megabytes(bytes_value):
         return _get_megabytes_from_bytes(bytes_value)
     return _get_kilobytes_from_bytes(bytes_value)
 
 
-def _has_gigabytes(bytes_value):
+def _is_gigabytes(bytes_value):
     return int(bytes_value / GIGABYTE_IN_BYTES) != 0
 
 
-def _has_megabytes(bytes_value):
+def _is_megabytes(bytes_value):
     return int(bytes_value / MEGABYTE_IN_BYTES) != 0
 
 
@@ -121,3 +122,10 @@ def _get_megabytes_from_bytes(bytes_value):
 def _get_kilobytes_from_bytes(bytes_value):
     kilobytes = round(bytes_value / KILOBYTE_IN_BYTES, 1)
     return str(kilobytes) + 'KB'
+
+
+def convert_kilobytes_to_bytes(kilobytes):
+    """
+    Converts kilobytes to bytes.
+    """
+    return kilobytes * KILOBYTE_IN_BYTES

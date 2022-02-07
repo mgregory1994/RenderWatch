@@ -17,19 +17,21 @@
 
 
 class X264CrfSignal:
-    """Handles the signals emitted when the x264 CRF related options are changed."""
+    """
+    Handles the signals emitted when x264 CRF related options are changed.
+    """
 
     def __init__(self, x264_handlers, inputs_page_handlers):
         self.x264_handlers = x264_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x264_crf_radiobutton_clicked(self, crf_radiobutton):
-        """Applies the CRF option and updates the preview page.
-
-        :param crf_radiobutton:
-            Radiobutton that emitted the signal.
+    def on_x264_crf_radiobutton_clicked(self, x264_crf_radiobutton):
         """
-        if not crf_radiobutton.get_active():
+        Applies the CRF option and updates the preview page.
+
+        :param x264_crf_radiobutton: Radiobutton that emitted the signal.
+        """
+        if not x264_crf_radiobutton.get_active():
             return
 
         self.x264_handlers.set_crf_state()
@@ -46,28 +48,39 @@ class X264CrfSignal:
             ffmpeg.video_settings.constant_bitrate = None
             ffmpeg.video_settings.vbv_maxrate = None
             ffmpeg.video_settings.vbv_bufsize = None
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
 
-    def on_x264_crf_scale_button_release_event(self, event, data):  # Unused parameters needed for this signal
-        """Applies the CRF value option and updates the preview page.
+    # Unused parameters needed for this signal
+    def on_x264_crf_scale_button_release_event(self, x264_crf_scale, event=None, user_data=None):
+        """
+        Applies the CRF option and updates the preview page.
 
-        :param event:
-            Unused parameter.
-        :param data:
-            Unused parameter.
+        :param x264_crf_scale: Scale that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user_data.
         """
         if self.x264_handlers.is_widgets_setting_up:
             return
 
-        quantizer_value = self.x264_handlers.get_crf_value()
+        crf_value = x264_crf_scale.get_value()
+
         for row in self.inputs_page_handlers.get_selected_rows():
-            ffmpeg = row.ffmpeg
-            if self.x264_handlers.is_crf_enabled():
-                ffmpeg.video_settings.crf = quantizer_value
-            else:
-                ffmpeg.video_settings.qp = quantizer_value
+            self._apply_x264_crf_settings(row, crf_value)
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()
+
+    def on_x264_crf_scale_key_release_event(self, x264_crf_scale, event, user_data):
+        self.on_x264_crf_scale_button_release_event(x264_crf_scale, event, user_data)
+
+    def _apply_x264_crf_settings(self, row, crf_value):
+        ffmpeg = row.ffmpeg
+
+        if self.x264_handlers.is_crf_enabled():
+            ffmpeg.video_settings.crf = crf_value
+        else:
+            ffmpeg.video_settings.qp = crf_value

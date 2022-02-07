@@ -19,5 +19,5 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 
-# Needed because the rest of the application will import gi from this file
+# Needed because the rest of the application will import gi modules from this file
 from gi.repository import Gtk, GLib, Gdk, GdkPixbuf

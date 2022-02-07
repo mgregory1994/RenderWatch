@@ -17,29 +17,44 @@
 
 
 class VideoStreamSignal:
-    """Handles the signal emitted when a video stream is selected on an inputs row."""
+    """
+    Handles the signal emitted when a video stream is selected on an input task.
+    """
 
-    def __init__(self, inputs_row):
-        self.inputs_row = inputs_row
+    def __init__(self, input_task):
+        self.input_task = input_task
 
     def on_video_stream_combobox_changed(self, video_stream_combobox):
-        """Sets the video stream index for the ffmpeg settings object and updates the inputs row labels.
-
-        :param video_stream_combobox:
-            Combobox that emitted the signal.
         """
-        ffmpeg = self.inputs_row.ffmpeg
-        combobox_index = video_stream_combobox.get_active()
+        Sets the video stream index for the input's ffmpeg settings and updates the inputs task's labels.
+
+        :param video_stream_combobox: Combobox that emitted the signal.
+        """
+        ffmpeg = self.input_task.ffmpeg
+        video_stream_combobox_index = video_stream_combobox.get_active()
         video_streams = list(ffmpeg.input_file_info['video_streams'].items())
-        video_stream_index = video_streams[combobox_index][0]
+
+        self._set_video_stream_index(ffmpeg, video_streams, video_stream_combobox_index)
+        self._set_video_stream_codec_name(ffmpeg, video_streams, video_stream_combobox_index)
+        self._set_video_stream_dimensions(ffmpeg, video_streams, video_stream_combobox_index)
+
+        self.input_task.setup_labels()
+
+    @staticmethod
+    def _set_video_stream_index(ffmpeg, video_streams, video_stream_combobox_index):
+        video_stream_index = video_streams[video_stream_combobox_index][0]
         ffmpeg.video_stream_index = video_stream_index
-        codec_name = video_streams[combobox_index][1]['codec_name']
+
+    @staticmethod
+    def _set_video_stream_codec_name(ffmpeg, video_streams, video_stream_combobox_index):
+        codec_name = video_streams[video_stream_combobox_index][1]['codec_name']
         ffmpeg.input_file_info['codec_video'] = codec_name
-        width = video_streams[combobox_index][1]['width']
-        height = video_streams[combobox_index][1]['height']
+
+    @staticmethod
+    def _set_video_stream_dimensions(ffmpeg, video_streams, video_stream_combobox_index):
+        width = video_streams[video_stream_combobox_index][1]['width']
+        height = video_streams[video_stream_combobox_index][1]['height']
         resolution = str(width) + 'x' + str(height)
         ffmpeg.input_file_info['width'] = width
         ffmpeg.input_file_info['height'] = height
         ffmpeg.input_file_info['resolution'] = resolution
-
-        self.inputs_row.setup_labels()

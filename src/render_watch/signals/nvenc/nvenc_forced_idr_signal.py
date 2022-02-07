@@ -16,26 +16,42 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-class NvencForcedIDRSignal:
-    """Handles the signal emitted when the NVENC Forced IDR option is changed."""
+import threading
 
-    def __init__(self, nvenc_handlers, inputs_page_handlers):
+from render_watch.helpers.nvidia_helper import NvidiaHelper
+
+
+class NvencForcedIDRSignal:
+    """
+    Handles the signal emitted when the NVENC Forced IDR option is changed.
+    """
+
+    def __init__(self, nvenc_handlers, inputs_page_handlers, main_window_handlers):
         self.nvenc_handlers = nvenc_handlers
         self.inputs_page_handlers = inputs_page_handlers
+        self.main_window_handlers = main_window_handlers
 
-    def on_nvenc_forced_idr_checkbox_toggled(self, forced_idr_checkbox):
-        """Applies the Forced IDR option and updates the preview page.
+    def on_nvenc_forced_idr_checkbutton_toggled(self, nvenc_forced_idr_checkbutton):
+        """
+        Applies the Forced IDR option and updates the preview page.
 
-        :param forced_idr_checkbox:
-            Checkbox that emitted the signal.
+        :param nvenc_forced_idr_checkbutton: Checkbutton that emitted the signal.
         """
         if self.nvenc_handlers.is_widgets_setting_up:
             return
 
-        forced_idr_enabled = forced_idr_checkbox.get_active()
+        forced_idr_enabled = nvenc_forced_idr_checkbutton.get_active()
+        codec_settings = None
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.forced_idr = forced_idr_enabled
+
+            if codec_settings is None:
+                codec_settings = ffmpeg.video_settings
+
             row.setup_labels()
 
+        threading.Thread(target=NvidiaHelper.is_codec_settings_valid,
+                         args=(codec_settings, self.main_window_handlers.main_window)).start()
         self.inputs_page_handlers.update_preview_page()

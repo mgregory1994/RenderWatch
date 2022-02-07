@@ -17,23 +17,30 @@
 
 
 class OpusChannelsSignal:
-    """Handles the signal emitted when the Opus Channels option is changed."""
+    """
+    Handles the signal emitted when the Opus Channels option is changed.
+    """
 
     def __init__(self, opus_handlers, inputs_page_handlers):
         self.opus_handlers = opus_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_opus_channels_combobox_changed(self, channels_combobox):
-        """Applies the Channels option.
+    def on_opus_channels_combobox_changed(self, opus_channels_combobox):
+        """
+        Applies the Channels option.
 
-        :param channels_combobox:
-            Combobox that emitted the signal.
+        :param opus_channels_combobox: Combobox that emitted the signal.
         """
         if self.opus_handlers.is_widgets_setting_up:
             return
 
-        channels_index = channels_combobox.get_active()
+        channels_index = opus_channels_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.audio_settings.channels = channels_index
+
             row.setup_labels()
+
+        if self.inputs_page_handlers.is_preview_page_failed_state():
+            self.inputs_page_handlers.update_preview_page()

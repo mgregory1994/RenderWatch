@@ -17,17 +17,19 @@
 
 
 class CropSignal:
-    """Handles the signal emitted when the crop page button is pressed in the settings sidebar."""
+    """
+    Handles the signal emitted when the crop page button is pressed.
+    """
 
     def __init__(self, crop_page_handlers, inputs_page_handlers):
         self.crop_page_handlers = crop_page_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
     def on_crop_button_clicked(self, crop_button):  # Unused parameters needed for this signal
-        """Sets up and shows the crop page.
+        """
+        Configures and shows the crop page.
 
-        :param crop_button:
-            Button that emitted the signal.
+        :param crop_button: Button that emitted the signal.
         """
         if not self.inputs_page_handlers.is_crop_state():
             self.inputs_page_handlers.set_crop_state()

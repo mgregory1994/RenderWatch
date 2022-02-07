@@ -17,17 +17,19 @@
 
 
 class PreviewSignal:
-    """Handles the signal emitted when the Preview Page button is pressed in the settings sidebar."""
+    """
+    Handles the signal emitted when the Preview Page button is pressed in the settings sidebar.
+    """
 
     def __init__(self, preview_page_handlers, inputs_page_handlers):
         self.preview_page_handlers = preview_page_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
     def on_preview_button_clicked(self, preview_button):  # Unused parameters needed for this signal
-        """Configures and shows the Preview Page.
+        """
+        Configures and shows the Preview Page.
 
-        :param preview_button:
-            Button that emitted the signal.
+        :param preview_button: Button that emitted the signal.
         """
         if not self.inputs_page_handlers.is_preview_state():
             self.inputs_page_handlers.set_preview_state()

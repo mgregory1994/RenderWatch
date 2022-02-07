@@ -24,7 +24,9 @@ from render_watch.startup import Gtk
 
 
 class ChunkRow(Gtk.ListBoxRow):
-    """Hanles all functionality for each Gtk.ListboxRow chunk row in the chunks popover."""
+    """
+    Handles the functionality for an individual chunk task on an inputs row.
+    """
 
     def __init__(self, ffmpeg_chunk, chunk_number, active_row):
         Gtk.ListBoxRow.__init__(self)
@@ -40,58 +42,62 @@ class ChunkRow(Gtk.ListBoxRow):
             'time': 0,
             'current_time': 0,
         }
-        this_file_directory_file_path = os.path.dirname(os.path.abspath(__file__))
-        chunk_ui_file_path = os.path.join(this_file_directory_file_path, '../render_watch_data/chunk_ui.glade')
+
+        self._setup_widgets()
+
+    def _setup_widgets(self):
+        this_modules_file_path = os.path.dirname(os.path.abspath(__file__))
+        chunk_ui_file_path = os.path.join(this_modules_file_path, '../render_watch_data/chunk_ui.glade')
+
         gtk_builder = Gtk.Builder()
         gtk_builder.add_from_file(chunk_ui_file_path)
-        self.__chunk_row_container = gtk_builder.get_object('chunk_row_container')
+
+        self.chunk_listbox_row_box = gtk_builder.get_object('chunk_listbox_row_box')
         self.chunk_identifier_label = gtk_builder.get_object('chunk_identifier_label')
-        self.chunk_timespan_label = gtk_builder.get_object('chunk_timespan_label')
-        self.chunk_progress_bar = gtk_builder.get_object('chunk_progress_bar')
+        self.chunk_time_span_label = gtk_builder.get_object('chunk_time_span_label')
+        self.chunk_progressbar = gtk_builder.get_object('chunk_progressbar')
+
         self._setup_chunk_row()
-        self.add(self.__chunk_row_container)
+        self.add(self.chunk_listbox_row_box)
 
     def _setup_chunk_row(self):
-        # Sets up the chunk row labels using the ffmpeg settings object.
         start_time, trim_duration = self._get_ffmpeg_trim_start_time_and_duration()
         end_time = start_time + trim_duration
         start_timecode = format_converter.get_timecode_from_seconds(start_time)
         end_timecode = format_converter.get_timecode_from_seconds(end_time)
-        self.chunk_timespan_label.set_text('(' + start_timecode + ' - ' + end_timecode + ')')
+
+        self.chunk_time_span_label.set_text('(' + start_timecode + ' - ' + end_timecode + ')')
         self._setup_chunk_identifier_label()
 
     def _get_ffmpeg_trim_start_time_and_duration(self):
-        # Returns ffmpeg settings object's start time and duration as a tuple.
-        if self.ffmpeg.trim_settings is None:
-            start_time = 0
-            trim_duration = self.ffmpeg.duration_origin
-        else:
+        if self.ffmpeg.trim_settings:
             start_time = self.ffmpeg.trim_settings.start_time
             trim_duration = self.ffmpeg.trim_settings.trim_duration
+        else:
+            start_time = 0
+            trim_duration = self.ffmpeg.duration_origin
+
         return start_time, trim_duration
 
     def _setup_chunk_identifier_label(self):
-        # Gives the chunk row a title for what type of ffmpeg settings object is used.
         if self.ffmpeg.no_video:
             self.chunk_identifier_label.set_text('Audio:')
         else:
             self.chunk_identifier_label.set_text('Chunk ' + str(self.chunk_number) + ':')
 
     def set_start_state(self):
-        # Tells the active row to set up the start state.
         self.active_row.chunk_set_start_state()
 
     def set_finished_state(self):
-        # Tells the active row that this chunk has finished.
         self.finished = True
+
         threading.Thread(target=self.active_row.chunk_set_finished_state, args=()).start()
 
     def update_thumbnail(self):
-        # Tells active row to update it's thumbnail.
         self.active_row.update_thumbnail()
 
     def update_labels(self):  # Needs this name for active row / chunk row interoperability
-        self.chunk_progress_bar.set_fraction(self.progress)
+        self.chunk_progressbar.set_fraction(self.progress)
 
     @property
     def paused(self):
@@ -113,6 +119,7 @@ class ChunkRow(Gtk.ListBoxRow):
     def progress(self, progress_value):
         if progress_value is None:
             return
+
         self.task_information['progress'] = progress_value
 
     @property
@@ -121,9 +128,8 @@ class ChunkRow(Gtk.ListBoxRow):
 
     @speed.setter
     def speed(self, speed_value):
-        if speed_value == 0:
-            return
-        self.task_information['speed'] = speed_value
+        if speed_value:
+            self.task_information['speed'] = speed_value
 
     @property
     def bitrate(self):
@@ -131,9 +137,8 @@ class ChunkRow(Gtk.ListBoxRow):
 
     @bitrate.setter
     def bitrate(self, bitrate_value):
-        if bitrate_value == 0:
-            return
-        self.task_information['bitrate'] = bitrate_value
+        if bitrate_value:
+            self.task_information['bitrate'] = bitrate_value
 
     @property
     def file_size(self):
@@ -141,9 +146,8 @@ class ChunkRow(Gtk.ListBoxRow):
 
     @file_size.setter
     def file_size(self, file_size_value):
-        if file_size_value == 0:
-            return
-        self.task_information['filesize'] = file_size_value
+        if file_size_value:
+            self.task_information['filesize'] = file_size_value
 
     @property
     def time(self):
@@ -151,9 +155,8 @@ class ChunkRow(Gtk.ListBoxRow):
 
     @time.setter
     def time(self, time_value):
-        if time_value == 0:
-            return
-        self.task_information['time'] = time_value
+        if time_value:
+            self.task_information['time'] = time_value
 
     @property
     def current_time(self):
@@ -161,9 +164,8 @@ class ChunkRow(Gtk.ListBoxRow):
 
     @current_time.setter
     def current_time(self, current_time_in_seconds):
-        if current_time_in_seconds == 0:
-            return
-        self.task_information['current_time'] = current_time_in_seconds
+        if current_time_in_seconds:
+            self.task_information['current_time'] = current_time_in_seconds
 
     @property
     def task_threading_event(self):

@@ -21,81 +21,100 @@ from render_watch.ffmpeg.settings import GeneralSettings
 from render_watch.app_handlers.completed_page_handlers import CompletedPageHandlers
 from render_watch.app_handlers.active_page_handlers import ActivePageHandlers
 from render_watch.app_handlers.inputs_page_handlers import InputsPageHandlers
-from render_watch.signals.main_window.about_signal import AboutSignal
-from render_watch.signals.main_window.add_input_signal import AddInputSignal
+from render_watch.signals.main_window.about_application_signal import AboutApplicationSignal
+from render_watch.signals.main_window.add_inputs_signal import AddInputsSignal
 from render_watch.signals.main_window.apply_settings_all_signal import ApplySettingsAllSignal
 from render_watch.signals.main_window.auto_crop_signal import AutoCropSignal
 from render_watch.signals.main_window.output_chooser_signal import OutputChooserSignal
 from render_watch.signals.main_window.page_switch_signal import PageSwitchSignal
 from render_watch.signals.main_window.parallel_tasks_signal import ParallelTasksSignal
-from render_watch.signals.main_window.preferences_signal import PreferencesSignal
+from render_watch.signals.main_window.parallel_chunks_signal import ParallelChunksSignal
+from render_watch.signals.main_window.application_preferences_signal import ApplicationPreferencesSignal
 from render_watch.signals.main_window.settings_sidebar_signal import SettingsSidebarSignal
+from render_watch.startup import GLib
 
 
 class MainWindowHandlers:
-    """Handles all widget changes for the main window."""
+    """
+    Handles all widget changes for the main window.
+    """
 
-    def __init__(self, gtk_builder, encoder_queue, preferences):
+    def __init__(self, gtk_builder, encoder_queue, application_preferences):
         self.encoder_queue = encoder_queue
-        self.preferences = preferences
+        self.application_preferences = application_preferences
         self.completed_page_handlers = CompletedPageHandlers(gtk_builder, self)
-        self.active_page_handlers = ActivePageHandlers(gtk_builder, self.completed_page_handlers, self, preferences)
-        self.inputs_page_handlers = InputsPageHandlers(gtk_builder, self.active_page_handlers, self, preferences)
+        self.active_page_handlers = ActivePageHandlers(gtk_builder,
+                                                       self.completed_page_handlers,
+                                                       self,
+                                                       application_preferences)
+        self.inputs_page_handlers = InputsPageHandlers(gtk_builder,
+                                                       self.active_page_handlers,
+                                                       self,
+                                                       application_preferences)
         self.settings_sidebar_handlers = self.inputs_page_handlers.settings_sidebar_handlers
         self.ffmpeg_template = None
-        self.about_signal = AboutSignal(self)
-        self.add_input_signal = AddInputSignal(self,
-                                               self.inputs_page_handlers,
-                                               self.active_page_handlers,
-                                               self.settings_sidebar_handlers,
-                                               self.encoder_queue,
-                                               self.preferences)
+        self.inputs_page_paned_position = self.application_preferences.settings_sidebar_position
+        self.is_sidebar_pane_resizing = False
+        self.main_window_width = 0
+
+        self._setup_signals()
+        self._setup_widgets(gtk_builder)
+
+    def _setup_signals(self):
+        self.about_application_signal = AboutApplicationSignal(self)
+        self.add_input_signal = AddInputsSignal(self,
+                                                self.inputs_page_handlers,
+                                                self.active_page_handlers,
+                                                self.settings_sidebar_handlers,
+                                                self.encoder_queue,
+                                                self.application_preferences)
         self.apply_settings_all_signal = ApplySettingsAllSignal(self,
                                                                 self.inputs_page_handlers,
                                                                 self.settings_sidebar_handlers,
-                                                                self.preferences)
-        self.auto_crop_signal = AutoCropSignal(self.inputs_page_handlers)
-        self.output_chooser_signal = OutputChooserSignal(self, self.inputs_page_handlers, self.preferences)
+                                                                self.application_preferences)
+        self.auto_crop_signal = AutoCropSignal(self.inputs_page_handlers, self.application_preferences)
+        self.output_chooser_signal = OutputChooserSignal(self, self.inputs_page_handlers, self.application_preferences)
         self.page_switch_signal = PageSwitchSignal(self, self.inputs_page_handlers)
-        self.parallel_tasks_signal = ParallelTasksSignal(self, self.encoder_queue)
-        self.preferences_signal = PreferencesSignal(self)
+        self.parallel_tasks_signal = ParallelTasksSignal(self, self.encoder_queue, self.application_preferences)
+        self.parallel_chunks_signal = ParallelChunksSignal(self.application_preferences)
+        self.preferences_signal = ApplicationPreferencesSignal(self)
         self.settings_sidebar_signal = SettingsSidebarSignal(self)
         self.signals_list = (
-            self.about_signal, self.add_input_signal, self.apply_settings_all_signal,
+            self.about_application_signal, self.add_input_signal, self.apply_settings_all_signal,
             self.auto_crop_signal, self.output_chooser_signal, self.page_switch_signal,
-            self.parallel_tasks_signal, self.preferences_signal, self.settings_sidebar_signal,
-            self.completed_page_handlers, self.active_page_handlers, self.inputs_page_handlers,
-            self.settings_sidebar_handlers
+            self.parallel_tasks_signal, self.parallel_chunks_signal, self.preferences_signal,
+            self.settings_sidebar_signal, self.completed_page_handlers, self.active_page_handlers,
+            self.inputs_page_handlers, self.settings_sidebar_handlers
         )
-        self.pages_stack = gtk_builder.get_object('page_stack')
-        self.active_page_scroller = gtk_builder.get_object("active_scroller")
-        self.app_preferences_popover = gtk_builder.get_object('prefs_popover')
-        self.app_preferences_stack = gtk_builder.get_object("prefs_pages_stack")
-        self.app_preferences_inputs_page_box = gtk_builder.get_object("prefs_inputs_box")
-        self.app_preferences_active_page_box = gtk_builder.get_object("prefs_active_box")
-        self.app_preferences_menubutton = gtk_builder.get_object('prefs_menu_button')
-        self.about_dialog = gtk_builder.get_object("about_dialog")
-        self.input_settings_revealer = gtk_builder.get_object("settings_revealer")
-        self.input_settings_stack = gtk_builder.get_object("settings_stack")
-        self.show_input_settings_button = gtk_builder.get_object("show_settings_button")
-        self.hide_input_settings_button = gtk_builder.get_object("hide_settings_button")
-        self.preferences_button = gtk_builder.get_object("prefs_button")
-        self.preferences_dialog = gtk_builder.get_object("prefs_dialog")
-        self.output_file_chooser_button = gtk_builder.get_object("output_chooserbutton")
-        self.add_button = gtk_builder.get_object("add_button")
-        self.add_combobox = gtk_builder.get_object('add_combobox')
-        self.parallel_tasks_options_box = gtk_builder.get_object('parallel_tasks_options_box')
-        self.parallel_tasks_radiobutton = gtk_builder.get_object('dist_proc_button')
-        self.parallel_tasks_chunks_radiobutton = gtk_builder.get_object('chunks_radio_button')
+
+    def _setup_widgets(self, gtk_builder):
+        self.page_stack = gtk_builder.get_object('page_stack')
+        self.active_page_scroller = gtk_builder.get_object("active_page_scroller")
+        self.application_options_popover = gtk_builder.get_object('application_options_popover')
+        self.page_options_stack = gtk_builder.get_object("page_options_stack")
+        self.inputs_page_options_box = gtk_builder.get_object("inputs_page_options_box")
+        self.active_page_options_box = gtk_builder.get_object("active_page_options_box")
+        self.application_options_menubutton = gtk_builder.get_object('application_options_menubutton')
+        self.about_application_dialog = gtk_builder.get_object("about_application_dialog")
+        self.inputs_page_paned = gtk_builder.get_object('inputs_page_paned')
+        self.settings_sidebar_box = gtk_builder.get_object('settings_sidebar_box')
+        self.settings_sidebar_box.set_visible(False)
+        self.toggle_settings_sidebar_button = gtk_builder.get_object("toggle_settings_sidebar_button")
+        self.application_preferences_button = gtk_builder.get_object("application_preferences_button")
+        self.application_preferences_dialog = gtk_builder.get_object("application_preferences_dialog")
+        self.output_directory_chooserbutton = gtk_builder.get_object("output_directory_chooserbutton")
+        self.add_inputs_button = gtk_builder.get_object("add_inputs_button")
+        self.add_inputs_type_combobox = gtk_builder.get_object('add_inputs_type_combobox')
+        self.parallel_tasks_type_options_box = gtk_builder.get_object('parallel_tasks_type_options_box')
+        self.toggle_parallel_tasks_radiobutton = gtk_builder.get_object('toggle_parallel_tasks_radiobutton')
+        self.parallel_tasks_chunks_radiobutton = gtk_builder.get_object('parallel_tasks_chunks_radiobutton')
         self.main_window = gtk_builder.get_object('main_window')
 
-    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
-        """Returns the list of signals this class uses.
+    def __getattr__(self, signal_name):
+        """
+        If found, return the signal name's function from the list of signals.
 
-        Used for Gtk.Builder.get_signals().
-
-        :param signal_name:
-            The signal function name being looked for.
+        :param signal_name: The signal function name being looked for.
         """
         for signal in self.signals_list:
             if hasattr(signal, signal_name):
@@ -103,76 +122,106 @@ class MainWindowHandlers:
         raise AttributeError
 
     def get_output_chooser_dir(self):
-        return self.output_file_chooser_button.get_filename()
+        return self.output_directory_chooserbutton.get_filename()
 
     def is_chunk_processing_selected(self):
-        parallel_tasks_enabled = self.parallel_tasks_radiobutton.get_active()
+        parallel_tasks_enabled = self.toggle_parallel_tasks_radiobutton.get_active()
         parallel_tasks_chunks_enabled = self.parallel_tasks_chunks_radiobutton.get_active()
         return parallel_tasks_enabled and parallel_tasks_chunks_enabled
 
     def is_file_inputs_enabled(self):
-        return self.add_combobox.get_active() == 0
+        return self.add_inputs_type_combobox.get_active() == 0
 
     def is_folder_inputs_enabled(self):
-        return self.add_combobox.get_active() == 1
+        return self.add_inputs_type_combobox.get_active() == 1
 
-    def set_processing_inputs_state(self, enabled, first_input_file_path):
-        """Toggles the inputs page to show importing new inputs."""
-        if enabled:
+    def set_processing_inputs_state(self, is_state_enabled, first_input_file_path):
+        """
+        Shows/hides the progress of importing inputs.
+        """
+        if is_state_enabled:
             self.inputs_page_handlers.set_processing_inputs_state(first_input_file_path)
-            self.add_button.set_sensitive(not enabled)
-            self.add_combobox.set_sensitive(not enabled)
-            self.input_settings_stack.set_sensitive(not enabled)
-            self.output_file_chooser_button.set_sensitive(not enabled)
-            self.app_preferences_menubutton.set_sensitive(not enabled)
+            self.add_inputs_button.set_sensitive(not is_state_enabled)
+            self.add_inputs_type_combobox.set_sensitive(not is_state_enabled)
+            self.toggle_settings_sidebar_button.set_sensitive(not is_state_enabled)
+            self.output_directory_chooserbutton.set_sensitive(not is_state_enabled)
+            self.application_options_menubutton.set_sensitive(not is_state_enabled)
         else:
             self.inputs_page_handlers.setup_inputs_settings_widgets()
             self.inputs_page_handlers.setup_page_options()
-            self.add_button.set_sensitive(not enabled)
-            self.add_combobox.set_sensitive(not enabled)
-            self.output_file_chooser_button.set_sensitive(not enabled)
-            self.app_preferences_menubutton.set_sensitive(not enabled)
+            self.add_inputs_button.set_sensitive(not is_state_enabled)
+            self.add_inputs_type_combobox.set_sensitive(not is_state_enabled)
+            self.output_directory_chooserbutton.set_sensitive(not is_state_enabled)
+            self.application_options_menubutton.set_sensitive(not is_state_enabled)
             self.inputs_page_handlers.set_inputs_state()
 
+    def _show_processing_inputs_state(self, first_input_file_path):
+        self.inputs_page_handlers.set_processing_inputs_state(first_input_file_path)
+        self.add_inputs_button.set_sensitive(False)
+        self.add_inputs_type_combobox.set_sensitive(False)
+        self.toggle_settings_sidebar_button.set_sensitive(False)
+        self.output_directory_chooserbutton.set_sensitive(False)
+        self.application_options_menubutton.set_sensitive(False)
+
+    def _hide_processing_inputs_state(self):
+        self.inputs_page_handlers.setup_inputs_settings_widgets()
+        self.inputs_page_handlers.setup_page_options()
+        self.add_inputs_button.set_sensitive(True)
+        self.add_inputs_type_combobox.set_sensitive(True)
+        self.output_directory_chooserbutton.set_sensitive(True)
+        self.application_options_menubutton.set_sensitive(True)
+        self.inputs_page_handlers.set_inputs_state()
+
     def set_inputs_page_state(self):
-        """Sets up main window widgets when the inputs page is showing."""
-        self.app_preferences_stack.set_visible_child(self.app_preferences_inputs_page_box)
-        self.output_file_chooser_button.set_sensitive(True)
-        self.add_button.set_sensitive(True)
-        self.add_combobox.set_sensitive(True)
+        """
+        Sets up the main window widgets for when the inputs page is showing.
+        """
+        self.page_options_stack.set_visible_child(self.inputs_page_options_box)
+        self.output_directory_chooserbutton.set_sensitive(True)
+        self.add_inputs_button.set_sensitive(True)
+        self.add_inputs_type_combobox.set_sensitive(True)
         self.inputs_page_handlers.setup_inputs_settings_widgets()
 
     def set_active_page_state(self):
-        """Sets up the main window widgets when the active page is showing."""
-        self.app_preferences_stack.set_visible_child(self.app_preferences_active_page_box)
-        self.input_settings_stack.set_sensitive(False)
-        self.output_file_chooser_button.set_sensitive(False)
-        self.add_button.set_sensitive(False)
-        self.add_combobox.set_sensitive(False)
+        """
+        Sets up the main window widgets for when the active page is showing.
+        """
+        self.page_options_stack.set_visible_child(self.active_page_options_box)
+        self.toggle_settings_sidebar_button.set_sensitive(False)
+        self.output_directory_chooserbutton.set_sensitive(False)
+        self.add_inputs_button.set_sensitive(False)
+        self.add_inputs_type_combobox.set_sensitive(False)
 
     def set_completed_page_state(self):
-        """Sets up the main window widgets when the completed page is showing."""
-        self.app_preferences_stack.set_visible_child(self.completed_page_handlers.clear_all_completed_button)
-        self.input_settings_stack.set_sensitive(False)
-        self.output_file_chooser_button.set_sensitive(False)
-        self.add_button.set_sensitive(False)
-        self.add_combobox.set_sensitive(False)
+        """
+        Sets up the main window widgets for when the completed page is showing.
+        """
+        self.page_options_stack.set_visible_child(self.completed_page_handlers.clear_all_completed_tasks_button)
+        self.toggle_settings_sidebar_button.set_sensitive(False)
+        self.output_directory_chooserbutton.set_sensitive(False)
+        self.add_inputs_button.set_sensitive(False)
+        self.add_inputs_type_combobox.set_sensitive(False)
 
-    def set_input_selected_state(self, enabled):
-        """Toggles the settings sidebar when an input is selected."""
-        if enabled:
-            self.input_settings_stack.set_sensitive(True)
+    def set_input_selected_state(self, is_state_enabled):
+        """
+        Toggles the settings sidebar when an input is selected/deselected.
+        """
+        if is_state_enabled:
+            self.toggle_settings_sidebar_button.set_sensitive(True)
         else:
-            self.input_settings_stack.set_sensitive(False)
-            self.input_settings_revealer.set_reveal_child(False)
-            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
+            self.toggle_settings_sidebar_button.set_sensitive(False)
+            self.settings_sidebar_box.set_visible(False)
 
-    def set_parallel_tasks_state(self, enabled):
-        """Toggles the parallel task type widgets."""
-        self.parallel_tasks_options_box.set_sensitive(enabled)
+    def set_parallel_tasks_state(self, is_state_enabled):
+        """
+        Toggles the parallel task type widgets.
+        """
+        self.parallel_tasks_type_options_box.set_sensitive(is_state_enabled)
 
     def update_ffmpeg_template(self):
-        """Configures the ffmpeg template settings object to match the selected inputs row."""
+        """
+        Configures the ffmpeg template settings to match the selected task.
+        """
         inputs_row = self.inputs_page_handlers.get_selected_row()
         if inputs_row:
             self.ffmpeg_template = inputs_row.ffmpeg.get_copy()
@@ -181,24 +230,59 @@ class MainWindowHandlers:
             self.ffmpeg_template.output_container = GeneralSettings.CONTAINERS_UI_LIST[0]
 
     def switch_to_active_page(self):
-        self.pages_stack.set_visible_child(self.active_page_scroller)
+        self.page_stack.set_visible_child(self.active_page_scroller)
 
     def show_about_dialog(self):
-        self.app_preferences_popover.popdown()
-        self.about_dialog.run()
-        self.about_dialog.hide()
+        self.application_options_popover.popdown()
+        self.about_application_dialog.run()
+        self.about_application_dialog.hide()
 
     def show_preferences_dialog(self):
-        self.app_preferences_popover.popdown()
-        self.preferences_dialog.run()
-        self.preferences_dialog.hide()
+        self.application_options_popover.popdown()
+        self.application_preferences_dialog.run()
+        self.application_preferences_dialog.hide()
 
-    def show_settings_sidebar(self, enabled):
-        if enabled:
-            self.input_settings_stack.set_visible_child(self.hide_input_settings_button)
+    def toggle_settings_sidebar(self, is_closing_settings_sidebar=False):
+        if is_closing_settings_sidebar:
+            is_toggled_settings_sidebar_visible = False
         else:
-            self.input_settings_stack.set_visible_child(self.show_input_settings_button)
-        self.input_settings_revealer.set_reveal_child(enabled)
+            is_toggled_settings_sidebar_visible = not self.settings_sidebar_box.get_visible()
+
+        if is_toggled_settings_sidebar_visible:
+            GLib.idle_add(self.inputs_page_paned.set_position,
+                          (self.main_window.get_size().width - self.inputs_page_paned_position))
+
+        self.settings_sidebar_box.set_visible(is_toggled_settings_sidebar_visible)
+
 
     def popdown_app_preferences_popover(self):
-        self.app_preferences_popover.popdown()
+        self.application_options_popover.popdown()
+
+    def update_settings_sidebar_paned_position(self):
+        if self.settings_sidebar_box.is_visible():
+            self.inputs_page_paned_position = self.main_window.get_size().width - self.inputs_page_paned.get_position()
+            self.application_preferences.settings_sidebar_position = self.inputs_page_paned_position
+
+    def update_settings_sidebar_paned_allocation(self):
+        if self._is_sidebar_pane_allocation_available():
+            self.inputs_page_paned.set_position(self.main_window.get_size().width - self.inputs_page_paned_position)
+        else:
+            self.main_window_width = self.main_window.get_size()[0]
+
+    def _is_sidebar_pane_allocation_available(self):
+        if self.is_sidebar_pane_resizing:
+            return False
+
+        if not self.settings_sidebar_box.is_visible():
+            return False
+
+        if self.inputs_page_paned.get_position() == (self.main_window.get_size().width - self.inputs_page_paned_position):
+            return False
+
+        if self.main_window.get_size()[0] == self.main_window_width:
+            return False
+
+        return True
+
+    def signal_add_button(self, inputs=None):
+        self.add_input_signal.on_add_inputs_button_clicked(self.add_inputs_button, inputs)

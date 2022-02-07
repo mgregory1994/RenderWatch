@@ -17,25 +17,29 @@
 
 
 class X265RcLookaheadSignal:
-    """Handles the signal emitted when the x265 RC Lookahead option is changed."""
+    """
+    Handles the signal emitted when the x265 RC Lookahead option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_rc_lookahead_spinbutton_value_changed(self, rc_lookahead_spinbutton):
-        """Applies the RC Lookahead option and updates the preview page.
+    def on_x265_rc_lookahead_spinbutton_value_changed(self, x265_rc_lookahead_spinbutton):
+        """
+        Applies the RC Lookahead option and updates the preview page.
 
-        :param rc_lookahead_spinbutton:
-            Spinbutton that emitted the signal.
+        :param x265_rc_lookahead_spinbutton: Spinbutton that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        rc_lookahead_value = rc_lookahead_spinbutton.get_value_as_int()
+        rc_lookahead_value = x265_rc_lookahead_spinbutton.get_value_as_int()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.rc_lookahead = rc_lookahead_value
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

@@ -20,19 +20,65 @@ import threading
 
 
 class CropPaddingSignal:
-    """Handles the signals emitted when the crop padding settings are changed."""
+    """
+    Handles the signals emitted when crop padding settings are changed.
+    """
 
     def __init__(self, crop_page_handlers):
         self.crop_page_handlers = crop_page_handlers
 
-    def on_crop_pad_changed(self, event, data):  # Unused parameters needed for this signal
-        """Applies the padding settings and updates the crop preview.
-
-        :param event:
-            Unused parameter.
-        :param data:
-            Unused parameter.
+    # Unused parameters needed for this signal
+    def _on_crop_pad_changed(self, crop_scale_widget, event=None, user_data=None):
         """
-        if not self.crop_page_handlers.is_widgets_setting_up:
-            self.crop_page_handlers.apply_crop_settings()
-            threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()
+        Applies the padding settings and updates the crop preview.
+
+        :param crop_scale_widget: Crop scale widget that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal Data
+        """
+        if self.crop_page_handlers.is_widgets_setting_up:
+            return
+
+        self.crop_page_handlers.apply_crop_settings()
+
+        threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()
+
+    def on_crop_x_padding_scale_button_release_event(self, crop_x_padding_scale, event=None, user_data=None):
+        """
+        Applies the x padding settings and updates the crop preview.
+
+        :param crop_x_padding_scale: Crop scale widget that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal Data
+        """
+        self._on_crop_pad_changed(crop_x_padding_scale, event, user_data)
+
+    def on_crop_x_padding_scale_key_release_event(self, crop_x_padding_scale, event=None, user_data=None):
+        """
+        Applies the x padding settings and updates the crop preview.
+
+        :param crop_x_padding_scale: Crop scale widget that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal Data
+        """
+        self._on_crop_pad_changed(crop_x_padding_scale, event, user_data)
+
+    def on_crop_y_padding_scale_button_release_event(self, crop_y_padding_scale, event=None, user_data=None):
+        """
+        Applies the x padding settings and updates the crop preview.
+
+        :param crop_y_padding_scale: Crop scale widget that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal Data
+        """
+        self._on_crop_pad_changed(crop_y_padding_scale, event, user_data)
+
+    def on_crop_y_padding_scale_key_release_event(self, crop_y_padding_scale, event=None, user_data=None):
+        """
+        Applies the x padding settings and updates the crop preview.
+
+        :param crop_y_padding_scale: Crop scale widget that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal Data
+        """
+        self._on_crop_pad_changed(crop_y_padding_scale, event, user_data)

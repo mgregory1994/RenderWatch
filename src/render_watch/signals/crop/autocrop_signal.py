@@ -18,47 +18,54 @@
 
 import threading
 
-from render_watch.encoding import preview
+from render_watch.helpers import auto_crop_helper
 from render_watch.startup import Gtk, GLib
 
 
 class AutocropSignal:
-    """Handles the signals emitted when the auto crop setting is toggled."""
+    """
+    Handles the signals emitted when the auto crop setting is toggled.
+    """
 
     def __init__(self, crop_page_handlers, main_window_handlers):
         self.crop_page_handlers = crop_page_handlers
         self.main_window_handlers = main_window_handlers
 
-    def on_crop_autocrop_enabled_button_toggled(self, auto_crop_enabled_checkbox):
-        """Toggles auto crop settings for the selected task.
+    def on_autocrop_enabled_checkbutton_toggled(self, autocrop_enabled_checkbutton):
+        """
+        Toggles auto-crop settings for the selected task.
 
-        :param auto_crop_enabled_checkbox:
-            Checkbox that emitted the signel.
+        :param autocrop_enabled_checkbutton: Checkbutton that emitted the signal.
         """
         self.crop_page_handlers.update_autocrop_state()
+
         if self.crop_page_handlers.is_widgets_setting_up:
             return
 
-        if auto_crop_enabled_checkbox.get_active():
+        if autocrop_enabled_checkbutton.get_active():
             threading.Thread(target=self.setup_autocrop, args=()).start()
         else:
             ffmpeg = self.crop_page_handlers.ffmpeg
             ffmpeg.picture_settings.auto_crop_enabled = False
+
             self.crop_page_handlers.apply_crop_settings()
             threading.Thread(target=self.crop_page_handlers.set_crop_thumbnail, args=()).start()
 
     def setup_autocrop(self):
-        """Detects and applies a crop to remove "black bars" if applicable."""
+        """
+        Detects and applies a crop to remove "black bars" if applicable.
+        """
         ffmpeg = self.crop_page_handlers.ffmpeg
-        if preview.process_auto_crop(ffmpeg):
+
+        if auto_crop_helper.process_auto_crop(ffmpeg):
             ffmpeg.picture_settings.auto_crop_enabled = True
+
             self.crop_page_handlers.set_crop_thumbnail()
         else:
-            GLib.idle_add(self._show_auto_crop_not_needed_dialog)
+            GLib.idle_add(self._show_autocrop_not_needed_dialog)
             GLib.idle_add(self.crop_page_handlers.set_auto_crop_state, False)
 
-    def _show_auto_crop_not_needed_dialog(self):
-        # Informs the user that an auto crop can't be applied to the current video.
+    def _show_autocrop_not_needed_dialog(self):
         message_dialog = Gtk.MessageDialog(self.main_window_handlers.main_window,
                                            Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                            Gtk.MessageType.WARNING,

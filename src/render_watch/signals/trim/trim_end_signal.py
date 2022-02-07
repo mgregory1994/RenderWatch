@@ -20,46 +20,52 @@ from render_watch.app_formatting import format_converter
 
 
 class TrimEndSignal:
-    """Handles the signal emitted when the Trim End option is changed in the trim page."""
+    """
+    Handles the signal emitted when the Trim End option is changed.
+    """
 
-    def __init__(self, trim_page_handlers, inputs_page_handlers):
+    def __init__(self, trim_page_handlers):
         self.trim_page_handlers = trim_page_handlers
-        self.inputs_page_handlers = inputs_page_handlers
 
-    def on_trim_end_scale_value_changed(self, trim_end_scale):
-        """Updates the Trim Start scale widget and updates the Trim End widgets.
-
-        :param trim_end_scale:
-            Scale that emitted the signal.
+    def on_trim_end_time_scale_value_changed(self, trim_end_time_scale):
         """
-        end_time_in_seconds = round(trim_end_scale.get_value(), 1)
+        Applies the trim end option and updates the trim end time constraints.
+
+        :param trim_end_time_scale: Scale that emitted the signal.
+        """
+        end_time_in_seconds = round(trim_end_time_scale.get_value(), 1)
+        end_timecode = format_converter.get_timecode_from_seconds(end_time_in_seconds)
+
+        self._update_trim_end_time_constraints(trim_end_time_scale, end_time_in_seconds)
+        self.trim_page_handlers.set_trim_end_text(end_timecode, True)
+
+    def _update_trim_end_time_constraints(self, trim_end_time_scale, end_time_in_seconds):
         if end_time_in_seconds <= self.trim_page_handlers.get_trim_start_value():
             self.trim_page_handlers.set_trim_start_value(end_time_in_seconds - 1)
         if end_time_in_seconds == 0:
-            trim_end_scale.set_value(1)
-        end_timecode = format_converter.get_timecode_from_seconds(end_time_in_seconds)
-        self.trim_page_handlers.set_trim_end_text(end_timecode, True)
+            trim_end_time_scale.set_value(1)
 
-    def on_trim_end_scale_button_release_event(self, event, data):  # Unused parameters needed for this signal
-        """Applies the Trim End option and updates the trim preview.
+    # Unused parameters needed for this signal
+    def on_trim_end_time_scale_button_release_event(self, trim_end_time_scale, event=None, user_data=None):
+        """
+        Applies the Trim End option and updates the trim preview.
 
-        :param event:
-            Unused parameter.
-        :param data:
-            Unused parameter.
+        :param trim_end_time_scale: Scale that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
         """
         if self.trim_page_handlers.is_widgets_setting_up:
             return
 
         self.trim_page_handlers.run_trim_preview_thread(True)
-        self.trim_page_handlers.update_trim_settings()
+        self.trim_page_handlers.apply_trim_settings()
 
-    def on_trim_end_scale_key_release_event(self, event, data):  # Unused parameters needed for this signal
-        """Applies the Trim End option and updates the trim preview.
-
-        :param event:
-            Unused parameter.
-        :param data:
-            Unused parameter.
+    def on_trim_end_time_scale_key_release_event(self, trim_end_scale, event=None, user_data=None):
         """
-        self.on_trim_end_scale_button_release_event(None, None)
+        Applies the Trim End option and updates the trim preview.
+
+        :param trim_end_scale: Scale that emitted the signal.
+        :param event: Signal event.
+        :param user_data: Signal user data.
+        """
+        self.on_trim_end_time_scale_button_release_event(trim_end_scale, event, user_data)

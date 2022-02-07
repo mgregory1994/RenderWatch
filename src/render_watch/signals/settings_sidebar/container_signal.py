@@ -20,19 +20,33 @@ from render_watch.ffmpeg.general_settings import GeneralSettings
 
 
 class ContainerSignal:
-    """Handles the signal emitted when the Container option is changed in the settings sidebar."""
+    """
+    Handles the signal emitted when the Container option is changed.
+    """
 
     def __init__(self, settings_sidebar_handlers, inputs_page_handlers):
         self.settings_sidebar_handlers = settings_sidebar_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
     def on_container_combobox_changed(self, container_combobox):
-        """Configures the settings sidebar for the new container and applies the container option.
+        """
+        Configures the settings sidebar for the new container and applies the container option to the currently selected
+        input's ffmpeg settings.
 
-        :param container_combobox:
-            Combobox that emitted the signal.
+        :param container_combobox: Combobox that emitted the signal.
         """
         container_text = GeneralSettings.CONTAINERS_UI_LIST[container_combobox.get_active()]
+        self._set_settings_sidebar_state(container_text)
+
+        if self.settings_sidebar_handlers.is_widgets_setting_up:
+            return
+
+        for row in self.inputs_page_handlers.get_selected_rows():
+            self._apply_container_option_to_row(row, container_text)
+
+            row.setup_labels()
+
+    def _set_settings_sidebar_state(self, container_text):
         if container_text == '.mp4':
             self.settings_sidebar_handlers.set_mp4_state()
         elif container_text == '.mkv':
@@ -42,13 +56,11 @@ class ContainerSignal:
         elif container_text == '.webm':
             self.settings_sidebar_handlers.set_webm_state()
 
-        if self.settings_sidebar_handlers.is_widgets_setting_up:
-            return
+    @staticmethod
+    def _apply_container_option_to_row(row, container_text):
+        ffmpeg = row.ffmpeg
 
-        for row in self.inputs_page_handlers.get_selected_rows():
-            ffmpeg = row.ffmpeg
-            if container_text == 'copy':
-                ffmpeg.output_container = None
-            else:
-                ffmpeg.output_container = container_text
-            row.setup_labels()
+        if container_text == 'copy':
+            ffmpeg.output_container = None
+        else:
+            ffmpeg.output_container = container_text

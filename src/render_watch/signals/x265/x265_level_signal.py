@@ -17,25 +17,29 @@
 
 
 class X265LevelSignal:
-    """Handles the signal emitted when the x265 Level option is changed."""
+    """
+    Handles the signal emitted when the x265 Level option is changed.
+    """
 
     def __init__(self, x265_handlers, inputs_page_handlers):
         self.x265_handlers = x265_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_x265_level_combobox_changed(self, level_combobox):
-        """Applies the Level option and updates the preview page.
+    def on_x265_level_combobox_changed(self, x265_level_combobox):
+        """
+        Applies the Level option and updates the preview page.
 
-        :param level_combobox:
-            Combobox that emitted the signal.
+        :param x265_level_combobox: Combobox that emitted the signal.
         """
         if self.x265_handlers.is_widgets_setting_up:
             return
 
-        level_index = level_combobox.get_active()
+        level_index = x265_level_combobox.get_active()
+
         for row in self.inputs_page_handlers.get_selected_rows():
             ffmpeg = row.ffmpeg
             ffmpeg.video_settings.level = level_index
+
             row.setup_labels()
 
         self.inputs_page_handlers.update_preview_page()

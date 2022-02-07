@@ -17,12 +17,12 @@
 
 
 class GeneralSettings:
-    """Manages all settings for general ffmpeg settings.
-
-    This includes setting frame rate and container settings.
+    """
+    Stores all settings for general settings.
     """
 
     FRAME_RATE_ARGS_LIST = ('23.98', '24', '25', '29.97', '30', '50', '59.94', '60')
+
     VIDEO_CODEC_MP4_NVENC_UI_LIST = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265')
     VIDEO_CODEC_MP4_UI_LIST = ('copy', 'H264', 'H265')
     VIDEO_CODEC_MKV_NVENC_UI_LIST = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265', 'VP9')
@@ -30,10 +30,12 @@ class GeneralSettings:
     VIDEO_CODEC_TS_NVENC_UI_LIST = ('copy', 'H264', 'NVENC H264')
     VIDEO_CODEC_TS_UI_LIST = ('copy', 'H264')
     VIDEO_CODEC_WEBM_UI_LIST = ('copy', 'VP9')
+
     AUDIO_CODEC_MP4_UI_LIST = ('copy', 'aac')
     AUDIO_CODEC_MKV_UI_LIST = ('copy', 'aac', 'opus')
     AUDIO_CODEC_TS_UI_LIST = ('copy', 'aac')
     AUDIO_CODEC_WEBM_UI_LIST = ('copy', 'opus')
+
     CONTAINERS_UI_LIST = ('.mp4', '.mkv', '.ts', '.webm')
 
     def __init__(self):
@@ -41,7 +43,9 @@ class GeneralSettings:
 
     @property
     def frame_rate(self):
-        """Returns frame rate argument as an index."""
+        """
+        Returns frame rate as an index.
+        """
         if '-r' in self.ffmpeg_args:
             frame_rate_arg = self.ffmpeg_args['-r']
             return GeneralSettings.FRAME_RATE_ARGS_LIST.index(frame_rate_arg)
@@ -49,7 +53,9 @@ class GeneralSettings:
 
     @frame_rate.setter
     def frame_rate(self, frame_rate_index):
-        """Stores index as a frame rate argument."""
+        """
+        Stores frame rate index as a string.
+        """
         if frame_rate_index is None or frame_rate_index < 0:
             self.ffmpeg_args.pop('-r', 0)
         else:
@@ -57,14 +63,18 @@ class GeneralSettings:
 
     @property
     def fast_start(self):
-        """Returns fast start argument as a boolean."""
+        """
+        Returns fast start as a boolean.
+        """
         if '-movflags' in self.ffmpeg_args:
             return self.ffmpeg_args['-movflags'] == 'faststart'
         return False
 
     @fast_start.setter
     def fast_start(self, fast_start_enabled):
-        """Stores fast start boolean as a string argument."""
+        """
+        Stores fast start as a string.
+        """
         if fast_start_enabled:
             self.ffmpeg_args['-movflags'] = 'faststart'
         else:

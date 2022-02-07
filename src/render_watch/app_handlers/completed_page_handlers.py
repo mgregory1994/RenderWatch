@@ -23,24 +23,31 @@ from render_watch.startup import Gtk
 
 
 class CompletedPageHandlers:
-    """Handles all widget changes on the completed page."""
+    """
+    Handles all widget changes on the completed page.
+    """
 
     def __init__(self, gtk_builder, main_window_handlers):
+        self._setup_signals(main_window_handlers)
+        self._setup_widgets(gtk_builder)
+
+    def _setup_signals(self, main_window_handlers):
         self.add_task_signal = AddTaskSignal(self)
         self.remove_task_signal = RemoveTaskSignal(self)
         self.clear_all_tasks_signal = ClearAllTasksSignal(self, main_window_handlers)
         self.signals_list = (self.add_task_signal, self.remove_task_signal, self.clear_all_tasks_signal)
-        self.completed_page_listbox = gtk_builder.get_object('completed_list')
-        self.clear_all_completed_button = gtk_builder.get_object("clear_all_completed_button")
-        self.completed_page_listbox.set_header_func(self._completed_list_update_header, None)
 
-    def __getattr__(self, signal_name):  # Needed for builder.connect_signals() in handlers_manager.py
-        """Returns the list of signals this class uses.
+    def _setup_widgets(self, gtk_builder):
+        self.completed_list = gtk_builder.get_object('completed_list')
+        self.clear_all_completed_tasks_button = gtk_builder.get_object("clear_all_completed_tasks_button")
 
-        Used for Gtk.Builder.get_signals().
+        self.completed_list.set_header_func(self._completed_list_update_header, None)
 
-        :param signal_name:
-            The signal function name being looked for.
+    def __getattr__(self, signal_name):
+        """
+        If found, return the signal name's function from the list of signals.
+
+        :param signal_name: The signal function name being looked for.
         """
         for signal in self.signals_list:
             if hasattr(signal, signal_name):
@@ -50,29 +57,29 @@ class CompletedPageHandlers:
     # Unused parameters needed for this function
     @staticmethod
     def _completed_list_update_header(completed_page_listbox_row, previous_completed_page_listbox_row, data):
-        # Adds a separator between Gtk.ListboxRow widgets.
         if previous_completed_page_listbox_row is None:
             completed_page_listbox_row.set_header(None)
         else:
             completed_page_listbox_row_header = completed_page_listbox_row.get_header()
+
             if completed_page_listbox_row_header is None:
                 completed_page_listbox_row_header = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
                 completed_page_listbox_row_header.show()
+
                 completed_page_listbox_row.set_header(completed_page_listbox_row_header)
 
     def get_rows(self):
-        return self.completed_page_listbox.get_children()
+        return self.completed_list.get_children()
 
     def set_clear_all_state(self, enabled):
-        # Sets the page's options in the preferences menu for when the Gtk.Listbox is empty on the completed page.
-        self.clear_all_completed_button.set_sensitive(enabled)
+        self.clear_all_completed_tasks_button.set_sensitive(enabled)
 
     def add_row(self, completed_page_listbox_row):
-        self.completed_page_listbox.add(completed_page_listbox_row)
-        self.completed_page_listbox.show_all()
+        self.completed_list.add(completed_page_listbox_row)
+        self.completed_list.show_all()
 
     def remove_row(self, completed_row):
-        self.completed_page_listbox.remove(completed_row)
+        self.completed_list.remove(completed_row)
 
     def remove_all_rows(self):
         for row in self.get_rows():
@@ -80,6 +87,7 @@ class CompletedPageHandlers:
 
     def remove_duplicate_row(self, completed_page_listbox_row):
         for listbox_row in self.get_rows():
-            if listbox_row.file_path_link.get_uri() == completed_page_listbox_row.file_path_link.get_uri():
+            if listbox_row.completed_listbox_row_file_path_link.get_uri() == completed_page_listbox_row.completed_listbox_row_file_path_link.get_uri():
                 listbox_row.signal_remove_button()
+
                 break

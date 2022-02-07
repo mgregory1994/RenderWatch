@@ -17,23 +17,31 @@
 
 
 class SettingsSidebarSignal:
-    """Handles the signals emitted when the settings sidebar is opened/closed."""
+    """
+    Handles the signals emitted when the settings sidebar is opened/closed.
+    """
 
     def __init__(self, main_window_handlers):
         self.main_window_handlers = main_window_handlers
 
-    def on_show_settings_button_clicked(self, show_settings_button):  # Unused parameters needed for this signal
-        """Shows the settings sidebar.
-
-        :param show_settings_button:
-            Button that emitted the signal.
+    # Unused parameters needed for this signal
+    def on_toggle_settings_sidebar_button_clicked(self, toggle_settings_sidebar_button):
         """
-        self.main_window_handlers.show_settings_sidebar(True)
+        Toggles the settings sidebar.
 
-    def on_hide_settings_button_clicked(self, hide_settings_button):  # Unused parameters needed for this signal
-        """Hides the settings sidebar.
-
-        :param hide_settings_button:
-            Button that emitted the signal.
+        :param toggle_settings_sidebar_button: Button that emitted the signal.
         """
-        self.main_window_handlers.show_settings_sidebar(False)
+        self.main_window_handlers.toggle_settings_sidebar()
+
+    # Unused parameters needed for this signal
+    def on_inputs_page_paned_button_press_event(self, event=None, user_data=None):
+        self.main_window_handlers.is_sidebar_pane_resizing = True
+
+    # Unused parameters needed for this signal
+    def on_inputs_page_paned_button_release_event(self, event=None, user_data=None):
+        self.main_window_handlers.is_sidebar_pane_resizing = False
+        self.main_window_handlers.update_settings_sidebar_paned_position()
+
+    # Unused parameters needed for this signal
+    def on_sidebar_pane_size_allocate(self, sidebar_pane, allocation):
+        self.main_window_handlers.update_settings_sidebar_paned_allocation()

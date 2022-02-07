@@ -17,24 +17,26 @@
 
 
 class PageSwitchSignal:
-    """Handles the signal emitted when the user switches to a different page."""
+    """
+    Handles the signal emitted when the user switches to a different page.
+    """
 
     def __init__(self, main_window_handlers, inputs_page_handlers):
         self.main_window_handlers = main_window_handlers
         self.inputs_page_handlers = inputs_page_handlers
 
-    def on_page_stack_visible_child_notify(self, page_stack, string):  # Unused parameters needed for this signal
-        """Closes the settings sidebar and sets up the current page's state.
-
-        :param page_stack:
-            Stack that emitted the signal.
-        :param string:
-            Unused parameter.
+    # Unused parameters needed for this signal
+    def on_page_stack_visible_child_notify(self, page_stack, user_data=None):
         """
-        self.main_window_handlers.show_settings_sidebar(False)
+        Closes the settings sidebar and configures the current page's state.
+
+        :param page_stack: Stack that emitted the signal.
+        :param user_data: Signal user data.
+        """
+        self.main_window_handlers.toggle_settings_sidebar(is_closing_settings_sidebar=True)
 
         current_page = page_stack.get_visible_child()
-        if current_page == self.inputs_page_handlers.inputs_page_box:
+        if current_page == self.main_window_handlers.inputs_page_paned:
             self.main_window_handlers.set_inputs_page_state()
         elif current_page == self.main_window_handlers.active_page_scroller:
             self.main_window_handlers.set_active_page_state()

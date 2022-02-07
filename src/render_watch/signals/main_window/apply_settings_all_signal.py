@@ -23,36 +23,42 @@ from render_watch.startup import GLib
 
 
 class ApplySettingsAllSignal:
-    """Handles the signal emitted from the apply settings to all in the options menu."""
+    """
+    Handles the signal emitted from the apply settings to all in the options menu.
+    """
 
-    def __init__(self, main_window_handlers, inputs_page_handlers, settings_sidebar_handlers, preferences):
+    def __init__(self, main_window_handlers, inputs_page_handlers, settings_sidebar_handlers, application_preferences):
         self.main_window_handlers = main_window_handlers
         self.inputs_page_handlers = inputs_page_handlers
         self.settings_sidebar_handlers = settings_sidebar_handlers
-        self.preferences = preferences
+        self.application_preferences = application_preferences
 
     # Unused parameters needed for this signal
-    def on_apply_to_all_switch_state_set(self, apply_to_all_switch, user_data):
-        if apply_to_all_switch.get_active():
-            self.main_window_handlers.update_ffmpeg_template()
-            threading.Thread(target=self._set_settings_and_apply_to_all, args=()).start()
-            self.main_window_handlers.set_input_selected_state(True)
+    def on_apply_settings_to_all_switch_state_set(self, apply_settings_to_all_switch, user_data=None):
+        if apply_settings_to_all_switch.get_active():
+            self._apply_settings_to_all_inputs()
         else:
             if self.inputs_page_handlers.get_selected_row() is None:
                 self.main_window_handlers.set_input_selected_state(False)
 
-    def _set_settings_and_apply_to_all(self):
-        # Sets up the settings sidebar and then applies the video settings to all inputs.
+    def _apply_settings_to_all_inputs(self):
+        self.main_window_handlers.update_ffmpeg_template()
+        threading.Thread(target=self._set_settings_sidebar_to_ffmpeg_template, args=()).start()
+        self._apply_ffmpeg_template_to_all_inputs()
+
+        self.main_window_handlers.set_input_selected_state(True)
+
+    def _set_settings_sidebar_to_ffmpeg_template(self):
         ffmpeg_template = self.main_window_handlers.ffmpeg_template
         general_settings = ffmpeg_template.general_settings
         video_settings = ffmpeg_template.video_settings
         audio_settings = ffmpeg_template.audio_settings
         is_general_settings_custom = general_settings.frame_rate or general_settings.fast_start
-        if video_settings or audio_settings or is_general_settings_custom:
+
+        if video_settings or audio_settings or is_general_settings_custom or ffmpeg_template.is_output_container_set():
             self._setup_settings_sidebar(ffmpeg_template)
         else:
             self._reset_settings_sidebar()
-        self._apply_settings_to_all(ffmpeg_template)
 
     def _reset_settings_sidebar(self):
         GLib.idle_add(self.settings_sidebar_handlers.reset_settings)
@@ -60,22 +66,27 @@ class ApplySettingsAllSignal:
     def _setup_settings_sidebar(self, ffmpeg):
         GLib.idle_add(self.settings_sidebar_handlers.set_settings, ffmpeg)
 
-    def _apply_settings_to_all(self, ffmpeg):
-        # Applies the settings in the ffmpeg settings object to all inputs on the inputs page.
+    def _apply_ffmpeg_template_to_all_inputs(self):
+        ffmpeg_template = self.main_window_handlers.ffmpeg_template
+
         for row in self.inputs_page_handlers.get_rows():
             row_ffmpeg = row.ffmpeg
-            row_ffmpeg.output_container = ffmpeg.output_container
-            row_ffmpeg.general_settings.ffmpeg_args = ffmpeg.general_settings.ffmpeg_args.copy()
-            if ffmpeg.video_settings:
-                row_ffmpeg.video_settings = copy.deepcopy(ffmpeg.video_settings)
+            row_ffmpeg.output_container = ffmpeg_template.output_container
+            row_ffmpeg.general_settings.ffmpeg_args = ffmpeg_template.general_settings.ffmpeg_args.copy()
+
+            if ffmpeg_template.video_settings:
+                row_ffmpeg.video_settings = copy.deepcopy(ffmpeg_template.video_settings)
             else:
                 row_ffmpeg.video_settings = None
-            if ffmpeg.audio_settings:
-                row_ffmpeg.audio_settings = copy.deepcopy(ffmpeg.audio_settings)
-            else:
-                row.ffmpeg.audio_settings = None
+
+            if row_ffmpeg.input_file_info['audio_streams']:
+                if ffmpeg_template.audio_settings:
+                    row_ffmpeg.audio_settings = copy.deepcopy(ffmpeg_template.audio_settings)
+                else:
+                    row.ffmpeg.audio_settings = None
+
             if row_ffmpeg.is_video_settings_2_pass():
-                row_ffmpeg.video_settings.stats = self.preferences.temp_directory \
+                row_ffmpeg.video_settings.stats = self.application_preferences.temp_directory \
                                                   + '/' \
                                                   + row_ffmpeg.temp_file_name \
                                                   + '.log'

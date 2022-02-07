@@ -17,26 +17,27 @@
 
 
 class TrimPreviewSizeSignal:
-    """Handles the signal emitted when the Trim Preview Viewport's dimensions change on the trim page."""
+    """
+    Handles the signal emitted when the Trim Preview Viewport's dimensions change.
+    """
 
-    def __init__(self, trim_page_handlers, inputs_page_handlers):
+    def __init__(self, trim_page_handlers):
         self.trim_page_handlers = trim_page_handlers
-        self.inputs_page_handlers = inputs_page_handlers
 
     # Unused parameters needed for this signal
-    def on_trim_preview_viewport_size_allocate(self, trim_preview_viewport, allocation):
-        """Resized the Trim Preview based on the Viewport's dimensions.
+    def on_trim_preview_viewport_size_allocate(self, trim_preview_viewport, viewport_allocation=None):
+        """
+        Resized the Trim Preview based on the Viewport's dimensions.
         Maintains the preview's aspect ratio.
 
-        :param trim_preview_viewport:
-            Viewport that emitted the signal.
-        :param allocation:
-            Unused parameter.
+        :param trim_preview_viewport: Viewport that emitted the signal.
+        :param viewport_allocation: Viewport's allocation data.
         """
         widget_width = trim_preview_viewport.get_allocated_width()
         widget_height = trim_preview_viewport.get_allocated_height()
-        if not self.trim_page_handlers.get_preview_viewport_width() == widget_width \
-                or not self.trim_page_handlers.get_preview_viewport_height() == widget_height:
+        has_viewport_width_changed = not self.trim_page_handlers.get_preview_viewport_width() == widget_width
+        has_viewport_height_changed = not self.trim_page_handlers.get_preview_viewport_height() == widget_height
+        if has_viewport_width_changed or has_viewport_height_changed:
             self.trim_page_handlers.resize_trim_preview(widget_width, widget_height)
             self.trim_page_handlers.set_preview_viewport_width(widget_width)
             self.trim_page_handlers.set_preview_viewport_height(widget_height)

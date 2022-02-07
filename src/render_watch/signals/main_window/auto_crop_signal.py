@@ -17,17 +17,22 @@
 
 
 class AutoCropSignal:
-    """Handles the signal emitted when the auto crop setting is toggled from the options menu."""
+    """
+    Handles the signal emitted when the auto crop setting is toggled in the options menu.
+    """
 
-    def __init__(self, inputs_page_handlers):
+    def __init__(self, inputs_page_handlers, application_preferences):
         self.inputs_page_handlers = inputs_page_handlers
+        self.application_preferences = application_preferences
 
-    def on_auto_crop_button_toggled(self, auto_crop_checkbox):
-        """Applies the folder auto crop setting for all folder inputs.
+    def on_auto_crop_inputs_checkbutton_toggled(self, auto_crop_checkbutton):
+        """
+        Applies the folder auto crop setting for all folder inputs.
 
-        :param auto_crop_checkbox:
-            Checkbox that emitted the signal.
+        :param auto_crop_checkbutton: Checkbutton that emitted the signal.
         """
         for inputs_page_listbox_row in self.inputs_page_handlers.get_rows():
             if inputs_page_listbox_row.ffmpeg.folder_state:
-                inputs_page_listbox_row.ffmpeg.folder_auto_crop = auto_crop_checkbox.get_active()
+                inputs_page_listbox_row.ffmpeg.folder_auto_crop = auto_crop_checkbutton.get_active()
+
+        self.application_preferences.is_auto_crop_inputs_enabled = auto_crop_checkbutton.get_active()
