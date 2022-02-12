@@ -11,7 +11,7 @@ setup(
     author='Michael Gregory',
     author_email='michaelgregoryn@gmail.com',
     description='A professional video transcoder for Linux.',
-    python_requires='~=3.9',
+    python_requires='~=3.8',
     package_dir={'': 'src'},
     packages=[
         'render_watch', 'render_watch/ffmpeg'
