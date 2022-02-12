@@ -1,4 +1,4 @@
-# Copyright 2021 Michael Gregory
+# Copyright 2022 Michael Gregory
 #
 # This file is part of Render Watch.
 #

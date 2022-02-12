@@ -5,13 +5,13 @@ from setuptools import setup
 
 setup(
     name='Render Watch',
-    version='0.2.0',
+    version='0.3.0',
     url='https://github.com/mgregory1994/RenderWatch',
     license='GPLV3',
     author='Michael Gregory',
     author_email='michaelgregoryn@gmail.com',
     description='A professional video transcoder for Linux.',
-    python_requires='~=3.8',
+    python_requires='~=3.9',
     package_dir={'': 'src'},
     packages=[
         'render_watch', 'render_watch/app_formatting', 'render_watch/app_handlers', 'render_watch/encoding',
@@ -25,7 +25,7 @@ setup(
         'render_watch/signals/x265', 'render_watch/startup'
     ],
     install_requires=[
-        'PyGObject',
+        'PySide6',
         'watchdog',
     ],
     package_data={
