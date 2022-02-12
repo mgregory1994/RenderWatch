@@ -17,7 +17,6 @@ setup(
         'render_watch', 'render_watch/ffmpeg'
     ],
     install_requires=[
-        'PyQt5',
         'watchdog'
     ],
     data_files=[
