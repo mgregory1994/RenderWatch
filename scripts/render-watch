@@ -1,6 +1,8 @@
 #!/bin/python3
 
-from render_watch import render_watch
+#from render_watch import render_watch
+
+from render_watch import test
 
 if __name__ == '__main__':
-	render_watch.main()
+	test.main()

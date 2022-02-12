@@ -1,34 +1,26 @@
 import sys
-import random
-from PySide6 import QtCore, QtWidgets, QtGui
+
+from PyQt5 import QtCore, QtWidgets, QtGui, uic
+
+from render_watch import get_rw_ui, rw_ui
+# from rw_ui import Ui_MainWindow
 
 
-class MyWidget(QtWidgets.QWidget):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(MainWindow, self).__init__()
 
-        self.hello = ['Hallo Welt', 'Hei maailma', 'Hola Mundo', 'Russian']
-
-        self.button = QtWidgets.QPushButton('Click Me!')
-        self.text = QtWidgets.QLabel('Hello World')
-        self.text.setAlignment(QtCore.Qt.AlignCenter)
-
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.addWidget(self.text)
-        self.layout.addWidget(self.button)
-
-        self.button.clicked.connect(self.magic)
-
-    @QtCore.Slot()
-    def magic(self):
-        self.text.setText(random.choice(self.hello))
+        ui = rw_ui.Ui_MainWindow()
+        ui.setupUi(self)
 
 
-if __name__ == '__main__':
+def main():
     app = QtWidgets.QApplication([])
+    #app.setStyle('Windows')
 
-    widget = MyWidget()
-    widget.resize(800, 600)
-    widget.show()
+    window = MainWindow()
+    window.show()
 
-    sys.exit(app.exec())
+    print(get_rw_ui())
+
+    sys.exit(app.exec_())
