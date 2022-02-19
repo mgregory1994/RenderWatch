@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1217, 864)
+        MainWindow.resize(1682, 1010)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout_23 = QtWidgets.QGridLayout(self.centralwidget)
@@ -951,7 +951,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_17.setContentsMargins(20, -1, -1, -1)
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.progressBar_2 = QtWidgets.QProgressBar(self.page_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.progressBar_2.sizePolicy().hasHeightForWidth())
@@ -1010,7 +1010,7 @@ class Ui_MainWindow(object):
         self.gridLayout_23.addWidget(self.splitter_2, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1217, 29))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1682, 29))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -1059,8 +1059,8 @@ class Ui_MainWindow(object):
         self.stackedWidget_7.setCurrentIndex(1)
         self.stackedWidget_4.setCurrentIndex(0)
         self.tabWidget.setCurrentIndex(0)
-        self.stackedWidget_6.setCurrentIndex(1)
-        self.stackedWidget_5.setCurrentIndex(1)
+        self.stackedWidget_6.setCurrentIndex(0)
+        self.stackedWidget_5.setCurrentIndex(0)
         self.stackedWidget_3.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 

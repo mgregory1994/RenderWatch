@@ -1,26 +1,48 @@
 import sys
 
-from PyQt5 import QtCore, QtWidgets, QtGui, uic
+import qdarktheme
 
-from render_watch import get_rw_ui, rw_ui
-# from rw_ui import Ui_MainWindow
+from PySide6 import QtWidgets, QtCore
+from untitled import Ui_MainWindow
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
 
-        ui = rw_ui.Ui_MainWindow()
-        ui.setupUi(self)
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
 
 
-def main():
-    app = QtWidgets.QApplication([])
-    #app.setStyle('Windows')
+class AppLoop:
+    def __init__(self):
+        app = QtWidgets.QApplication([])
+        app.aboutToQuit.connect(self.on_window_state_changed)
+        self.window_state = None
+        self.window_geometry = None
+        self.window = None
 
-    window = MainWindow()
-    window.show()
+        while True:
+            self.window = MainWindow()
+            self.button = self.window.ui.pushButton_2
+            self.window.show()
 
-    print(get_rw_ui())
+            if self.window and self.window_state and self.window_geometry:
+                self.window.restoreState(self.window_state)
+                self.window.restoreGeometry(self.window_geometry)
 
-    sys.exit(app.exec_())
+            # self.button.clicked.connect(self.on_window_state_changed)
+            app.setStyleSheet(qdarktheme.load_stylesheet(border='sharp'))
+            app.exec()
+
+        sys.exit(0)
+
+    def on_window_state_changed(self):
+        self.window_state = self.window.saveState()
+        self.window_geometry = self.window.saveGeometry()
+        print('save state')
+
+
+if __name__ == '__main__':
+    app_loop = AppLoop()
+
