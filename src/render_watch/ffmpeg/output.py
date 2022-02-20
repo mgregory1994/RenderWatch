@@ -35,13 +35,11 @@ class OutputFile:
     @property
     def file_path(self):
         if self.extension:
-            return ''.join([
-                self.dir,
-                '/',
-                self.name,
-                '.',
-                self.extension
-            ])
+            return ''.join([self.dir,
+                            '/',
+                            self.name,
+                            '.',
+                            self.extension])
 
 
 class TempOutputFile:
@@ -53,13 +51,11 @@ class TempOutputFile:
     @property
     def file_path(self):
         if self.extension:
-            return ''.join([
-                self.dir,
-                '/',
-                self.name,
-                '.',
-                self.extension
-            ])
+            return ''.join([self.dir,
+                            '/',
+                            self.name,
+                            '.',
+                            self.extension])
 
 
 class AliasGenerator:

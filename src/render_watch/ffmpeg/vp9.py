@@ -49,7 +49,7 @@ class VP9:
         return 0
 
     @quality.setter
-    def quality(self, quality_index: int):
+    def quality(self, quality_index: int | None):
         if quality_index and 0 < quality_index < VP9.QUALITY_LENGTH:
             self.ffmpeg_args['-deadline'] = self.QUALITY[quality_index]
         else:
@@ -67,7 +67,7 @@ class VP9:
         return 0
 
     @speed.setter
-    def speed(self, speed_index: int):
+    def speed(self, speed_index: int | None):
         if speed_index and 0 < speed_index < VP9.SPEED_LENGTH:
             self.ffmpeg_args['-cpu-used'] = self.SPEED[speed_index]
         else:
@@ -80,7 +80,7 @@ class VP9:
         return int(bitrate_arg.split('k')[0])
 
     @bitrate.setter
-    def bitrate(self, bitrate_value: int):
+    def bitrate(self, bitrate_value: int | None):
         if bitrate_value is None:
             self.ffmpeg_args['-b:v'] = '2500k'
         else:
@@ -93,7 +93,7 @@ class VP9:
         return 30.0
 
     @crf.setter
-    def crf(self, crf_value: float):
+    def crf(self, crf_value: float | None):
         if crf_value is None:
             self.ffmpeg_args.pop('-crf', 0)
         else:
@@ -108,7 +108,7 @@ class VP9:
         return 2500
 
     @maxrate.setter
-    def maxrate(self, maxrate_value: int):
+    def maxrate(self, maxrate_value: int | None):
         if maxrate_value is None:
             self.ffmpeg_args.pop('-maxrate', 0)
         else:
@@ -123,7 +123,7 @@ class VP9:
         return 2500
 
     @minrate.setter
-    def minrate(self, minrate_value: int):
+    def minrate(self, minrate_value: int | None):
         if minrate_value is None:
             self.ffmpeg_args.pop('-minrate', 0)
         else:
@@ -136,7 +136,7 @@ class VP9:
         return 2500
 
     @encode_pass.setter
-    def encode_pass(self, encode_pass_value):
+    def encode_pass(self, encode_pass_value: int | None):
         if encode_pass_value:
             self.ffmpeg_args['-pass'] = str(encode_pass_value)
         else:
@@ -149,7 +149,7 @@ class VP9:
         return ''
 
     @stats.setter
-    def stats(self, stats_file_path: str):
+    def stats(self, stats_file_path: str | None):
         if stats_file_path:
             self.ffmpeg_args['-passlogfile'] = stats_file_path
         else:

@@ -72,7 +72,7 @@ class H264Nvenc:
         return 20.0
 
     @qp.setter
-    def qp(self, qp_value: float):
+    def qp(self, qp_value: float | None):
         if qp_value is None:
             self.ffmpeg_args.pop('-qp', 0)
         else:
@@ -88,7 +88,7 @@ class H264Nvenc:
         return 2500
 
     @bitrate.setter
-    def bitrate(self, bitrate_value: int):
+    def bitrate(self, bitrate_value: int | None):
         if bitrate_value is None:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
@@ -107,7 +107,7 @@ class H264Nvenc:
         return 0
 
     @profile.setter
-    def profile(self, profile_index: int):
+    def profile(self, profile_index: int | None):
         if profile_index and 0 < profile_index < H264Nvenc.PROFILE_LENGTH:
             self.ffmpeg_args['-profile:v'] = self.PROFILE[profile_index]
         else:
@@ -125,7 +125,7 @@ class H264Nvenc:
         return 0
 
     @preset.setter
-    def preset(self, preset_index: int):
+    def preset(self, preset_index: int | None):
         if preset_index and 0 < preset_index < H264Nvenc.PRESET_LENGTH:
             self.ffmpeg_args['-preset'] = self.PRESET[preset_index]
         else:
@@ -143,7 +143,7 @@ class H264Nvenc:
         return 0
 
     @level.setter
-    def level(self, level_index: int):
+    def level(self, level_index: int | None):
         if level_index and 0 < level_index < H264Nvenc.LEVEL_LENGTH:
             self.ffmpeg_args['-level'] = self.LEVEL[level_index]
         else:
@@ -161,7 +161,7 @@ class H264Nvenc:
         return 0
 
     @tune.setter
-    def tune(self, tune_index: int):
+    def tune(self, tune_index: int | None):
         if tune_index and 0 < tune_index < H264Nvenc.TUNE_LENGTH:
             self.ffmpeg_args['-tune'] = self.TUNE[tune_index]
         else:
@@ -179,7 +179,7 @@ class H264Nvenc:
         return 0
 
     @multi_pass.setter
-    def multi_pass(self, multi_pass_index: int):
+    def multi_pass(self, multi_pass_index: int | None):
         if multi_pass_index and 0 < multi_pass_index < H264Nvenc.MULTI_PASS_LENGTH:
             self.ffmpeg_args['-multipass'] = self.MULTI_PASS[multi_pass_index]
         else:
@@ -207,7 +207,7 @@ class H264Nvenc:
         return 20.0
 
     @qp_i.setter
-    def qp_i(self, qp_i_value: float):
+    def qp_i(self, qp_i_value: float | None):
         if qp_i_value is None:
             self._ffmpeg_advanced_args.pop('-init_qpI', 0)
         else:
@@ -220,7 +220,7 @@ class H264Nvenc:
         return 20.0
 
     @qp_p.setter
-    def qp_p(self, qp_p_value: float):
+    def qp_p(self, qp_p_value: float | None):
         if qp_p_value is None:
             self._ffmpeg_advanced_args.pop('-init_qpP', 0)
         else:
@@ -233,7 +233,7 @@ class H264Nvenc:
         return 20.0
 
     @qp_b.setter
-    def qp_b(self, qp_b_value: float):
+    def qp_b(self, qp_b_value: float | None):
         if qp_b_value is None:
             self._ffmpeg_advanced_args.pop('-init_qpB', 0)
         else:
@@ -251,7 +251,7 @@ class H264Nvenc:
         return 0
 
     @rc.setter
-    def rc(self, rc_index: int):
+    def rc(self, rc_index: int | None):
         if rc_index and 0 < rc_index < H264Nvenc.RATE_CONTROL_LENGTH:
             self._ffmpeg_advanced_args['-rc'] = self.RATE_CONTROL[rc_index]
         else:
@@ -264,7 +264,7 @@ class H264Nvenc:
         return 0
 
     @rc_lookahead.setter
-    def rc_lookahead(self, rc_lookahead_value: int):
+    def rc_lookahead(self, rc_lookahead_value: int | None):
         if rc_lookahead_value is None:
             self._ffmpeg_advanced_args.pop('-rc-lookahead', 0)
         else:
@@ -277,7 +277,7 @@ class H264Nvenc:
         return 8
 
     @surfaces.setter
-    def surfaces(self, surfaces_value: int):
+    def surfaces(self, surfaces_value: int | None):
         if surfaces_value is None:
             self._ffmpeg_advanced_args.pop('-surfaces', 0)
         else:
@@ -290,7 +290,7 @@ class H264Nvenc:
         return 0
 
     @b_frames.setter
-    def b_frames(self, b_frames_value: int):
+    def b_frames(self, b_frames_value: int | None):
         if b_frames_value is None:
             self._ffmpeg_advanced_args.pop('-bf', 0)
         else:
@@ -303,7 +303,7 @@ class H264Nvenc:
         return 0
 
     @refs.setter
-    def refs(self, refs_value: int):
+    def refs(self, refs_value: int | None):
         if refs_value is None:
             self._ffmpeg_advanced_args.pop('-refs', 0)
         else:
@@ -421,7 +421,7 @@ class H264Nvenc:
         return 8
 
     @aq_strength.setter
-    def aq_strength(self, aq_strength_value: int):
+    def aq_strength(self, aq_strength_value: int | None):
         if aq_strength_value is None:
             self._ffmpeg_advanced_args.pop('-aq-strength', 0)
         else:
@@ -469,7 +469,7 @@ class H264Nvenc:
         return 0
 
     @coder.setter
-    def coder(self, coder_index: int):
+    def coder(self, coder_index: int | None):
         if coder_index and 0 < coder_index < H264Nvenc.CODER_LENGTH:
             self._ffmpeg_advanced_args['-coder'] = self.CODER[coder_index]
         else:
@@ -487,7 +487,7 @@ class H264Nvenc:
         return 0
 
     @b_ref_mode.setter
-    def b_ref_mode(self, b_ref_mode_index: int):
+    def b_ref_mode(self, b_ref_mode_index: int | None):
         if b_ref_mode_index and 0 < b_ref_mode_index < H264Nvenc.BREF_MODE_LENGTH:
             self._ffmpeg_advanced_args['-b_ref_mode'] = self.BREF_MODE[b_ref_mode_index]
         else:

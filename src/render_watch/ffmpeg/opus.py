@@ -42,7 +42,7 @@ class Opus:
         return int(bitrate_arg.split('k')[0])
 
     @bitrate.setter
-    def bitrate(self, bitrate_value: int):
+    def bitrate(self, bitrate_value: int | None):
         if bitrate_value is None:
             self.ffmpeg_args['-b:a'] = '128k'
         else:
@@ -68,7 +68,7 @@ class Opus:
         return 'N/A'
 
     @channels.setter
-    def channels(self, channels_index: int):
+    def channels(self, channels_index: int | None):
         if channels_index and 0 < channels_index < Opus.CHANNELS_LENGTH:
             self.ffmpeg_args['-ac'] = self.CHANNELS[channels_index]
         else:
