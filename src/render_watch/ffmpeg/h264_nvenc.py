@@ -69,7 +69,7 @@ class H264Nvenc:
     def qp(self) -> float:
         if '-qp' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-qp'])
-        return -1.0
+        return 20.0
 
     @qp.setter
     def qp(self, qp_value: float):
@@ -85,7 +85,7 @@ class H264Nvenc:
             bitrate_arg = self.ffmpeg_args['-b:v']
 
             return int(bitrate_arg.split('k')[0])
-        return -1
+        return 2500
 
     @bitrate.setter
     def bitrate(self, bitrate_value: int):

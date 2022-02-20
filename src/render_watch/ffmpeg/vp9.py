@@ -90,7 +90,7 @@ class VP9:
     def crf(self) -> float:
         if '-crf' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-crf'])
-        return -1.0
+        return 30.0
 
     @crf.setter
     def crf(self, crf_value: float):
@@ -105,7 +105,7 @@ class VP9:
             maxrate_arg = self.ffmpeg_args['-maxrate']
 
             return int(maxrate_arg.split('k')[0])
-        return 0
+        return 2500
 
     @maxrate.setter
     def maxrate(self, maxrate_value: int):
@@ -120,7 +120,7 @@ class VP9:
             minrate_arg = self.ffmpeg_args['-minrate']
 
             return int(minrate_arg.split('k')[0])
-        return 0
+        return 2500
 
     @minrate.setter
     def minrate(self, minrate_value: int):
@@ -133,7 +133,7 @@ class VP9:
     def encode_pass(self) -> int:
         if '-pass' in self.ffmpeg_args:
             return int(self.ffmpeg_args['-pass'])
-        return 0
+        return 2500
 
     @encode_pass.setter
     def encode_pass(self, encode_pass_value):
