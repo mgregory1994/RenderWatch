@@ -682,9 +682,9 @@ class X264:
         if self.is_advanced_enabled:
             args = self._generate_advanced_args()
         else:
-            if 'nal_hrd=' in self._ffmpeg_advanced_args:
+            if self.constant_bitrate:
                 args = self._get_constant_bitrate_args()
-            elif 'pass=' in self._ffmpeg_advanced_args:
+            elif self.encode_pass:
                 args = self._get_pass_args()
 
         if args:
@@ -693,10 +693,7 @@ class X264:
         return advanced_args
 
     def _get_constant_bitrate_args(self) -> str:
-        constant_bitrate_args = 'nal_hrd='
-        constant_bitrate_args += str(self.constant_bitrate).lower()
-
-        return constant_bitrate_args
+        return ''.join(['nal_hrd=', str(self.constant_bitrate).lower()])
 
     def _get_pass_args(self) -> str:
         return ''.join(['pass=',
