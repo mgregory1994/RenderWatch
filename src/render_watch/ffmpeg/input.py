@@ -17,21 +17,7 @@
 
 
 VALID_EXTENSIONS = (
-    'mp4',
-    'm4v',
-    'mov',
-    'mkv',
-    'ts',
-    'm2ts',
-    'mpg',
-    'webm',
-    'wmv',
-    'vob',
-    'avi',
-    'aac',
-    'wav',
-    'flac',
-    'mp3'
+    'mp4', 'm4v', 'mov', 'mkv', 'ts', 'm2ts', 'mpg', 'webm', 'wmv', 'vob', 'avi', 'aac', 'wav', 'flac', 'mp3'
 )
 
 

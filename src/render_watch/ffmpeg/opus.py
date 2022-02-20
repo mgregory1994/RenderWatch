@@ -32,7 +32,7 @@ class Opus:
         }
 
     @property
-    def codec_name(self):
+    def codec_name(self) -> str:
         return self.ffmpeg_args['-c:a']
 
     @property

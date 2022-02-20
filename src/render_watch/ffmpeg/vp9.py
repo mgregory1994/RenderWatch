@@ -23,7 +23,7 @@ class VP9:
 
     QUALITY = ('auto', 'good', 'best', 'realtime')
     QUALITY_LENGTH = len(QUALITY)
-    
+
     SPEED = ('auto', '0', '1', '2', '3', '4', '5')
     SPEED_LENGTH = len(SPEED)
 
@@ -34,7 +34,7 @@ class VP9:
         }
 
     @property
-    def codec_name(self):
+    def codec_name(self) -> str:
         return self.ffmpeg_args['-c:v']
 
     @property
