@@ -17,12 +17,8 @@
 
 
 class GeneralSettings:
-    """
-    Stores all the general settings.
-    """
-
-    FRAME_RATES = ('23.98', '24', '25', '29.97', '30', '50', '59.94', '60')
-    FRAME_RATES_LENGTH = len(FRAME_RATES)
+    FRAME_RATE = ('23.98', '24', '25', '29.97', '30', '50', '59.94', '60')
+    FRAME_RATE_LENGTH = len(FRAME_RATE)
 
     VIDEO_CODECS_MP4_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265')
     VIDEO_CODECS_MP4_UI = ('copy', 'H264', 'H265')
@@ -37,8 +33,6 @@ class GeneralSettings:
     AUDIO_CODECS_TS_UI = ('copy', 'aac')
     AUDIO_CODECS_WEBM_UI = ('copy', 'opus')
 
-    CONTAINERS_UI = ('.mp4', '.mkv', '.ts', '.webm')
-
     def __init__(self):
         self.ffmpeg_args = {}
 
@@ -50,13 +44,13 @@ class GeneralSettings:
         if '-r' in self.ffmpeg_args:
             frame_rate_arg = self.ffmpeg_args['-r']
 
-            return GeneralSettings.FRAME_RATES.index(frame_rate_arg)
+            return GeneralSettings.FRAME_RATE.index(frame_rate_arg)
         return 0
 
     @frame_rate.setter
-    def frame_rate(self, frame_rate_index: int):
-        if frame_rate_index and 0 < frame_rate_index < GeneralSettings.FRAME_RATES_LENGTH:
-            self.ffmpeg_args['-r'] = GeneralSettings.FRAME_RATES[frame_rate_index]
+    def frame_rate(self, frame_rate_index: int | None):
+        if frame_rate_index and 0 < frame_rate_index < GeneralSettings.FRAME_RATE_LENGTH:
+            self.ffmpeg_args['-r'] = GeneralSettings.FRAME_RATE[frame_rate_index]
         else:
             self.ffmpeg_args.pop('-r', 0)
 

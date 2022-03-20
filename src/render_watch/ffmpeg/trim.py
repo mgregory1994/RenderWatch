@@ -1,4 +1,4 @@
-# Copyright 2021 Michael Gregory
+# Copyright 2022 Michael Gregory
 #
 # This file is part of Render Watch.
 #
@@ -17,47 +17,31 @@
 
 
 class TrimSettings:
-    """
-    Stores all trim settings.
-    """
-
     def __init__(self):
         self.ffmpeg_args = {}
 
     @property
-    def start_time(self):
-        """
-        Returns start time as a float.
-        """
+    def start_time(self) -> float | None:
         if '-ss' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-ss'])
         return None
 
     @start_time.setter
-    def start_time(self, start_time):
-        """
-        Stores start time as a string.
-        """
-        if start_time is None or start_time < 0:
-            self.ffmpeg_args.pop('-ss', 0)
+    def start_time(self, start_time_in_seconds: int | None):
+        if start_time_in_seconds:
+            self.ffmpeg_args['-ss'] = str(start_time_in_seconds)
         else:
-            self.ffmpeg_args['-ss'] = str(start_time)
+            self.ffmpeg_args.pop('-ss', 0)
 
     @property
-    def trim_duration(self):
-        """
-        Returns trim duration as a float.
-        """
+    def trim_duration(self) -> float | None:
         if '-to' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-to'])
         return None
 
     @trim_duration.setter
-    def trim_duration(self, trim_duration):
-        """
-        Stores trim duration as a string.
-        """
-        if trim_duration is None:
+    def trim_duration(self, trim_duration_in_seconds):
+        if trim_duration_in_seconds is None:
             self.ffmpeg_args.pop('-to', 0)
         else:
-            self.ffmpeg_args['-to'] = str(trim_duration)
+            self.ffmpeg_args['-to'] = str(trim_duration_in_seconds)

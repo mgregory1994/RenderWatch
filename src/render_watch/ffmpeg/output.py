@@ -21,32 +21,115 @@ from datetime import datetime
 from render_watch.ffmpeg import input
 
 
+CONTAINERS = ('.mp4', '.mkv', '.ts', '.webm')
+
 ALIAS_COUNTER = -1
 
 
 class OutputFile:
-    def __init__(self, input_file: input.InputFile, output_file_dir: str):
-        self.dir = output_file_dir
-        self.name = input_file.name
-        self.extension = None
+    def __init__(self, input_file: input.InputFile, output_file_dir: str, app_preferences):
+        self.input_file = input_file
+        self._dir = output_file_dir
+        self._name = input_file.name
+        self._extension = '.mp4'
+        self._temp_output_file = TempOutputFile(input_file, app_preferences.get_temp_directory())
         self.size = None
         self.avg_bitrate = None
+        self.is_use_temp_file = False
+
+    @property
+    def name(self) -> str:
+        if self.is_use_temp_file:
+            return self._temp_output_file.name
+        return self._name
+
+    @name.setter
+    def name(self, name_value: str):
+        if self.is_use_temp_file:
+            self._temp_output_file.name = name_value
+        else:
+            self._name = name_value
+
+    def get_temp_name(self) -> str:
+        return self._temp_output_file.name
+
+    @property
+    def extension(self) -> str:
+        if self.is_use_temp_file:
+            return self._temp_output_file.extension
+        return self._extension
+
+    @extension.setter
+    def extension(self, extension_value: str | None):
+        if extension_value is None:
+            return
+
+        if self.is_use_temp_file:
+            self._temp_output_file.extension = extension_value
+        else:
+            self._extension = extension_value
+
+    @property
+    def dir(self) -> str:
+        if self.is_use_temp_file:
+            return self._temp_output_file.dir
+        return self._dir
+
+    @dir.setter
+    def dir(self, dir_path: str | None):
+        if dir_path is None:
+            return
+
+        if self.is_use_temp_file:
+            self._temp_output_file.dir = dir_path
+        else:
+            self._dir = dir_path
+
+    def get_temp_dir(self) -> str:
+        return self._temp_output_file.dir
 
     @property
     def file_path(self):
-        if self.extension:
-            return ''.join([self.dir,
-                            '/',
-                            self.name,
-                            '.',
-                            self.extension])
+        if self.input_file.is_folder:
+            if self.is_use_temp_file:
+                return self._temp_output_file.dir
+            return self.dir
+
+        if self.is_use_temp_file:
+            return self._temp_output_file.file_path
+        return ''.join([self.dir,
+                        '/',
+                        self.name,
+                        self.extension])
 
 
 class TempOutputFile:
     def __init__(self, input_file: input.InputFile, temp_output_file_dir: str):
-        self.dir = temp_output_file_dir
+        self._dir = temp_output_file_dir
         self.name = AliasGenerator.generate_alias_from_name(input_file.name)
-        self.extension = None
+        self._extension = '.mp4'
+
+    @property
+    def dir(self) -> str:
+        return self._dir
+
+    @dir.setter
+    def dir(self, dir_path: str):
+        if dir_path is None:
+            return
+
+        self._dir = dir_path
+
+    @property
+    def extension(self) -> str:
+        return self._extension
+
+    @extension.setter
+    def extension(self, extension_value: str | None):
+        if extension_value is None:
+            return
+
+        self._extension = extension_value
 
     @property
     def file_path(self):
@@ -54,7 +137,6 @@ class TempOutputFile:
             return ''.join([self.dir,
                             '/',
                             self.name,
-                            '.',
                             self.extension])
 
 

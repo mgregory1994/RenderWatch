@@ -25,28 +25,31 @@ class Opus:
     CHANNELS = ('auto', '1', '2', '3', '4', '6', '8')
     CHANNELS_LENGTH = len(CHANNELS)
 
-    def __init__(self):
+    def __init__(self, index: int):
+        self.codec_name_arg = ''.join(['-c:a:', str(index)])
+        self.bitrate_arg = ''.join(['-b:a:', str(index)])
+        self.channels_arg = ''.join(['-ac:a:', str(index)])
         self.ffmpeg_args = {
-            '-c:a': 'libopus',
-            '-b:a': '128k'
+            self.codec_name_arg: 'libopus',
+            self.bitrate_arg: '128k'
         }
 
     @property
     def codec_name(self) -> str:
-        return self.ffmpeg_args['-c:a']
+        return self.ffmpeg_args[self.codec_name_arg]
 
     @property
     def bitrate(self) -> int:
-        bitrate_arg = self.ffmpeg_args['-b:a']
+        bitrate_arg = self.ffmpeg_args[self.bitrate_arg]
 
         return int(bitrate_arg.split('k')[0])
 
     @bitrate.setter
     def bitrate(self, bitrate_value: int | None):
         if bitrate_value is None:
-            self.ffmpeg_args['-b:a'] = '128k'
+            self.ffmpeg_args[self.bitrate_arg] = '128k'
         else:
-            self.ffmpeg_args['-b:a'] = str(bitrate_value) + 'k'
+            self.ffmpeg_args[self.bitrate_arg] = str(bitrate_value) + 'k'
 
     @property
     def channels(self) -> int:
@@ -54,7 +57,7 @@ class Opus:
         Returns channels as an index.
         """
         if '-ac' in self.ffmpeg_args:
-            channels_arg = self.ffmpeg_args['-ac']
+            channels_arg = self.ffmpeg_args[self.channels_arg]
 
             return self.CHANNELS.index(channels_arg)
         return 0
@@ -70,6 +73,6 @@ class Opus:
     @channels.setter
     def channels(self, channels_index: int | None):
         if channels_index and 0 < channels_index < Opus.CHANNELS_LENGTH:
-            self.ffmpeg_args['-ac'] = self.CHANNELS[channels_index]
+            self.ffmpeg_args[self.channels_arg] = self.CHANNELS[channels_index]
         else:
-            self.ffmpeg_args.pop('-ac', 0)
+            self.ffmpeg_args.pop(self.channels_arg, 0)
