@@ -21,6 +21,7 @@ import subprocess
 import threading
 import copy
 
+from render_watch import app_preferences
 from render_watch.ffmpeg import input, output
 from render_watch.ffmpeg import trim
 from render_watch.ffmpeg import filters
@@ -32,10 +33,10 @@ MIN_CHUNK_LENGTH_SECONDS = 10
 
 
 class Task:
-    def __init__(self, input_file_path: str, app_preferences, video_chunk=False):
+    def __init__(self, input_file_path: str, app_settings: app_preferences.Settings, video_chunk=False):
+        self.app_settings = app_settings
         self.input_file = input.InputFile(input_file_path)
-        self.output_file = output.OutputFile(self.input_file, '/home/michael/Videos/outputs', app_preferences)
-        self.temp_output_file = output.TempOutputFile(self.input_file, 'get_default_temp_dir_from_preferences')
+        self.output_file = output.OutputFile(self.input_file, self.app_settings)
         self.general_settings = None
         self.video_stream = None
         self.video_codec = None
@@ -213,7 +214,7 @@ class Task:
         return nvidia_helper.Compatibility.run_test_process(test_process_args)
 
     def get_copy(self):
-        task_copy = Task(self.input_file.file_path, self.is_video_chunk)
+        task_copy = Task(self.input_file.file_path, self.app_settings, self.is_video_chunk)
 
         try:
             task_copy.video_stream = self.video_stream
@@ -238,29 +239,29 @@ class Task:
 
 class Parallel:
     @staticmethod
-    def get_task_chunks(encoding_task: Task, app_preferences) -> tuple | None:
-        number_of_chunks = Parallel._get_number_of_chunks(encoding_task, app_preferences)
+    def get_task_chunks(encoding_task: Task, app_settings: app_preferences.Settings) -> tuple | None:
+        number_of_chunks = Parallel._get_number_of_chunks(encoding_task, app_settings)
 
         if Parallel._is_task_chunkable(encoding_task, number_of_chunks):
             return Parallel._get_task_chunks_tuple(encoding_task, number_of_chunks)
         return None
 
     @staticmethod
-    def _get_number_of_chunks(encoding_task: Task, app_preferences) -> int:
+    def _get_number_of_chunks(encoding_task: Task, app_settings: app_preferences.Settings) -> int:
         if encoding_task.is_video_nvenc():
             return nvidia_helper.Parallel.nvenc_max_workers
-        return Parallel._get_per_codec_number_of_chunks(encoding_task, app_preferences)
+        return Parallel._get_per_codec_number_of_chunks(encoding_task, app_settings)
 
     @staticmethod
-    def _get_per_codec_number_of_chunks(encoding_task: Task, app_preferences) -> int:
+    def _get_per_codec_number_of_chunks(encoding_task: Task, app_settings: app_preferences.Settings) -> int:
         if encoding_task.is_video_x264():
-            return app_preferences.parallel_tasks['x264']
+            return app_settings.per_codec_parallel_tasks['x264']
 
         if encoding_task.is_video_x265():
-            return app_preferences.parallel_tasks['x265']
+            return app_settings.per_codec_parallel_tasks['x265']
 
         if encoding_task.is_video_vp9():
-            return app_preferences.parallel_tasks['vp9']
+            return app_settings.per_codec_parallel_tasks['vp9']
         return 1
 
     @staticmethod

@@ -5,6 +5,12 @@ import qdarktheme
 
 from rw_ui import Ui_MainWindow
 
+from render_watch import app_preferences
+
+
+APP_NAME = 'io.github.renderwatch.RenderWatch'
+ORG_NAME = 'Michael Gregory'
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -19,11 +25,7 @@ class AppLoop:
         app = QtWidgets.QApplication([])
         app.aboutToQuit.connect(self.on_window_state_changed)
 
-        self.window_state = None
-        self.window_geometry = None
-        self.window = None
-        self.splitter_state = None
-        self.splitter_2_state = None
+        self.app_settings = app_preferences.Settings()
 
         while True:
             self.window = MainWindow()
@@ -44,11 +46,10 @@ class AppLoop:
             self.benchmark_toolbutton.clicked.connect(self.on_benchmark_toolbutton_clicked)
             self.window.show()
 
-            if self.window and self.window_state and self.window_geometry and self.splitter_state and self.splitter_2_state:
-                self.window.restoreState(self.window_state)
-                self.window.restoreGeometry(self.window_geometry)
-                self.splitter.restoreState(self.splitter_state)
-                self.splitter_2.restoreState(self.splitter_2_state)
+            self.window.restoreState(self.app_settings.app_window_state)
+            self.window.restoreGeometry(self.app_settings.app_window_geometry)
+            self.splitter.restoreState(self.app_settings.sidebar_splitter_state)
+            self.splitter_2.restoreState(self.app_settings.preview_splitter_state)
 
             app.setStyleSheet(qdarktheme.load_stylesheet(border='sharp'))
             app.exec()
@@ -56,11 +57,12 @@ class AppLoop:
         sys.exit(0)
 
     def on_window_state_changed(self):
-        self.window_state = self.window.saveState()
-        self.window_geometry = self.window.saveGeometry()
-        self.splitter_state = self.splitter.saveState()
-        self.splitter_2_state = self.splitter_2.saveState()
-        print('save state')
+        self.app_settings.app_window_state = self.window.saveState()
+        self.app_settings.app_window_geometry = self.window.saveGeometry()
+        self.app_settings.sidebar_splitter_state = self.splitter.saveState()
+        self.app_settings.preview_splitter_state = self.splitter_2.saveState()
+
+        self.app_settings.save()
 
     def on_preview_toolbutton_clicked(self):
         self.preview_stack.setCurrentWidget(self.preview_page)

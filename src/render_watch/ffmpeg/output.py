@@ -18,6 +18,7 @@
 
 from datetime import datetime
 
+from render_watch import app_preferences
 from render_watch.ffmpeg import input
 
 
@@ -27,12 +28,12 @@ ALIAS_COUNTER = -1
 
 
 class OutputFile:
-    def __init__(self, input_file: input.InputFile, output_file_dir: str, app_preferences):
+    def __init__(self, input_file: input.InputFile, app_settings: app_preferences.Settings):
         self.input_file = input_file
-        self._dir = output_file_dir
+        self._dir = app_settings.output_directory
         self._name = input_file.name
         self._extension = '.mp4'
-        self._temp_output_file = TempOutputFile(input_file, app_preferences.get_temp_directory())
+        self._temp_output_file = TempOutputFile(input_file, app_settings.temp_directory)
         self.size = None
         self.avg_bitrate = None
         self.is_use_temp_file = False
