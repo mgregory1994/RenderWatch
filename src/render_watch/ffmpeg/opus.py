@@ -29,9 +29,6 @@ class Opus:
 
         Parameters:
             audio_stream_index: Index of the audio stream that's using this codec.
-
-        Returns:
-            None
         """
         self.codec_name_arg = ''.join(['-c:a:', str(audio_stream_index)])
         self.bitrate_arg = ''.join(['-b:a:', str(audio_stream_index)])
@@ -110,7 +107,7 @@ class Opus:
     @channels.setter
     def channels(self, channels_index: int | None):
         """
-        Sets the codec's channels option.
+        Sets the channels option.
 
         Parameters:
             channels_index: Index from the CHANNELS variable.
