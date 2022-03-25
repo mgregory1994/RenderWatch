@@ -53,7 +53,12 @@ FFPROBE_ARGS = [
 
 
 class InputFile:
+    """Class that generates all the necessary information for the given input file."""
+
     def __init__(self, input_file_path: str):
+        """
+        Initializes the InputFile class with all the necessary variables for the information of the given input file.
+        """
         self.file_path = input_file_path
         self.name = Path(input_file_path).resolve().stem
         self.size = None
@@ -70,6 +75,13 @@ class InputFile:
             _InputInformation(self)
 
     def is_valid(self) -> bool:
+        """
+        Returns whether the input file information is usable for the rest of the application or if the input folder
+        is accessible.
+
+        Returns:
+            Boolean that represents whether the input file's information is valid.
+        """
         if self.is_folder:
             return os.access(self.file_path, os.R_OK)
 
@@ -83,7 +95,12 @@ class InputFile:
 
 
 class VideoStream:
+    """Class that configures the necessary information for the video stream of a video file."""
+
     def __init__(self):
+        """
+        Initializes the VideoStream class with all the necessary variables for the information of a video stream.
+        """
         self.index = None
         self.codec_name = None
         self.width = None
@@ -94,35 +111,86 @@ class VideoStream:
 
     @property
     def frame_rate(self) -> float | str:
+        """
+        Returns the frame rate of the video stream.
+
+        Returns:
+            Frame rate as a float or a string that represents no value.
+        """
         if self._frame_rate is None:
             return 'N/A'
         return self._frame_rate
 
     @frame_rate.setter
     def frame_rate(self, frame_rate_value: float | None):
+        """
+        Sets the frame rate value of the video stream.
+
+        Parameters:
+            frame_rate_value: The frame rate value as a float.
+
+        Returns:
+            None
+        """
         self._frame_rate = float(('%.3f' % frame_rate_value).rstrip('0').rstrip('.'))
 
     @property
     def bitrate(self) -> int | str:
+        """
+        Returns the bitrate of the video stream.
+
+        Returns:
+            Bitrate as an int or a string that represents no value.
+        """
         if self._bitrate is None:
             return 'N/A'
         return self._bitrate
 
     @bitrate.setter
     def bitrate(self, bitrate_value: int | None):
+        """
+        Sets the bitrate value of the video stream.
+
+        Parameters:
+            bitrate_value: The bitrate value as an int.
+
+        Returns:
+            None
+        """
         self._bitrate = bitrate_value
 
     @property
     def language(self) -> str:
+        """
+        Returns the language of the video stream.
+
+        Returns:
+            String that represents the language.
+        """
         if self._language is None:
             return 'N/A'
         return self._language
 
     @language.setter
     def language(self, language_value: str | None):
+        """
+        Sets the language of the video stream.
+
+        Parameters:
+            language_value: String that represents the language.
+
+        Returns:
+            None
+        """
         self._language = language_value
 
     def get_info(self) -> str:
+        """
+        Returns the video stream's information as a string.
+
+        Returns:
+            String that represents the video stream's information.
+        """
         return ''.join(['[',
                         str(self.index),
                         ',',
@@ -139,7 +207,12 @@ class VideoStream:
 
 
 class AudioStream:
+    """Class that configures the necessary information for the audio stream of a video/audio file."""
+
     def __init__(self):
+        """
+        Initializes the AudioStream class with all the necessary variables for the information of an audio stream.
+        """
         self.index = None
         self.codec_name = None
         self._sample_rate = None
@@ -149,45 +222,111 @@ class AudioStream:
 
     @property
     def sample_rate(self) -> int | str:
+        """
+        Returns the sample rate of the audio stream.
+
+        Returns:
+            Sample rate as an int or a string that represents no value.
+        """
         if self._sample_rate is None:
             return 'N/A'
         return self._sample_rate
 
     @sample_rate.setter
     def sample_rate(self, sample_rate_value: int | None):
+        """
+        Sets the frame rate value of the audio stream.
+
+        Parameters:
+            sample_rate_value: Sample rate value as an int.
+
+        Returns:
+            None
+        """
         self._sample_rate = sample_rate_value
 
     @property
     def channels(self) -> int | str:
+        """
+        Returns the channels of the audio stream.
+
+        Returns:
+            Channels as an int or a string that represents no value.
+        """
         if self._channels is None:
             return 'N/A'
         return self._channels
 
     @channels.setter
     def channels(self, channels_value: int | None):
+        """
+        Sets the channels value of the audio stream.
+
+        Parameters:
+            channels_value: The channels value as an int.
+
+        Returns:
+            None
+        """
         self._channels = channels_value
 
     @property
     def bitrate(self) -> int | str:
+        """
+        Returns the bitrate of the audio stream.
+
+        Returns:
+            Bitrate as an int or a string that represents no value.
+        """
         if self._bitrate is None:
             return 'N/A'
         return self._bitrate
 
     @bitrate.setter
     def bitrate(self, bitrate_value: int | None):
+        """
+        Sets the bitrate value of the audio stream.
+
+        Parameters:
+            bitrate_value: The bitrate value as an int.
+
+        Returns:
+            None
+        """
         self._bitrate = bitrate_value
 
     @property
     def language(self) -> str:
+        """
+        Returns the langauge of the audio stream as a string.
+
+        Returns:
+            A string that represents the language.
+        """
         if self._language is None:
             return 'N/A'
         return self._language
 
     @language.setter
     def language(self, language_value: str | None):
+        """
+        Sets the language of the audio stream.
+
+        Parameters:
+            language_value: A string that represents the language.
+
+        Returns:
+            None
+        """
         self._language = language_value
 
     def get_info(self) -> str:
+        """
+        Returns the audio stream's information as a string.
+
+        Returns:
+            String that represents the audio stream's information.
+        """
         return ''.join(['[',
                         str(self.index),
                         ',',
@@ -202,22 +341,48 @@ class AudioStream:
 
 
 class SubtitleStream:
+    """Class that configures the necessary information for the subtitle stream of a video file."""
+
     def __init__(self):
+        """
+        Initializes the SubtitleStream class with all the necessary variables for the information of a subtitle stream.
+        """
         self.index = None
         self.codec_name = None
         self._language = None
 
     @property
     def language(self) -> str:
+        """
+        Returns the language of the subtitle stream.
+
+        Returns:
+            String that represents the language.
+        """
         if self._language is None:
             return 'N/A'
         return self._language
 
     @language.setter
     def language(self, language_value: str | None):
+        """
+        Sets the language of the subtitle stream.
+
+        Parameters:
+            language_value: String that represents the language.
+
+        Returns:
+            None
+        """
         self._language = language_value
 
     def get_info(self) -> str:
+        """
+        Returns the subtitle stream's information as a string.
+
+        Returns:
+            String that represents the subtitles stream's information.
+        """
         return ''.join(['[',
                         str(self.index),
                         ',',
@@ -227,7 +392,13 @@ class SubtitleStream:
 
 
 class _InputInformation:
+    """Class that generates the necessary information about an input file."""
+
     def __init__(self, input_file: InputFile):
+        """
+        Initializes the _InputInformation class with all the necessary variables for generating the information for an
+        input file.
+        """
         self.input_file = input_file
         self.stream_info = ''
 
@@ -235,6 +406,12 @@ class _InputInformation:
         self.set_input_file_info()
 
     def process_streams(self):
+        """
+        Runs a subprocess of FFprobe to gather information about the input file's video/audio/subtitle streams.
+
+        Returns:
+            None
+        """
         with subprocess.Popen(self._get_ffprobe_args(),
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT,
@@ -258,12 +435,21 @@ class _InputInformation:
                 self.stream_info = ' '.join([self.stream_info, stdout])
 
     def _get_ffprobe_args(self) -> list:
+        # Generates and returns the FFprobe process arguments.
         args = FFPROBE_ARGS
         args.append(self.input_file.file_path)
 
         return args
 
     def process_stream_info(self):
+        """
+        Parses the stream info from stdout in order to get the information from FFprobe.
+
+        Uses the re module for parsing strings from stdout.
+
+        Returns:
+            None
+        """
         codec_type = re.search(r'codec_type=\w+', self.stream_info).group().split('=')[1]
 
         if codec_type == 'video':
@@ -274,6 +460,14 @@ class _InputInformation:
             self.process_subtitle_stream()
 
     def process_video_stream(self):
+        """
+        Parses the video stream info. from stdout in order to get the information from FFprobe.
+
+        Uses the re module for parsing strings from stdout.
+
+        Returns:
+            None
+        """
         video_stream = VideoStream()
         video_stream.index = self.get_index_from_stream_info()
         video_stream.codec_name = self.get_codec_name_from_stream_info()
@@ -286,6 +480,13 @@ class _InputInformation:
         self.add_video_stream(video_stream)
 
     def add_video_stream(self, video_stream: VideoStream):
+        """
+        Checks to see if enough information was collected about the video stream and adds it to the list of
+        video streams.
+
+        Returns:
+            None
+        """
         if video_stream.index is None:
             return
 
@@ -298,6 +499,14 @@ class _InputInformation:
         self.input_file.video_streams.append(video_stream)
 
     def process_audio_stream(self):
+        """
+        Parses the audio stream info. from stdout in order to get the information from FFprobe.
+
+        Uses the re module for parsing strings from stdout.
+
+        Returns:
+            None
+        """
         audio_stream = AudioStream()
         audio_stream.index = self.get_index_from_stream_info()
         audio_stream.codec_name = self.get_codec_name_from_stream_info()
@@ -309,6 +518,13 @@ class _InputInformation:
         self.add_audio_stream(audio_stream)
 
     def add_audio_stream(self, audio_stream: AudioStream):
+        """
+        Checks to see if enough information was collected about the audio stream and adds it to the list of
+        audio streams.
+
+        Returns:
+            None
+        """
         if audio_stream.index is None:
             return
 
@@ -318,6 +534,14 @@ class _InputInformation:
         self.input_file.audio_streams.append(audio_stream)
 
     def process_subtitle_stream(self):
+        """
+        Parses the subtitle stream info. from stdout in order to get the information from FFprobe.
+
+        Uses the re module for parsing strings from stdout.
+
+        Returns:
+            None
+        """
         subtitle_stream = SubtitleStream()
         subtitle_stream.index = self.get_index_from_stream_info()
         subtitle_stream.codec_name = self.get_codec_name_from_stream_info()
@@ -326,6 +550,13 @@ class _InputInformation:
         self.add_subtitle_stream(subtitle_stream)
 
     def add_subtitle_stream(self, subtitle_stream: SubtitleStream):
+        """
+        Checks to see if enough information was collected about the subtitle stream and adds it to the list of
+        subtitle streams.
+
+        Returns:
+            None
+        """
         if subtitle_stream.index is None:
             return
 
@@ -335,6 +566,12 @@ class _InputInformation:
         self.input_file.subtitle_streams.append(subtitle_stream)
 
     def get_index_from_stream_info(self) -> int | None:
+        """
+        Uses regex to parse the index from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             index = re.search(r'index=\w+', self.stream_info).group().split('=')[1]
 
@@ -343,18 +580,36 @@ class _InputInformation:
             return None
 
     def get_codec_name_from_stream_info(self) -> str | None:
+        """
+        Uses regex to parse the codec name from FFprobe's stdout.
+
+        Returns:
+            String or None if no value.
+        """
         try:
             return re.search(r'codec_name=\w+', self.stream_info).group().split('=')[1]
         except:
             return None
 
     def get_language_from_stream_info(self) -> str | None:
+        """
+        Uses regex to parse the language from FFprobe's stdout.
+
+        Returns:
+            String or None if no value.
+        """
         try:
             return re.search(r'TAG:language=\w+', self.stream_info).group().split('=')[1]
         except:
             return None
 
     def get_width_from_stream_info(self) -> int | None:
+        """
+        Uses regex to parse the width from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             width = re.search(r'width=\d+', self.stream_info).group().split('=')[1]
 
@@ -363,6 +618,12 @@ class _InputInformation:
             return None
 
     def get_height_from_stream_info(self) -> int | None:
+        """
+        Uses regex to parse the height from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             height = re.search(r'height=\d+', self.stream_info).group().split('=')[1]
 
@@ -371,6 +632,12 @@ class _InputInformation:
             return None
 
     def get_frame_rate_from_stream_info(self) -> float | None:
+        """
+        Uses regex to parse the frame rate from FFprobe's stdout.
+
+        Returns:
+            Float or None if no value.
+        """
         try:
             frame_rate = re.search(r'r_frame_rate=\d+/\d+', self.stream_info).group().split('=')[1]
             dividend = frame_rate.split('/')[0]
@@ -381,6 +648,12 @@ class _InputInformation:
             return None
 
     def get_bitrate_from_stream_info(self) -> int | None:
+        """
+        Uses regex to parse the bitrate from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             bitrate = re.search(r'bit_rate=\d+', self.stream_info).group().split('=')[1]
 
@@ -389,6 +662,12 @@ class _InputInformation:
             return None
 
     def get_sample_rate_from_stream_info(self) -> int | None:
+        """
+        Uses regex to parse the sample rate from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             sample_rate = re.search(r'sample_rate=\d+', self.stream_info).group().split('=')[1]
 
@@ -397,6 +676,12 @@ class _InputInformation:
             return None
 
     def get_channels_from_stream_info(self) -> int | None:
+        """
+        Uses regex to parse the channels from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             channels = re.search(r'channels=\d+', self.stream_info).group().split('=')[1]
 
@@ -405,6 +690,12 @@ class _InputInformation:
             return None
 
     def process_duration(self):
+        """
+        Uses regex to parse the duration from FFprobe's stdout.
+
+        Returns:
+            Int or None if no value.
+        """
         try:
             duration = re.search(r'duration=\d+\.\d+', self.stream_info).group().split('=')[1]
             duration_in_seconds = round(float(duration))
@@ -415,13 +706,32 @@ class _InputInformation:
             self.input_file.duration = None
 
     def set_input_file_info(self):
+        """
+        Sets information about the file's size and whether it's a video or audio file.
+
+        Returns:
+            None
+        """
         self.set_file_size()
         self.set_input_file_type()
 
     def set_file_size(self):
+        """
+        Takes the input file's size and sets the input's information as a string representing the file size.
+
+        Returns:
+            None
+        """
         file_size_in_bytes = os.path.getsize(self.input_file.file_path)
         self.input_file.size = format_converter.get_file_size_from_bytes(file_size_in_bytes)
 
     def set_input_file_type(self):
+        """
+        Checks if the video and audio stream lists are populated and sets the input information as a video or
+        audio file.
+
+        Returns:
+            None
+        """
         self.input_file.is_video = bool(self.input_file.video_streams)
         self.input_file.is_audio = bool(self.input_file.audio_streams)
