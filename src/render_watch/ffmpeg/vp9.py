@@ -265,6 +265,9 @@ class VP9:
 
         Parameters:
             stats_file_path: File path string to set the stats option to.
+
+        Returns:
+            None
         """
         if stats_file_path:
             self.ffmpeg_args['-passlogfile'] = stats_file_path
@@ -288,10 +291,13 @@ class VP9:
     @row_multithreading.setter
     def row_multithreading(self, is_row_multithreading_enabled: bool):
         """
-        Toggles the row multithreading option.
+        Sets the row multithreading option.
 
         Parameters:
             is_row_multithreading_enabled: Boolean value to set the row multithreading option to.
+
+        Returns:
+            None
         """
         if is_row_multithreading_enabled:
             self.ffmpeg_args['-row-mt'] = '1'
