@@ -28,7 +28,12 @@ ALIAS_COUNTER = -1
 
 
 class OutputFile:
+    """Class that configures all the necessary information for the output file."""
+
     def __init__(self, input_file: input.InputFile, app_settings: app_preferences.Settings):
+        """
+        Initializes the OutputFile class with all the necessary variables for the information of the output file.
+        """
         self.input_file = input_file
         self._dir = app_settings.output_directory
         self._name = input_file.name
@@ -40,28 +45,64 @@ class OutputFile:
 
     @property
     def name(self) -> str:
+        """
+        Returns the name of the output file.
+
+        Returns:
+            String that represents the name of the output file.
+        """
         if self.is_use_temp_file:
             return self._temp_output_file.name
         return self._name
 
     @name.setter
     def name(self, name_value: str):
+        """
+        Sets the name of the output file.
+
+        Parameters:
+            name_value: The name to use for the output file as a string.
+
+        Returns:
+            None
+        """
         if self.is_use_temp_file:
             self._temp_output_file.name = name_value
         else:
             self._name = name_value
 
     def get_temp_name(self) -> str:
+        """
+        Returns the temporary output file's name.
+
+        Returns:
+            Temporary output file's name as a string.
+        """
         return self._temp_output_file.name
 
     @property
     def extension(self) -> str:
+        """
+        Returns the extension of the output file.
+
+        Returns:
+            String that represents the output file's extension.
+        """
         if self.is_use_temp_file:
             return self._temp_output_file.extension
         return self._extension
 
     @extension.setter
     def extension(self, extension_value: str | None):
+        """
+        Sets the output file's extension.
+
+        Parameters:
+            extension_value: Extension as a string.
+
+        Returns:
+            None
+        """
         if extension_value is None:
             return
 
@@ -72,12 +113,27 @@ class OutputFile:
 
     @property
     def dir(self) -> str:
+        """
+        Returns the directory path that contains the output file.
+
+        Returns:
+            String that represents the output file's directory path.
+        """
         if self.is_use_temp_file:
             return self._temp_output_file.dir
         return self._dir
 
     @dir.setter
     def dir(self, dir_path: str | None):
+        """
+        Sets the directory path for the output file.
+
+        Parameters:
+            dir_path: Output file's directory path as a string.
+
+        Returns:
+            None
+        """
         if dir_path is None:
             return
 
@@ -87,10 +143,22 @@ class OutputFile:
             self._dir = dir_path
 
     def get_temp_dir(self) -> str:
+        """
+        Returns the directory path that contains the temporary output file.
+
+        Returns:
+            String that represents the temporary output file's directory path.
+        """
         return self._temp_output_file.dir
 
     @property
     def file_path(self):
+        """
+        Returns the complete file path for the output file.
+
+        Returns:
+            Output file path as a string.
+        """
         if self.input_file.is_folder:
             if self.is_use_temp_file:
                 return self._temp_output_file.dir
@@ -105,17 +173,38 @@ class OutputFile:
 
 
 class TempOutputFile:
+    """Class that configures the necessary information for the temporary output file."""
+
     def __init__(self, input_file: input.InputFile, temp_output_file_dir: str):
+        """
+        Initializes the TempOutputFile class with all the necessary variables for the information of the
+        temporary output file.
+        """
         self._dir = temp_output_file_dir
         self.name = AliasGenerator.generate_alias_from_name(input_file.name)
         self._extension = '.mp4'
 
     @property
     def dir(self) -> str:
+        """
+        Returns the directory path that contains the temporary output file.
+
+        Returns:
+            String that represents the temporary output file's directory path.
+        """
         return self._dir
 
     @dir.setter
     def dir(self, dir_path: str):
+        """
+        Sets the directory path for the temporary output file.
+
+        Parameters:
+            dir_path: Temporary output file's directory path as a string.
+
+        Returns:
+            None
+        """
         if dir_path is None:
             return
 
@@ -123,10 +212,25 @@ class TempOutputFile:
 
     @property
     def extension(self) -> str:
+        """
+        Returns the extension of the temporary output file.
+
+        Returns:
+            String that represents the temporary output file's extension.
+        """
         return self._extension
 
     @extension.setter
     def extension(self, extension_value: str | None):
+        """
+        Sets the temporary output file's extension.
+
+        Parameters:
+            extension_value: Extension as a string.
+
+        Returns:
+            None
+        """
         if extension_value is None:
             return
 
@@ -134,6 +238,12 @@ class TempOutputFile:
 
     @property
     def file_path(self):
+        """
+        Returns the complete file path for the temporary output file.
+
+        Returns:
+            Temporary output file path as a string.
+        """
         if self.extension:
             return ''.join([self.dir,
                             '/',
@@ -142,15 +252,20 @@ class TempOutputFile:
 
 
 class AliasGenerator:
+    """Class that contains functions for generating a name alias."""
 
     global ALIAS_COUNTER
 
     @staticmethod
-    def generate_alias_from_name(name):
+    def generate_alias_from_name(name: str) -> str:
         """
         Creates a unique alias based off of the first character of the given name.
 
-        :param name: Name to generate an alias from.
+        Parameters:
+            name: Name to generate a unique alias from.
+
+        Returns:
+            Unique alias as a string.
         """
         global ALIAS_COUNTER
         ALIAS_COUNTER += 1
