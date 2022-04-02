@@ -36,49 +36,10 @@ class OutputFile:
         """
         self.input_file = input_file
         self._dir = app_settings.output_directory
-        self._name = input_file.name
+        self.name = input_file.name
         self._extension = '.mp4'
-        self._temp_output_file = TempOutputFile(input_file, app_settings.temp_directory)
         self.size = None
         self.avg_bitrate = None
-        self.is_use_temp_file = False
-
-    @property
-    def name(self) -> str:
-        """
-        Returns the name of the output file.
-
-        Returns:
-            String that represents the name of the output file.
-        """
-        if self.is_use_temp_file:
-            return self._temp_output_file.name
-        return self._name
-
-    @name.setter
-    def name(self, name_value: str):
-        """
-        Sets the name of the output file.
-
-        Parameters:
-            name_value: The name to use for the output file as a string.
-
-        Returns:
-            None
-        """
-        if self.is_use_temp_file:
-            self._temp_output_file.name = name_value
-        else:
-            self._name = name_value
-
-    def get_temp_name(self) -> str:
-        """
-        Returns the temporary output file's name.
-
-        Returns:
-            Temporary output file's name as a string.
-        """
-        return self._temp_output_file.name
 
     @property
     def extension(self) -> str:
@@ -88,8 +49,6 @@ class OutputFile:
         Returns:
             String that represents the output file's extension.
         """
-        if self.is_use_temp_file:
-            return self._temp_output_file.extension
         return self._extension
 
     @extension.setter
@@ -106,10 +65,7 @@ class OutputFile:
         if extension_value is None:
             return
 
-        if self.is_use_temp_file:
-            self._temp_output_file.extension = extension_value
-        else:
-            self._extension = extension_value
+        self._extension = extension_value
 
     @property
     def dir(self) -> str:
@@ -119,8 +75,6 @@ class OutputFile:
         Returns:
             String that represents the output file's directory path.
         """
-        if self.is_use_temp_file:
-            return self._temp_output_file.dir
         return self._dir
 
     @dir.setter
@@ -137,19 +91,7 @@ class OutputFile:
         if dir_path is None:
             return
 
-        if self.is_use_temp_file:
-            self._temp_output_file.dir = dir_path
-        else:
-            self._dir = dir_path
-
-    def get_temp_dir(self) -> str:
-        """
-        Returns the directory path that contains the temporary output file.
-
-        Returns:
-            String that represents the temporary output file's directory path.
-        """
-        return self._temp_output_file.dir
+        self._dir = dir_path
 
     @property
     def file_path(self):
@@ -160,12 +102,8 @@ class OutputFile:
             Output file path as a string.
         """
         if self.input_file.is_folder:
-            if self.is_use_temp_file:
-                return self._temp_output_file.dir
             return self.dir
 
-        if self.is_use_temp_file:
-            return self._temp_output_file.file_path
         return ''.join([self.dir,
                         '/',
                         self.name,
@@ -244,11 +182,10 @@ class TempOutputFile:
         Returns:
             Temporary output file path as a string.
         """
-        if self.extension:
-            return ''.join([self.dir,
-                            '/',
-                            self.name,
-                            self.extension])
+        return ''.join([self.dir,
+                        '/',
+                        self.name,
+                        self.extension])
 
 
 class AliasGenerator:

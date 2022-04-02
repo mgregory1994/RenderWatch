@@ -37,6 +37,7 @@ class Task:
         self.app_settings = app_settings
         self.input_file = input.InputFile(input_file_path)
         self.output_file = output.OutputFile(self.input_file, self.app_settings)
+        self.temp_output_file = output.TempOutputFile(self.input_file, self.app_settings.temp_directory)
         self.general_settings = None
         self.video_stream = None
         self.video_codec = None
@@ -290,24 +291,23 @@ class Parallel:
     def _get_video_task_chunk(encoding_task: Task, number_of_chunks: int, index: int) -> Task:
         video_task_chunk = encoding_task.get_copy()
         video_task_chunk.trim = Parallel._get_video_task_trim_settings(encoding_task, number_of_chunks, index)
-        video_task_chunk.output_file.is_use_temp_file = True
 
         if video_task_chunk.is_video_2_pass():
-            video_task_chunk.video_codec.stats = ''.join([video_task_chunk.output_file.dir,
+            video_task_chunk.video_codec.stats = ''.join([video_task_chunk.temp_output_file.dir,
                                                           '/',
-                                                          video_task_chunk.output_file.name,
+                                                          video_task_chunk.temp_output_file.name,
                                                           '.log'])
 
         video_task_chunk.is_no_audio = True
         video_task_chunk.is_video_chunk = True
-        video_task_chunk.output_file.name = ''.join([video_task_chunk.output_file.name,
-                                                     '_',
-                                                     str(index)])
+        video_task_chunk.temp_output_file.name = ''.join([video_task_chunk.temp_output_file.name,
+                                                          '_',
+                                                          str(index)])
 
         if video_task_chunk.is_video_vp9():
-            video_task_chunk.output_file.extension = '.webm'
+            video_task_chunk.temp_output_file.extension = '.webm'
         else:
-            video_task_chunk.output_file.extension = '.mp4'
+            video_task_chunk.temp_output_file.extension = '.mp4'
 
         return video_task_chunk
 
@@ -352,17 +352,16 @@ class Parallel:
     def _get_audio_task_chunk(encoding_task: Task):
         audio_task_chunk = encoding_task.get_copy()
         audio_task_chunk.is_no_video = True
-        audio_task_chunk.output_file.is_use_temp_file = True
-        audio_task_chunk.output_file.extension = '.mkv'
-        audio_task_chunk.output_file.name = audio_task_chunk.output_file.name + '_audio'
+        audio_task_chunk.temp_output_file.extension = '.mkv'
+        audio_task_chunk.temp_output_file.name = audio_task_chunk.temp_output_file.name + '_audio'
 
         return audio_task_chunk
 
     @staticmethod
     def concatenate_video_task_chunks(task_chunks: tuple, encoding_task: Task):
-        chunk_list_file_path = ''.join([encoding_task.output_file.get_temp_dir(),
+        chunk_list_file_path = ''.join([encoding_task.temp_output_file.dir,
                                         '/',
-                                        encoding_task.output_file.get_temp_name(),
+                                        encoding_task.temp_output_file.name,
                                         '_concat'])
         concatenation_args = Parallel._get_video_concatenation_args(task_chunks)
 
@@ -379,8 +378,8 @@ class Parallel:
                 continue
 
             concatenation_args.append(''.join(['file \'',
-                                               video_task_chunk.output_file.name,
-                                               video_task_chunk.output_file.extension,
+                                               video_task_chunk.temp_output_file.name,
+                                               video_task_chunk.temp_output_file.extension,
                                                '\'\n']))
 
         return concatenation_args
@@ -405,9 +404,9 @@ class Parallel:
         process_args.append(chunk_list_file_path)
         process_args.append('-c')
         process_args.append('copy')
-        process_args.append(''.join([encoding_task.output_file.get_temp_dir(),
+        process_args.append(''.join([encoding_task.temp_output_file.dir,
                                      '/',
-                                     encoding_task.output_file.get_temp_name(),
+                                     encoding_task.output_file.name,
                                      encoding_task.output_file.extension]))
 
         return process_args
@@ -442,22 +441,24 @@ class Parallel:
                                        stdout_log]))
 
     @staticmethod
-    def mux_chunks(task_chunks: tuple, encoding_task: Task, app_preferences):
-        mux_chunks_process_args = Parallel._get_mux_chunks_process_args(task_chunks, encoding_task, app_preferences)
+    def mux_chunks(task_chunks: tuple, encoding_task: Task, app_settings: app_preferences.Settings):
+        mux_chunks_process_args = Parallel._get_mux_chunks_process_args(task_chunks, encoding_task, app_settings)
         Parallel._run_process_args(encoding_task, mux_chunks_process_args)
 
     @staticmethod
-    def _get_mux_chunks_process_args(task_chunks: tuple, encoding_task: Task, app_preferences) -> list:
+    def _get_mux_chunks_process_args(task_chunks: tuple,
+                                     encoding_task: Task,
+                                     app_settings: app_preferences.Settings) -> list:
         audio_task_chunk = task_chunks[-1]
 
         mux_chunks_process_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         mux_chunks_process_args.append('-i')
-        mux_chunks_process_args.append(''.join([app_preferences.temp_directory,
+        mux_chunks_process_args.append(''.join([app_settings.temp_directory,
                                                 '/',
                                                 encoding_task.output_file.name,
                                                 encoding_task.output_file.extension]))
         mux_chunks_process_args.append('-i')
-        mux_chunks_process_args.append(''.join([app_preferences.temp_directory,
+        mux_chunks_process_args.append(''.join([app_settings.temp_directory,
                                                 '/',
                                                 audio_task_chunk.output_file.name,
                                                 audio_task_chunk.output_file.extension]))
