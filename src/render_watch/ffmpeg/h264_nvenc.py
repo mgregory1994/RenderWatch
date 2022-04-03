@@ -17,9 +17,7 @@
 
 
 class H264Nvenc:
-    """
-    Stores all settings for the H264 NVENC codec.
-    """
+    """Class that configures all H264 Nvenc codec settings available for Render Watch."""
 
     PRESET = [
         'default', 'slow', 'medium', 'fast', 'hp', 'hq', 'bd', 'll', 'llhq', 'llhp', 'lossless', 'losslesshp', 'p1',
@@ -52,6 +50,7 @@ class H264Nvenc:
     BREF_MODE_LENGTH = len(BREF_MODE)
 
     def __init__(self):
+        """Initializes the H264Nvenc class with all necessary variables for the codec's options."""
         self.ffmpeg_args = {
             '-c:v': 'h264_nvenc',
             '-qp': '20.0'
@@ -63,16 +62,37 @@ class H264Nvenc:
 
     @property
     def codec_name(self) -> str:
+        """
+        Returns the name of the codec.
+
+        Returns:
+            Codec's name as a string.
+        """
         return self.ffmpeg_args['-c:v']
 
     @property
     def qp(self) -> float:
+        """
+        Returns the value of the QP setting.
+
+        Returns:
+            QP setting as a float.
+        """
         if '-qp' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-qp'])
         return 20.0
 
     @qp.setter
     def qp(self, qp_value: float | None):
+        """
+        Sets the QP setting to the specified value.
+
+        Parameters:
+            qp_value: Value to use for the QP setting.
+
+        Returns:
+            None
+        """
         if qp_value is None:
             self.ffmpeg_args.pop('-qp', 0)
         else:
@@ -81,6 +101,12 @@ class H264Nvenc:
 
     @property
     def bitrate(self) -> int:
+        """
+        Returns the value of the bitrate setting.
+
+        Returns:
+            Bitrate setting as an integer.
+        """
         if '-b:v' in self.ffmpeg_args:
             bitrate_arg = self.ffmpeg_args['-b:v']
 
@@ -89,6 +115,15 @@ class H264Nvenc:
 
     @bitrate.setter
     def bitrate(self, bitrate_value: int | None):
+        """
+        Sets the bitrate setting to the specified value.
+
+        Parameters:
+            bitrate_value: Value to use for the bitrate setting.
+
+        Returns:
+            None
+        """
         if bitrate_value is None:
             self.ffmpeg_args.pop('-b:v', 0)
         else:
@@ -98,7 +133,10 @@ class H264Nvenc:
     @property
     def profile(self) -> int:
         """
-        Returns profile as an index.
+        Returns the index of the profile setting.
+
+        Returns:
+            Profile setting as an index using the PROFILE variable.
         """
         if '-profile:v' in self.ffmpeg_args:
             profile_arg = self.ffmpeg_args['-profile:v']
@@ -108,6 +146,15 @@ class H264Nvenc:
 
     @profile.setter
     def profile(self, profile_index: int | None):
+        """
+        Sets the profile setting to the specified index.
+
+        Parameters:
+            profile_index: Index from the PROFILE variable.
+
+        Returns:
+            None
+        """
         if profile_index and 0 < profile_index < H264Nvenc.PROFILE_LENGTH:
             self.ffmpeg_args['-profile:v'] = self.PROFILE[profile_index]
         else:
@@ -116,7 +163,10 @@ class H264Nvenc:
     @property
     def preset(self) -> int:
         """
-        Returns preset as an index.
+        Returns the index of the preset setting.
+
+        Returns:
+            Preset setting as an index using the PRESET variable.
         """
         if '-preset' in self.ffmpeg_args:
             preset_arg = self.ffmpeg_args['-preset']
@@ -126,6 +176,15 @@ class H264Nvenc:
 
     @preset.setter
     def preset(self, preset_index: int | None):
+        """
+        Sets the preset setting to the specified index.
+
+        Parameters:
+            preset_index: Index from the PRESET variable.
+
+        Returns:
+            None
+        """
         if preset_index and 0 < preset_index < H264Nvenc.PRESET_LENGTH:
             self.ffmpeg_args['-preset'] = self.PRESET[preset_index]
         else:
@@ -134,7 +193,10 @@ class H264Nvenc:
     @property
     def level(self) -> int:
         """
-        Returns level as an index.
+        Returns the index of the level setting.
+
+        Returns:
+            Level setting as an index using the LEVEL variable.
         """
         if '-level' in self.ffmpeg_args:
             level_arg = self.ffmpeg_args['-level']
@@ -144,6 +206,15 @@ class H264Nvenc:
 
     @level.setter
     def level(self, level_index: int | None):
+        """
+        Sets the level setting to the specified index.
+
+        Parameters:
+            level_index: Index from the LEVEL variable.
+
+        Returns:
+            None
+        """
         if level_index and 0 < level_index < H264Nvenc.LEVEL_LENGTH:
             self.ffmpeg_args['-level'] = self.LEVEL[level_index]
         else:
@@ -152,7 +223,10 @@ class H264Nvenc:
     @property
     def tune(self) -> int:
         """
-        Returns tune as an index.
+        Returns the index of the tune setting.
+
+        Returns:
+            Tune setting as an index using the TUNE variable.
         """
         if '-tune' in self.ffmpeg_args:
             tune_arg = self.ffmpeg_args['-tune']
@@ -162,6 +236,15 @@ class H264Nvenc:
 
     @tune.setter
     def tune(self, tune_index: int | None):
+        """
+        Sets the tune setting to the specified index.
+
+        Parameters:
+            tune_index: Index from the TUNE variable.
+
+        Returns:
+            None
+        """
         if tune_index and 0 < tune_index < H264Nvenc.TUNE_LENGTH:
             self.ffmpeg_args['-tune'] = self.TUNE[tune_index]
         else:
@@ -170,7 +253,10 @@ class H264Nvenc:
     @property
     def multi_pass(self) -> int:
         """
-        Returns multi pass as an index.
+        Returns the index of the multi-pass setting.
+
+        Returns:
+            Multi-pass setting as an index using the MULTI_PASS variable.
         """
         if '-multipass' in self.ffmpeg_args:
             multi_pass_arg = self.ffmpeg_args['-multipass']
@@ -180,6 +266,15 @@ class H264Nvenc:
 
     @multi_pass.setter
     def multi_pass(self, multi_pass_index: int | None):
+        """
+        Sets the multi-pass setting to the specified index.
+
+        Parameters:
+            multi_pass_index: Index from the MULTI_PASS variable.
+
+        Returns:
+            None
+        """
         if multi_pass_index and 0 < multi_pass_index < H264Nvenc.MULTI_PASS_LENGTH:
             self.ffmpeg_args['-multipass'] = self.MULTI_PASS[multi_pass_index]
         else:
@@ -187,6 +282,12 @@ class H264Nvenc:
 
     @property
     def cbr(self) -> bool:
+        """
+        Returns whether the constant bitrate setting is enabled.
+
+        Returns:
+            Boolean that represents whether the constant bitrate setting is enabled.
+        """
         if '-cbr' in self.ffmpeg_args:
             cbr_value = self.ffmpeg_args['-cbr']
 
@@ -195,6 +296,15 @@ class H264Nvenc:
 
     @cbr.setter
     def cbr(self, cbr_enabled: bool):
+        """
+        Sets the constant bitrate setting to the specified value.
+
+        Parameters:
+            cbr_enabled: Boolean that represents whether the constant bitrate setting is enabled.
+
+        Returns:
+            None
+        """
         if cbr_enabled:
             self.ffmpeg_args['-cbr'] = '1'
         else:
@@ -202,12 +312,27 @@ class H264Nvenc:
 
     @property
     def qp_i(self) -> float:
+        """
+        Returns the value of the QP I setting.
+
+        Returns:
+            QP I setting as a float.
+        """
         if '-init_qpI' in self._ffmpeg_advanced_args:
             return float(self._ffmpeg_advanced_args['-init_qpI'])
         return 20.0
 
     @qp_i.setter
     def qp_i(self, qp_i_value: float | None):
+        """
+        Sets the QP I setting to the specified value.
+
+        Parameters:
+            qp_i_value: Value to use for the QP I setting.
+
+        Returns:
+            None
+        """
         if qp_i_value is None:
             self._ffmpeg_advanced_args.pop('-init_qpI', 0)
         else:
@@ -215,12 +340,27 @@ class H264Nvenc:
 
     @property
     def qp_p(self) -> float:
+        """
+        Returns the value of the QP P setting.
+
+        Returns:
+            QP P setting as a float.
+        """
         if '-init_qpP' in self._ffmpeg_advanced_args:
             return float(self._ffmpeg_advanced_args['-init_qpP'])
         return 20.0
 
     @qp_p.setter
     def qp_p(self, qp_p_value: float | None):
+        """
+        Sets the QP P setting to the specified value.
+
+        Parameters:
+            qp_p_value: Value to use for the QP P setting.
+
+        Returns:
+            None
+        """
         if qp_p_value is None:
             self._ffmpeg_advanced_args.pop('-init_qpP', 0)
         else:
@@ -228,12 +368,27 @@ class H264Nvenc:
 
     @property
     def qp_b(self) -> float:
+        """
+        Returns the value of the QP B setting.
+
+        Returns:
+            QP B setting as a float.
+        """
         if '-init_qpB' in self._ffmpeg_advanced_args:
             return float(self._ffmpeg_advanced_args['-init_qpB'])
         return 20.0
 
     @qp_b.setter
     def qp_b(self, qp_b_value: float | None):
+        """
+        Sets the QP B setting to the specified value.
+
+        Parameters:
+            qp_b_value: Value to use for the QP B setting.
+
+        Returns:
+            None
+        """
         if qp_b_value is None:
             self._ffmpeg_advanced_args.pop('-init_qpB', 0)
         else:
@@ -242,7 +397,10 @@ class H264Nvenc:
     @property
     def rc(self) -> int:
         """
-        Returns rate control as an index.
+        Returns the index of the rate control setting.
+
+        Returns:
+            Rate control setting as an index using the RATE_CONTROL variable.
         """
         if '-rc' in self._ffmpeg_advanced_args:
             rc_arg = self._ffmpeg_advanced_args['-rc']
@@ -252,6 +410,15 @@ class H264Nvenc:
 
     @rc.setter
     def rc(self, rc_index: int | None):
+        """
+        Sets the rate control setting to the specified value.
+
+        Parameters:
+            rc_index: Index from the RATE_CONTROL variable.
+
+        Returns:
+            None
+        """
         if rc_index and 0 < rc_index < H264Nvenc.RATE_CONTROL_LENGTH:
             self._ffmpeg_advanced_args['-rc'] = self.RATE_CONTROL[rc_index]
         else:
@@ -259,12 +426,27 @@ class H264Nvenc:
 
     @property
     def rc_lookahead(self) -> int:
+        """
+        Returns the value of the rate control lookahead setting.
+
+        Returns:
+            Rate control lookahead setting as an integer.
+        """
         if '-rc-lookahead' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['-rc-lookahead'])
         return 0
 
     @rc_lookahead.setter
     def rc_lookahead(self, rc_lookahead_value: int | None):
+        """
+        Sets the rate control lookahead setting to the specified value.
+
+        Parameters:
+            rc_lookahead_value: Value to use for the rate control lookahead setting.
+
+        Returns:
+            None
+        """
         if rc_lookahead_value is None:
             self._ffmpeg_advanced_args.pop('-rc-lookahead', 0)
         else:
@@ -272,12 +454,27 @@ class H264Nvenc:
 
     @property
     def surfaces(self) -> int:
+        """
+        Returns the value of the surfaces setting.
+
+        Returns:
+            Surfaces setting as an integer.
+        """
         if '-surfaces' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['-surfaces'])
         return 8
 
     @surfaces.setter
     def surfaces(self, surfaces_value: int | None):
+        """
+        Sets the surfaces setting to the specified value.
+
+        Parameters:
+            surfaces_value: Value to use for the surfaces setting.
+
+        Returns:
+            None
+        """
         if surfaces_value is None:
             self._ffmpeg_advanced_args.pop('-surfaces', 0)
         else:
@@ -285,12 +482,27 @@ class H264Nvenc:
 
     @property
     def b_frames(self) -> int:
+        """
+        Returns the value of the B Frames setting.
+
+        Returns:
+            B Frames setting as an integer.
+        """
         if '-bf' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['-bf'])
         return 0
 
     @b_frames.setter
     def b_frames(self, b_frames_value: int | None):
+        """
+        Sets the B Frames setting to the specified value.
+
+        Parameters:
+            b_frames_value: Value to use for the B Frames setting.
+
+        Returns:
+            None
+        """
         if b_frames_value is None:
             self._ffmpeg_advanced_args.pop('-bf', 0)
         else:
@@ -298,12 +510,27 @@ class H264Nvenc:
 
     @property
     def refs(self) -> int:
+        """
+        Returns the value of the reference frames setting.
+
+        Returns:
+            Reference frames setting as an integer.
+        """
         if '-refs' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['-refs'])
         return 0
 
     @refs.setter
     def refs(self, refs_value: int | None):
+        """
+        Sets the reference frames setting to the specified value.
+
+        Parameters:
+            refs_value: Value to use for the reference frames setting.
+
+        Returns:
+            None
+        """
         if refs_value is None:
             self._ffmpeg_advanced_args.pop('-refs', 0)
         else:
@@ -311,6 +538,12 @@ class H264Nvenc:
 
     @property
     def no_scenecut(self) -> bool:
+        """
+        Returns whether the no scenecut setting is enabled.
+
+        Returns:
+            Boolean that represents whether the no scenecut setting is enabled.
+        """
         if '-no-scenecut' in self._ffmpeg_advanced_args:
             no_scenecut_arg = self._ffmpeg_advanced_args['-no-scenecut']
 
@@ -319,6 +552,15 @@ class H264Nvenc:
 
     @no_scenecut.setter
     def no_scenecut(self, is_no_scenecut_enabled: bool):
+        """
+        Sets the no scenecut setting to the specified value.
+
+        Parameters:
+            is_no_scenecut_enabled: Boolean that represents whether the no scenecut setting is enabled.
+
+        Returns:
+            None
+        """
         if is_no_scenecut_enabled:
             self._ffmpeg_advanced_args['-no-scenecut'] = '1'
         else:
@@ -326,6 +568,12 @@ class H264Nvenc:
 
     @property
     def forced_idr(self) -> bool:
+        """
+        Returns whether the forced idr setting is enabled.
+
+        Returns:
+            Boolean that represents whether the forced idr setting is enabled.
+        """
         if '-forced-idr' in self._ffmpeg_advanced_args:
             forced_idr_arg = self._ffmpeg_advanced_args['-forced-idr']
 
@@ -334,6 +582,15 @@ class H264Nvenc:
 
     @forced_idr.setter
     def forced_idr(self, is_forced_idr_enabled: bool):
+        """
+        Sets the forced idr setting to the specified value.
+
+        Parameters:
+            is_forced_idr_enabled: Boolean that represents whether the forced idr setting is enabled.
+
+        Returns:
+            None
+        """
         if is_forced_idr_enabled:
             self._ffmpeg_advanced_args['-forced-idr'] = '1'
         else:
@@ -341,6 +598,12 @@ class H264Nvenc:
 
     @property
     def b_adapt(self) -> bool:
+        """
+        Returns whether the B adapt setting is enabled.
+
+        Returns:
+            Boolean that represents whether the B adapt setting is enabled.
+        """
         if '-b_adapt' in self._ffmpeg_advanced_args:
             b_adapt_arg = self._ffmpeg_advanced_args['-b_adapt']
 
@@ -349,6 +612,15 @@ class H264Nvenc:
 
     @b_adapt.setter
     def b_adapt(self, is_b_adapt_enabled: bool):
+        """
+        Sets the B adapt setting to the specified value.
+
+        Parameters:
+            is_b_adapt_enabled: Boolean that represents whether the B adapt setting is enabled.
+
+        Returns:
+            None
+        """
         if is_b_adapt_enabled:
             self._ffmpeg_advanced_args['-b_adapt'] = '1'
         else:
@@ -356,6 +628,12 @@ class H264Nvenc:
 
     @property
     def spatial_aq(self) -> bool:
+        """
+        Returns whether the spatial AQ setting is enabled.
+
+        Returns:
+            Boolean that represents whether the spatial AQ setting is enabled.
+        """
         if '-spatial-aq' in self._ffmpeg_advanced_args:
             spatial_aq_arg = self._ffmpeg_advanced_args['-spatial-aq']
 
@@ -364,6 +642,15 @@ class H264Nvenc:
 
     @spatial_aq.setter
     def spatial_aq(self, is_spatial_aq_enabled: bool):
+        """
+        Sets the spatial AQ setting to the specified value.
+
+        Parameters:
+            is_spatial_aq_enabled: Boolean that represents whether the spatial AQ setting is enabled.
+
+        Returns:
+            None
+        """
         if is_spatial_aq_enabled:
             self._ffmpeg_advanced_args['-spatial-aq'] = '1'
         else:
@@ -371,6 +658,12 @@ class H264Nvenc:
 
     @property
     def temporal_aq(self) -> bool:
+        """
+        Returns whether the temporal AQ setting is enabled.
+
+        Returns:
+            Boolean that represents whether the temporal AQ setting is enabled.
+        """
         if '-temporal-aq' in self._ffmpeg_advanced_args:
             temporal_aq_arg = self._ffmpeg_advanced_args['-temporal-aq']
 
@@ -379,6 +672,15 @@ class H264Nvenc:
 
     @temporal_aq.setter
     def temporal_aq(self, is_temporal_aq_enabled: bool):
+        """
+        Sets the temporal AQ setting to the specified value.
+
+        Parameters:
+            is_temporal_aq_enabled: Boolean that represents whether the temporal AQ setting is enabled.
+
+        Returns:
+            None
+        """
         if is_temporal_aq_enabled:
             self._ffmpeg_advanced_args['-temporal-aq'] = '1'
         else:
@@ -386,6 +688,12 @@ class H264Nvenc:
 
     @property
     def non_ref_p(self) -> bool:
+        """
+        Returns whether the non-reference P frames setting is enabled.
+
+        Returns:
+            Boolean that represents whether the non-reference P frames setting is enabled.
+        """
         if '-nonref_p' in self._ffmpeg_advanced_args:
             non_ref_p_arg = self._ffmpeg_advanced_args['-nonref_p']
 
@@ -394,6 +702,15 @@ class H264Nvenc:
 
     @non_ref_p.setter
     def non_ref_p(self, is_non_ref_p_enabled: bool):
+        """
+        Sets the non-references P frames setting to the specified value.
+
+        Parameters:
+            is_non_ref_p_enabled: Boolean that represents whether the non-reference P frames setting is enabled.
+
+        Returns:
+            None
+        """
         if is_non_ref_p_enabled:
             self._ffmpeg_advanced_args['-nonref_p'] = '1'
         else:
@@ -401,6 +718,12 @@ class H264Nvenc:
 
     @property
     def strict_gop(self) -> bool:
+        """
+        Returns whether the strict GOP setting is enabled.
+
+        Returns:
+            Boolean that represents whether the strict GOP setting is enabled.
+        """
         if '-strict_gop' in self._ffmpeg_advanced_args:
             strict_gop_arg = self._ffmpeg_advanced_args['-strict_gop']
 
@@ -409,6 +732,15 @@ class H264Nvenc:
 
     @strict_gop.setter
     def strict_gop(self, is_strict_gop_enabled: bool):
+        """
+        Sets the strict GOP setting to the specified value.
+
+        Parameters:
+            is_strict_gop_enabled: Boolean that represents whether the strict GOP setting is enabled.
+
+        Returns:
+            None
+        """
         if is_strict_gop_enabled:
             self._ffmpeg_advanced_args['-strict_gop'] = '1'
         else:
@@ -416,12 +748,27 @@ class H264Nvenc:
 
     @property
     def aq_strength(self) -> int:
+        """
+        Returns the value of the AQ strength setting.
+
+        Returns:
+            AQ strength setting as an integer.
+        """
         if '-aq-strength' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['-aq-strength'])
         return 8
 
     @aq_strength.setter
     def aq_strength(self, aq_strength_value: int | None):
+        """
+        Sets the AQ strength setting to the specified value.
+
+        Parameters:
+            aq_strength_value: Value to use for the AQ strength setting.
+
+        Returns:
+            None
+        """
         if aq_strength_value is None:
             self._ffmpeg_advanced_args.pop('-aq-strength', 0)
         else:
@@ -429,6 +776,12 @@ class H264Nvenc:
 
     @property
     def bluray_compat(self) -> bool:
+        """
+        Returns whether the bluray compatibility setting is enabled.
+
+        Returns:
+            Boolean that represents whether the bluray compatibility setting is enabled.
+        """
         if '-bluray-compat' in self._ffmpeg_advanced_args:
             bluray_compat_arg = self._ffmpeg_advanced_args['-bluray-compat']
 
@@ -437,6 +790,15 @@ class H264Nvenc:
 
     @bluray_compat.setter
     def bluray_compat(self, is_bluray_compat_enabled: bool):
+        """
+        Sets the bluray compatibility setting to the specified value.
+
+        Parameters:
+            is_bluray_compat_enabled: Boolean that represents whether the bluray compatibility setting is enabled.
+
+        Returns:
+            None
+        """
         if is_bluray_compat_enabled:
             self._ffmpeg_advanced_args['-bluray-compat'] = '1'
         else:
@@ -444,6 +806,12 @@ class H264Nvenc:
 
     @property
     def weighted_pred(self) -> bool:
+        """
+        Returns whether the weighted prediction setting is enabled.
+
+        Returns:
+            Boolean that represents whether the weighted prediction setting is enabled.
+        """
         if '-weighted_pred' in self._ffmpeg_advanced_args:
             weighted_pred_arg = self._ffmpeg_advanced_args['-weighted_pred']
 
@@ -452,6 +820,15 @@ class H264Nvenc:
 
     @weighted_pred.setter
     def weighted_pred(self, is_weighted_pred_enabled: bool):
+        """
+        Sets the weighted prediction setting to the specified value.
+
+        Parameters:
+            is_weighted_pred_enabled: Boolean that represents whether the weighted prediction setting is enabled.
+
+        Returns:
+            None
+        """
         if is_weighted_pred_enabled:
             self._ffmpeg_advanced_args['-weighted_pred'] = '1'
         else:
@@ -460,7 +837,10 @@ class H264Nvenc:
     @property
     def coder(self) -> int:
         """
-        Returns coder as an index.
+        Returns the index of the coder setting.
+
+        Returns:
+            Coder setting as an index using the CODER variable.
         """
         if '-coder' in self._ffmpeg_advanced_args:
             coder_arg = self._ffmpeg_advanced_args['-coder']
@@ -470,6 +850,15 @@ class H264Nvenc:
 
     @coder.setter
     def coder(self, coder_index: int | None):
+        """
+        Sets the coder setting to the specified index.
+
+        Parameters:
+            coder_index: Index from the CODER variable.
+
+        Returns:
+            None
+        """
         if coder_index and 0 < coder_index < H264Nvenc.CODER_LENGTH:
             self._ffmpeg_advanced_args['-coder'] = self.CODER[coder_index]
         else:
@@ -478,7 +867,10 @@ class H264Nvenc:
     @property
     def b_ref_mode(self) -> int:
         """
-        Returns bref mode as an index.
+        Returns the index of the B reference mode setting.
+
+        Returns:
+            B reference mode setting as an index using the BREF_MODE variable.
         """
         if '-b_ref_mode' in self._ffmpeg_advanced_args:
             b_ref_mode_arg = self._ffmpeg_advanced_args['-b_ref_mode']
@@ -488,16 +880,37 @@ class H264Nvenc:
 
     @b_ref_mode.setter
     def b_ref_mode(self, b_ref_mode_index: int | None):
+        """
+        Sets the B reference mode setting to the specified value.
+
+        Parameters:
+            b_ref_mode_index: Index from the BREF_MODE variable.
+
+        Returns:
+            None
+        """
         if b_ref_mode_index and 0 < b_ref_mode_index < H264Nvenc.BREF_MODE_LENGTH:
             self._ffmpeg_advanced_args['-b_ref_mode'] = self.BREF_MODE[b_ref_mode_index]
         else:
             self._ffmpeg_advanced_args.pop('-b_ref_mode', 0)
 
     @property
-    def encode_pass(self):
+    def encode_pass(self) -> None:
+        """
+        Returns the value of the encode pass setting.
+
+        Returns:
+            None for compatibility with the FFmpegArgs class in the encoding module.
+        """
         return None  # Returns None for compatibility.
 
     def get_ffmpeg_advanced_args(self) -> dict:
+        """
+        Returns the advanced ffmpeg args of the codec.
+
+        Returns:
+            Dictionary that contains the advanced ffmpeg args of the codec if advanced args are enabled.
+        """
         if self.is_advanced_enabled:
             return self._ffmpeg_advanced_args
         return {None: None}
