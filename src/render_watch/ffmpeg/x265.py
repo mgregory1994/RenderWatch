@@ -54,11 +54,11 @@ class X265:
 
     def __init__(self):
         """Initializes the X265 class with all necessary variables for the codec's settings."""
+        self.is_advanced_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libx265',
             '-crf': '20.0'
         }
-        self.is_advanced_enabled = False
         self._ffmpeg_advanced_args = {}
 
     @property
@@ -1504,11 +1504,7 @@ class X265:
 
     def _get_pass_args(self) -> str:
         # Returns the Encode Pass and Stats settings as a string that represents ffmpeg arguments.
-        return ''.join(['pass=',
-                        str(self.encode_pass),
-                        ':',
-                        'stats=',
-                        self.stats])
+        return ''.join(['pass=', str(self.encode_pass), ':', 'stats=', self.stats])
 
     def _generate_advanced_args(self) -> str:
         # Returns the advanced settings for the x265 codec as a string that represents ffmpeg arguments.

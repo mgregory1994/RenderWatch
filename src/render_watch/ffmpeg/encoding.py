@@ -556,9 +556,7 @@ class Parallel:
 
         video_task_chunk.is_no_audio = True
         video_task_chunk.is_video_chunk = True
-        video_task_chunk.temp_output_file.name = ''.join([video_task_chunk.temp_output_file.name,
-                                                          '_',
-                                                          str(index)])
+        video_task_chunk.temp_output_file.name = ''.join([video_task_chunk.temp_output_file.name, '_', str(index)])
 
         if video_task_chunk.is_video_vp9():
             video_task_chunk.temp_output_file.extension = '.webm'
@@ -663,9 +661,7 @@ class Parallel:
 
             return True
         except OSError:
-            logging.error(''.join(['--- FAILED TO CONCAT VIDEO CHUNKS: ',
-                                   encoding_task.input_file.name,
-                                   ' ---']))
+            logging.error(''.join(['--- FAILED TO CONCAT VIDEO CHUNKS: ', encoding_task.input_file.name, ' ---']))
 
             return False
 
@@ -699,9 +695,7 @@ class Parallel:
                 if stdout == '' and process.poll() is not None:
                     break
 
-                stdout_log = ''.join([stdout_log,
-                                     stdout,
-                                     '\n'])
+                stdout_log = ''.join([stdout_log, stdout, '\n'])
 
             concatenation_process_return_code = process.wait()
 
@@ -805,9 +799,7 @@ class FFmpegArgs:
         ffmpeg_args.append('-i')
 
         if is_cli_args_enabled:
-            ffmpeg_args.append(''.join(['\"',
-                                        encoding_task.input_file.file_path,
-                                        '\"']))
+            ffmpeg_args.append(''.join(['\"', encoding_task.input_file.file_path, '\"']))
         else:
             ffmpeg_args.append(encoding_task.input_file.file_path)
 
@@ -891,9 +883,7 @@ class FFmpegArgs:
         FFmpegArgs._add_vsync_args(encoding_task, ffmpeg_args)
 
         if is_cli_args_enabled:
-            ffmpeg_args.append(''.join(['\"',
-                                        encoding_task.output_file.file_path,
-                                        '\"']))
+            ffmpeg_args.append(''.join(['\"', encoding_task.output_file.file_path, '\"']))
         else:
             ffmpeg_args.append(encoding_task.output_file.file_path)
 

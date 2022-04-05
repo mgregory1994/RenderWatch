@@ -103,11 +103,7 @@ class OutputFile:
         """
         if self.input_file.is_folder:
             return self.dir
-
-        return ''.join([self.dir,
-                        '/',
-                        self.name,
-                        self.extension])
+        return ''.join([self.dir, '/', self.name, self.extension])
 
 
 class TempOutputFile:
@@ -182,10 +178,7 @@ class TempOutputFile:
         Returns:
             Temporary output file path as a string.
         """
-        return ''.join([self.dir,
-                        '/',
-                        self.name,
-                        self.extension])
+        return ''.join([self.dir, '/', self.name, self.extension])
 
 
 class AliasGenerator:

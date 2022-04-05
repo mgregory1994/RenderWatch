@@ -90,7 +90,6 @@ class InputFile:
 
         if self.duration is None or self.size is None:
             return False
-
         return True
 
 
@@ -383,12 +382,7 @@ class SubtitleStream:
         Returns:
             String that represents the subtitles stream's information.
         """
-        return ''.join(['[',
-                        str(self.index),
-                        ',',
-                        self.language,
-                        ']',
-                        self.codec_name])
+        return ''.join(['[', str(self.index), ',', self.language, ']', self.codec_name])
 
 
 class _InputInformation:

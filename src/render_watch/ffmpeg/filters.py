@@ -205,16 +205,7 @@ class Deinterlace:
     FFMPEG = 'ffmpegdeint'
     WESTON = 'w3fdif'
 
-    DEINT_FILTERS = (YADIF,
-                     BOB_WEAVER,
-                     EDGE_SLOPE,
-                     KERNEL,
-                     BLEND,
-                     INTERP,
-                     CUBIC,
-                     MEDIAN,
-                     FFMPEG,
-                     WESTON)
+    DEINT_FILTERS = (YADIF, BOB_WEAVER, EDGE_SLOPE, KERNEL, BLEND, INTERP, CUBIC, MEDIAN, FFMPEG, WESTON)
     DEINT_FILTERS_LENGTH = len(DEINT_FILTERS)
 
     def __init__(self):
@@ -260,13 +251,13 @@ class Filter:
 
     def __init__(self, input_file: input.InputFile):
         """Initializes the Filter class with all necessary variables for the filter options."""
-        self.ffmpeg_args = {
-            '-filter_complex': None
-        }
         self._crop = None
         self._scale = None
         self._subtitles = Subtitles(input_file)
         self._deinterlace = None
+        self.ffmpeg_args = {
+            '-filter_complex': None
+        }
 
     @property
     def crop(self) -> Crop:
@@ -414,11 +405,7 @@ class Filter:
         subtitle_arg = self._get_subtitle_arg()
         overlay_arg = self._get_overlay_arg(subtitle_arg, next_tag)
 
-        return ''.join(filter(None, [deint_arg,
-                                     crop_arg,
-                                     scale_arg,
-                                     subtitle_arg,
-                                     overlay_arg]))
+        return ''.join(filter(None, [deint_arg, crop_arg, scale_arg, subtitle_arg, overlay_arg]))
 
     def _get_deinterlace_arg(self) -> tuple:
         # Returns a tuple of strings for the ffmpeg arguments for the deinterlace settings.
@@ -431,9 +418,7 @@ class Filter:
         if self.is_crop_enabled():
             if next_tag:
                 next_tag = ''.join([next_tag, ';', next_tag])
-
-            crop_arg = ''.join([next_tag,
-                                self.crop.ffmpeg_args])
+            crop_arg = ''.join([next_tag, self.crop.ffmpeg_args])
 
             return crop_arg, self.CROP_TAG
         return '', next_tag
@@ -443,9 +428,7 @@ class Filter:
         if self.is_scale_enabled():
             if next_tag:
                 next_tag = ''.join([next_tag, ';', next_tag])
-
-            scale_arg = ''.join([next_tag,
-                                 self.scale.ffmpeg_args])
+            scale_arg = ''.join([next_tag, self.scale.ffmpeg_args])
 
             return scale_arg, self.SCALE_TAG
         return '', next_tag
@@ -454,33 +437,21 @@ class Filter:
         # Returns a string for the ffmpeg argument for the subtitle settings.
         if self.subtitles.burn_in_stream_index is not None:
             burn_in_index = self.subtitles.burn_in_stream_index
-            subtitle_arg = ''.join(['[0:',
-                                    str(burn_in_index),
-                                    ']'])
+            subtitle_arg = ''.join(['[0:', str(burn_in_index), ']'])
 
             if self.is_scale_enabled():
-                return ''.join([subtitle_arg,
-                                self.scale.ffmpeg_args,
-                                self.SUBTITLE_TAG])
+                return ''.join([subtitle_arg, self.scale.ffmpeg_args, self.SUBTITLE_TAG])
             elif self.is_crop_enabled():
                 width, height, x, y = self.crop.dimensions
 
-                return ''.join([subtitle_arg,
-                                'scale=',
-                                str(width),
-                                ':',
-                                str(height),
-                                self.SUBTITLE_TAG])
+                return ''.join([subtitle_arg, 'scale=', str(width), ':', str(height), self.SUBTITLE_TAG])
         return ''
 
     def _get_overlay_arg(self, subtitle_arg, next_tag) -> str:
         # Returns a string for the ffmpeg argument for the filter overlay setting.
         if subtitle_arg:
             if next_tag:
-                return ''.join([next_tag,
-                                self.SUBTITLE_TAG,
-                                'overlay'])
+                return ''.join([next_tag, self.SUBTITLE_TAG, 'overlay'])
             else:
-                return ''.join([subtitle_arg,
-                                'overlay'])
+                return ''.join([subtitle_arg, 'overlay'])
         return ''

@@ -71,11 +71,11 @@ class X264:
 
     def __init__(self):
         """Initializes the X264 class with all necessary variables for the codec's options."""
+        self.is_advanced_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libx264',
             '-crf': '20.0'
         }
-        self.is_advanced_enabled = False
         self._ffmpeg_advanced_args = {}
 
     @property
@@ -775,6 +775,7 @@ class X264:
 
             if partitions_arg == 'all' or partitions_arg == 'none':
                 return partitions_arg
+
             return partitions_arg.split(',')
         return ()
 
@@ -1224,11 +1225,7 @@ class X264:
 
     def _get_pass_args(self) -> str:
         # Returns the Encode Pass and Stats settings as a string that represents ffmpeg arguments.
-        return ''.join(['pass=',
-                        str(self.encode_pass),
-                        ':',
-                        'stats=',
-                        self.stats])
+        return ''.join(['pass=', str(self.encode_pass), ':', 'stats=', self.stats])
 
     def _generate_advanced_args(self) -> str:
         # Returns the advanced settings for the x264 codec as a string that represents ffmpeg arguments.

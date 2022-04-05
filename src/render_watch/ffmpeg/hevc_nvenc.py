@@ -47,14 +47,14 @@ class HevcNvenc:
 
     def __init__(self):
         """Initializes the HevcNvenc class with all necessary variables for the codec's settings."""
-        self.ffmpeg_args = {
-            '-c:v': 'hevc_nvenc',
-            '-qp': '20.0'
-        }
         self.is_advanced_enabled = False
         self.is_qp_custom_enabled = False
         self.is_dual_pass_enabled = False
         self._ffmpeg_advanced_args = {}
+        self.ffmpeg_args = {
+            '-c:v': 'hevc_nvenc',
+            '-qp': '20.0'
+        }
 
     @property
     def codec_name(self) -> str:
