@@ -706,7 +706,7 @@ class X264:
             self._ffmpeg_advanced_args['aq-strength='] = str(aq_strength_value)
 
     @property
-    def encode_pass(self) -> int:
+    def encode_pass(self) -> int | None:
         """
         Returns the value of the encode pass setting.
 
@@ -715,7 +715,7 @@ class X264:
         """
         if 'pass=' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['pass='])
-        return 0
+        return None
 
     @encode_pass.setter
     def encode_pass(self, encode_pass_value: int | None):

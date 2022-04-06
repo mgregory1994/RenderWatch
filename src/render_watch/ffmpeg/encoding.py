@@ -55,19 +55,24 @@ class Task:
         self._file_size = None
         self._speed = None
         self._time_left = None
+        self._current_position = None
+        self._progress = None
         self._bitrate_lock = threading.Lock()
         self._file_size_lock = threading.Lock()
         self._speed_lock = threading.Lock()
         self._time_left_lock = threading.Lock()
+        self._current_position_lock = threading.Lock()
+        self._progress_lock = threading.Lock()
         self._task_thread_lock = threading.Lock()
         self.is_video_chunk = video_chunk
         self.is_no_video = False
         self.is_no_audio = False
         self._has_started = False
+        self.paused_threading_event = threading.Event()
         self._is_paused = False
         self._is_stopped = False
         self._is_done = False
-        self.has_failed = False
+        self._has_failed = False
         self.duration = 0
 
     @property
@@ -101,7 +106,7 @@ class Task:
         Returns the encoding status for the file size of the task. This property is thread safe.
 
         Returns:
-            File size of the encoding task as an integer representing the file size in kilobytes.
+            File size of the encoding task as an integer representing the file size in bytes.
         """
         with self._file_size_lock:
             return self._file_size
@@ -112,7 +117,7 @@ class Task:
         Sets the file size status of the encoding task. This property is thread safe.
 
         Parameters:
-            file_size_value: File size value in kilobytes for the encoding task's file size status.
+            file_size_value: File size value in bytes for the encoding task's file size status.
 
         Returns:
             None
@@ -169,6 +174,56 @@ class Task:
         """
         with self._time_left_lock:
             self._time_left = encoder_time_left
+
+    @property
+    def current_position(self) -> int:
+        """
+        Returns the encoding task's current position. This property is thread safe.
+
+        Returns:
+            Encoding task's current position in seconds.
+        """
+        with self._current_position_lock:
+            return self._current_position
+
+    @current_position.setter
+    def current_position(self, current_position_value: int):
+        """
+        Sets the encoding task's current position. This property is thread safe.
+
+        Parameters:
+            current_position_value: Encoding task's current position in seconds.
+
+        Returns:
+            None
+        """
+        with self._current_position_lock:
+            self._current_position = current_position_value
+
+    @property
+    def progress(self) -> float:
+        """
+        Returns the encoding progress from 0.0 - 1.0. This property is thread safe.
+
+        Returns:
+            Progress of the encoding task as a float from 0.0 - 1.0.
+        """
+        with self._progress_lock:
+            return self._progress
+
+    @progress.setter
+    def progress(self, task_progress: float):
+        """
+        Sets the encoding task progress to the specified value. This property is thread safe.
+
+        Parameters:
+            task_progress: Encoding task progress as a float from 0.0 - 1.0.
+
+        Returns:
+            None
+        """
+        with self._progress_lock:
+            self._progress = task_progress
 
     @property
     def has_started(self) -> bool:
@@ -269,6 +324,31 @@ class Task:
         """
         with self._task_thread_lock:
             self._is_done = is_encoder_done
+
+    @property
+    def has_failed(self) -> bool:
+        """
+        Returns whether the task has failed while encoding. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the task has failed while encoding.
+        """
+        with self._task_thread_lock:
+            return self._has_failed
+
+    @has_failed.setter
+    def has_failed(self, has_encoder_failed: bool):
+        """
+        Sets whether the task has failed while encoding. This property is thread safe.
+
+        Parameters:
+            has_encoder_failed: Boolean that represents whether the task has failed while encoding.
+
+        Returns:
+            None
+        """
+        with self._task_thread_lock:
+            self._has_failed = has_encoder_failed
 
     def add_audio_stream(self, audio_stream: input.AudioStream):
         """
@@ -421,7 +501,7 @@ class Task:
             Boolean that represents whether the task's video codec has the encode pass setting set.
         """
         if self.video_codec:
-            return self.video_codec.encode_pass == 1
+            return self.video_codec.encode_pass is not None
         return False
 
     def is_nvenc_codec_settings_valid(self) -> bool:
@@ -775,9 +855,7 @@ class FFmpegArgs:
         FFmpegArgs._add_general_settings_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_trim_duration_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_output_file_args(encoding_task, ffmpeg_args, cli_args)
-        FFmpegArgs._add_2_pass_args(encoding_task, ffmpeg_args)
-
-        return ffmpeg_args
+        return FFmpegArgs._add_2_pass_args(encoding_task, ffmpeg_args)
 
     @staticmethod
     def _add_trim_start_args(encoding_task: Task, ffmpeg_args: list):
@@ -900,8 +978,8 @@ class FFmpegArgs:
             encoding_task_copy = encoding_task.get_copy()
             encoding_task_copy.video_codec.encode_pass = 2
 
-            ffmpeg_args.append('&&')
-            ffmpeg_args.extend(FFmpegArgs.get_args(encoding_task_copy))
+            return [ffmpeg_args, FFmpegArgs.get_args(encoding_task_copy)[0]]
+        return [ffmpeg_args]
 
     @staticmethod
     def get_args_from_dict(ffmpeg_args: dict):
