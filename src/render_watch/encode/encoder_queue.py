@@ -50,9 +50,9 @@ class TaskQueue:
         self.is_using_parallel_tasks_queue = self.app_settings.is_encoding_parallel_tasks
         self._running_tasks = []
         self._running_tasks_lock = threading.Lock()
-        self.standard_tasks_queue = _StandardTasksQueue(self)
-        self.parallel_tasks_queue = _ParallelTasksQueue(self, self.app_settings)
-        self.watch_folder_tasks_queue = _WatchFolderTasksQueue(self, self.app_settings)
+        self._standard_tasks_queue = _StandardTasksQueue(self)
+        self._parallel_tasks_queue = _ParallelTasksQueue(self, self.app_settings)
+        self._watch_folder_tasks_queue = _WatchFolderTasksQueue(self, self.app_settings)
 
     def add_encoding_task(self, encoding_task: encoding.Task):
         """
@@ -66,11 +66,11 @@ class TaskQueue:
             None
         """
         if encoding_task.is_watch_folder:
-            self.watch_folder_tasks_queue.add_encoding_task(encoding_task)
+            self._watch_folder_tasks_queue.add_encoding_task(encoding_task)
         elif self.is_using_parallel_tasks_queue:
-            self.parallel_tasks_queue.add_encoding_task(encoding_task)
+            self._parallel_tasks_queue.add_encoding_task(encoding_task)
         else:
-            self.standard_tasks_queue.add_encoding_task(encoding_task)
+            self._standard_tasks_queue.add_encoding_task(encoding_task)
 
     def add_to_running_tasks(self, encoding_task: encoding.Task):
         """
@@ -122,7 +122,7 @@ class TaskQueue:
             None
         """
         if self.is_using_parallel_tasks_queue:
-            self.standard_tasks_queue.join_queue()
+            self._standard_tasks_queue.join_queue()
 
     def wait_for_parallel_tasks(self):
         """
@@ -132,7 +132,7 @@ class TaskQueue:
             None
         """
         if not self.is_using_parallel_tasks_queue:
-            self.parallel_tasks_queue.join_queue()
+            self._parallel_tasks_queue.join_queue()
 
     def wait_for_watch_folder_tasks(self):
         """
@@ -163,8 +163,8 @@ class TaskQueue:
         Returns:
             None
         """
-        self.standard_tasks_queue.join_queue()
-        self.parallel_tasks_queue.join_queue()
+        self._standard_tasks_queue.join_queue()
+        self._parallel_tasks_queue.join_queue()
 
     def run_encoding_task(self, encoding_task: encoding.Task):
         """
@@ -223,15 +223,15 @@ class TaskQueue:
 
     def _empty_task_queues(self):
         # Empties all task queues.
-        self.standard_tasks_queue.empty_queue()
-        self.parallel_tasks_queue.empty_queue()
-        self.watch_folder_tasks_queue.empty_queue()
+        self._standard_tasks_queue.empty_queue()
+        self._parallel_tasks_queue.empty_queue()
+        self._watch_folder_tasks_queue.empty_queue()
 
     def _add_stop_tasks_to_queues(self):
         # Sends a stop task to all task queues.
-        self.standard_tasks_queue.add_stop_task()
-        self.parallel_tasks_queue.add_stop_task()
-        self.watch_folder_tasks_queue.add_stop_task()
+        self._standard_tasks_queue.add_stop_task()
+        self._parallel_tasks_queue.add_stop_task()
+        self._watch_folder_tasks_queue.add_stop_task()
 
     def _stop_running_tasks(self):
         # Sets the stopped status for all running encoding tasks.
@@ -605,7 +605,7 @@ class _WatchFolderTasksQueue:
 
     def _get_child_encoding_task(self, encoding_task: encoding.Task) -> encoding.Task | None:
         # Returns a child encoding task from the watch folder encoding task that has a new file.
-        child_file_path = self.watch_folder_scheduler.get_instance(encoding_task.input_file.dir)
+        child_file_path = self.watch_folder_scheduler.get_instance_new_file(encoding_task.input_file.dir)
 
         if not child_file_path:
             return None

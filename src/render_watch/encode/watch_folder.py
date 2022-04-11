@@ -139,17 +139,16 @@ class WatchFolderScheduler:
                                                                  folder_directory,
                                                                  recursive=False)
 
-    def get_instance(self, folder_directory: str) -> WatchFolderInstance | None:
+    def get_instance_new_file(self, folder_directory: str) -> str | None:
         """
-        Returns the watch folder instance for the given folder directory or None if there is no
-        instance for the given directory.
+        Returns the file path for a new file found in the watch folder instance's directory.
 
         Parameters:
-            folder_directory: Folder directory to get a watch folder instance from.
+            folder_directory: Directory to get a watch folder instance from.
 
         Returns:
-            Watch folder instance for the given folder directory or None if there is no watch folder instance
-            for the given folder directory.
+            File path for any new files found in the watch folder instance's directory or None if there is
+            no watch folder instance for the given folder directory.
         """
         try:
             return self._instances[folder_directory].queue.get()
