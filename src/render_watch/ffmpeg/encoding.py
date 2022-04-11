@@ -65,15 +65,18 @@ class Task:
         self._progress_lock = threading.Lock()
         self._task_thread_lock = threading.Lock()
         self.is_video_chunk = video_chunk
+        self._is_watch_folder = False
         self.is_no_video = False
         self.is_no_audio = False
         self._has_started = False
         self.paused_threading_event = threading.Event()
         self._is_paused = False
+        self._is_idle = False
         self._is_stopped = False
         self._is_done = False
         self._has_failed = False
         self.duration = 0
+        self.child_encoding_task = None
 
     @property
     def bitrate(self) -> float:
@@ -275,6 +278,36 @@ class Task:
         with self._task_thread_lock:
             self._is_paused = is_encoder_paused
 
+            if self.child_encoding_task:
+                self.child_encoding_task.is_paused = is_encoder_paused
+
+    @property
+    def is_idle(self) -> bool:
+        """
+        Returns whether the task is idling while encoding. This applies to watch folder encoding tasks only.
+        This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the task is idling while encoding.
+        """
+        with self._task_thread_lock:
+            return self._is_idle
+
+    @is_idle.setter
+    def is_idle(self, is_encoder_idle: bool):
+        """
+        Sets whether the task is idling while encoding. This applies to watch folder encoding tasks only.
+        This property is thread safe.
+
+        Parameters:
+            is_encoder_idle: Boolean that represents whether the task is idling while encoding.
+
+        Returns:
+            None
+        """
+        with self._task_thread_lock:
+            self._is_idle = is_encoder_idle
+
     @property
     def is_stopped(self) -> bool:
         """
@@ -299,6 +332,9 @@ class Task:
         """
         with self._task_thread_lock:
             self._is_stopped = is_encoder_stopped
+
+            if self.child_encoding_task:
+                self.child_encoding_task.is_stopped = is_encoder_stopped
 
     @property
     def is_done(self) -> bool:
@@ -347,8 +383,36 @@ class Task:
         Returns:
             None
         """
+        if self.has_failed:
+            return
+
         with self._task_thread_lock:
             self._has_failed = has_encoder_failed
+
+    @property
+    def is_watch_folder(self) -> bool:
+        """
+        Returns whether this task is a watch folder task.
+
+        Returns:
+            Boolean that represents whether this task is a watch folder task.
+        """
+        if self.input_file.is_folder:
+            return self._is_watch_folder
+        return False
+
+    @is_watch_folder.setter
+    def is_watch_folder(self, is_encoding_task_watch_folder: bool):
+        """
+        Sets whether this task is a watch folder task.
+
+        Parameters:
+            is_encoding_task_watch_folder: Boolean that represents whether this task is a watch folder task.
+
+        Returns:
+            None
+        """
+        self._is_watch_folder = is_encoding_task_watch_folder
 
     def add_audio_stream(self, audio_stream: input.AudioStream):
         """

@@ -60,6 +60,7 @@ class InputFile:
         Initializes the InputFile class with all the necessary variables for the information of the given input file.
         """
         self.file_path = input_file_path
+        self.dir = os.path.dirname(input_file_path)
         self.name = Path(input_file_path).resolve().stem
         self.size = None
         self.duration = None
@@ -68,6 +69,7 @@ class InputFile:
         self.audio_streams = []
         self.subtitle_streams = []
         self.is_folder = os.path.isdir(input_file_path)
+        self.is_recursively_searching_folder = False
         self.is_video = False
         self.is_audio = False
 

@@ -18,6 +18,7 @@
 
 import logging
 import subprocess
+import time
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -139,6 +140,14 @@ class Compatibility:
     @staticmethod
     def is_nvenc_available() -> bool:
         return Compatibility.run_test_process(Compatibility.get_nvenc_test_args())
+
+    @staticmethod
+    def wait_until_nvenc_available():
+        while True:
+            if Compatibility.is_nvenc_available():
+                break
+            else:
+                time.sleep(3)
 
 
 class Parallel:

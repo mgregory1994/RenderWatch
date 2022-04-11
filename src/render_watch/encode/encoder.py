@@ -43,8 +43,6 @@ def run_encode_subprocess(encoding_task: encoding.Task) -> int:
                               stderr=subprocess.STDOUT,
                               universal_newlines=True,
                               bufsize=1) as ffmpeg_process:
-            encoding_task.has_started = True
-
             while True:
                 if encoding_task.is_stopped and ffmpeg_process.poll() is None:
                     os.kill(ffmpeg_process.pid, signal.SIGKILL)
@@ -64,7 +62,6 @@ def run_encode_subprocess(encoding_task: encoding.Task) -> int:
     _log_ffmpeg_process_state(ffmpeg_process, encoding_task, stdout_last_line)
 
     encoding_task.progress = 1.0
-    encoding_task.is_done = True
 
     return ffmpeg_process.wait()
 
@@ -169,7 +166,6 @@ def _log_ffmpeg_process_state(ffmpeg_process: subprocess.Popen, encoding_task: e
     if encoding_task.is_stopped:
         logging.info(''.join(['--- ENCODE PROCESS STOPPED: ', encoding_task.output_file.file_path, ' ---']))
     elif ffmpeg_process.wait():
-        encoding_task.has_failed = True
         logging.error(''.join(['--- ENCODE PROCESS FAILED: ',
                                encoding_task.output_file.file_path,
                                ' ---\n',
