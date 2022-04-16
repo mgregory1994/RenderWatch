@@ -45,6 +45,7 @@ class Task:
         self.input_file = input.InputFile(input_file_path)
         self.output_file = output.OutputFile(self.input_file, self.app_settings)
         self.temp_output_file = output.TempOutputFile(self.input_file, self.app_settings.temp_directory)
+        self.is_using_temp_output_file = False
         self.general_settings = None
         self.video_stream = None
         self.video_codec = None
@@ -918,6 +919,7 @@ class FFmpegArgs:
         FFmpegArgs._add_filter_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_general_settings_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_trim_duration_args(encoding_task, ffmpeg_args)
+        FFmpegArgs._add_vsync_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_output_file_args(encoding_task, ffmpeg_args, cli_args)
         return FFmpegArgs._add_2_pass_args(encoding_task, ffmpeg_args)
 
@@ -1020,20 +1022,23 @@ class FFmpegArgs:
             ffmpeg_args.append(encoding_task.trim.ffmpeg_args['-to'])
 
     @staticmethod
-    def _add_output_file_args(encoding_task: Task, ffmpeg_args: list, is_cli_args_enabled: bool):
-        # Uses the given encoding task to add the output file args to the list of ffmpeg args.
-        FFmpegArgs._add_vsync_args(encoding_task, ffmpeg_args)
-
-        if is_cli_args_enabled:
-            ffmpeg_args.append(''.join(['\"', encoding_task.output_file.file_path, '\"']))
-        else:
-            ffmpeg_args.append(encoding_task.output_file.file_path)
-
-    @staticmethod
     def _add_vsync_args(encoding_task: Task, ffmpeg_args: list):
         # Adds the vsync args to the list of ffmpeg args for an encoding task chunk.
         if encoding_task.is_video_chunk:
             ffmpeg_args.extend(ffmpeg_helper.VSYNC_ARGS)
+
+    @staticmethod
+    def _add_output_file_args(encoding_task: Task, ffmpeg_args: list, is_cli_args_enabled: bool):
+        # Uses the given encoding task to add the output file args to the list of ffmpeg args.
+        if encoding_task.is_using_temp_output_file:
+            output_file = encoding_task.temp_output_file
+        else:
+            output_file = encoding_task.output_file
+
+        if is_cli_args_enabled:
+            ffmpeg_args.append(''.join(['\"', output_file.file_path, '\"']))
+        else:
+            ffmpeg_args.append(output_file.file_path)
 
     @staticmethod
     def _add_2_pass_args(encoding_task: Task, ffmpeg_args: list):

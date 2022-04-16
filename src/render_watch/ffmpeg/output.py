@@ -16,6 +16,7 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import threading
 from datetime import datetime
 
 from render_watch import app_preferences
@@ -117,6 +118,15 @@ class TempOutputFile:
         self._dir = temp_output_file_dir
         self.name = AliasGenerator.generate_alias_from_name(input_file.name)
         self._extension = '.mp4'
+        self._crop_preview_file_path = None
+        self._trim_preview_file_path = None
+        self._settings_preview_file_path = None
+        self._crop_preview_thread_lock = threading.Lock()
+        self._trim_preview_thread_lock = threading.Lock()
+        self._settings_preview_thread_lock = threading.Lock()
+        self.crop_preview_threading_event = threading.Event()
+        self.trim_preview_threading_event = threading.Event()
+        self.settings_preview_threading_event = threading.Event()
 
     @property
     def dir(self) -> str:
@@ -179,6 +189,81 @@ class TempOutputFile:
             Temporary output file path as a string.
         """
         return ''.join([self.dir, '/', self.name, self.extension])
+
+    @property
+    def crop_preview_file_path(self) -> str | None:
+        """
+        Returns the complete file path for the crop preview file. This property is thread safe.
+
+        Returns:
+            Crop preview file path as a string or None if not set.
+        """
+        with self._crop_preview_thread_lock:
+            return self._crop_preview_file_path
+
+    @crop_preview_file_path.setter
+    def crop_preview_file_path(self, file_path: str):
+        """
+        Sets the file path for the crop preview file. This property is thread safe.
+
+        Parameters:
+            file_path: Complete file path for the crop preview file.
+
+        Returns:
+            None
+        """
+        with self._crop_preview_thread_lock:
+            self._crop_preview_file_path = file_path
+
+    @property
+    def trim_preview_file_path(self) -> str | None:
+        """
+        Returns the complete file path for the trim preview file. This property is thread safe.
+
+        Returns:
+            Trim preview file as a string or None if not set.
+        """
+        with self._trim_preview_thread_lock:
+            return self._trim_preview_file_path
+
+    @trim_preview_file_path.setter
+    def trim_preview_file_path(self, file_path: str):
+        """
+        Sets the file path for the trim preview file. This property is thread safe.
+
+        Parameters:
+            file_path: Complete file path for the trim preview file.
+
+        Returns:
+            None
+        """
+        with self._trim_preview_thread_lock:
+            self._trim_preview_file_path = file_path
+
+    @property
+    def settings_preview_file_path(self) -> str | None:
+        """
+        Returns the complete file path for the settings preview file. This property is thread safe.
+
+        Returns:
+            Settings preview file as a string or None if not set.
+        """
+        with self._settings_preview_thread_lock:
+            return self._settings_preview_file_path
+
+    @settings_preview_file_path.setter
+    def settings_preview_file_path(self, file_path: str):
+        """
+        Sets the file path for the settings preview file. This property is thread safe.
+
+        Parameters:
+            file_path: Complete file path for the settings preview file.
+
+        Returns:
+            None
+        """
+        with self._settings_preview_thread_lock:
+            self._settings_preview_file_path = file_path
 
 
 class AliasGenerator:

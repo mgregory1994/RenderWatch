@@ -185,6 +185,15 @@ class VideoStream:
         """
         self._language = language_value
 
+    def get_dimensions(self) -> tuple:
+        """
+        Returns the video stream's dimensions.
+
+        Returns:
+            Tuple that contains the video stream's width and height respectively.
+        """
+        return self.width, self.height
+
     def get_info(self) -> str:
         """
         Returns the video stream's information as a string.
