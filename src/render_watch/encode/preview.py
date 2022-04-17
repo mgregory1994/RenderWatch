@@ -159,7 +159,7 @@ class _CropPreview:
         """
         self.preview_generator = preview_generator
         self.app_settings = app_settings
-        self.crop_tasks_queue = queue.Queue()
+        self._crop_tasks_queue = queue.Queue()
 
         threading.Thread(target=self._run_queue_loop_instance, args=()).start()
 
@@ -167,7 +167,7 @@ class _CropPreview:
         # Loop that creates a preview file for each queued crop preview task.
         try:
             while True:
-                encoding_task, time_position = self.crop_tasks_queue.get()
+                encoding_task, time_position = self._crop_tasks_queue.get()
                 encoding_task_copy = encoding_task.get_copy()
 
                 try:
@@ -182,6 +182,8 @@ class _CropPreview:
                 except:
                     logging.exception(''.join(['--- CROP PREVIEW TASK FAILED ---\n',
                                                encoding_task_copy.input_file.file_path]))
+                finally:
+                    encoding_task.temp_output_file.crop_preview_threading_event.set()
         except:
             logging.exception('--- CROP PREVIEW QUEUE LOOP FAILED ---')
 
@@ -197,7 +199,6 @@ class _CropPreview:
             raise Exception
         else:
             encoding_task.temp_output_file.crop_preview_file_path = encoding_task_copy.temp_output_file.file_path
-        encoding_task.temp_output_file.crop_preview_threading_event.set()
 
     def add_crop_task(self, encoding_task: encoding.Task, time_position=None):
         """
@@ -210,7 +211,7 @@ class _CropPreview:
         Returns:
             None
         """
-        self.crop_tasks_queue.put((encoding_task.get_copy(), time_position))
+        self._crop_tasks_queue.put((encoding_task.get_copy(), time_position))
 
     def add_stop_task(self):
         """
@@ -219,7 +220,7 @@ class _CropPreview:
         Returns:
             None
         """
-        self.crop_tasks_queue.put((False, None))
+        self._crop_tasks_queue.put((False, None))
 
     def empty_queue(self):
         """
@@ -228,8 +229,8 @@ class _CropPreview:
         Returns:
             None
         """
-        while not self.crop_tasks_queue.empty():
-            self.crop_tasks_queue.get()
+        while not self._crop_tasks_queue.empty():
+            self._crop_tasks_queue.get()
 
 
 class _TrimPreview:
@@ -239,10 +240,14 @@ class _TrimPreview:
         """
         Initializes the _TrimPreview class with all necessary variables for queueing trim preview tasks and
         generating a preview file for them.
+
+        Parameters:
+            preview_generator: Preview generator that initialized this class.
+            app_settings: Application settings.
         """
         self.preview_generator = preview_generator
         self.app_settings = app_settings
-        self.trim_tasks_queue = queue.Queue()
+        self._trim_tasks_queue = queue.Queue()
 
         threading.Thread(target=self._run_queue_loop_instance, args=()).start()
 
@@ -250,7 +255,7 @@ class _TrimPreview:
         # Loop that creates a preview file for each queued trim preview task.
         try:
             while True:
-                encoding_task, time_position = self.trim_tasks_queue.get()
+                encoding_task, time_position = self._trim_tasks_queue.get()
                 encoding_task_copy = encoding_task.get_copy()
 
                 try:
@@ -265,6 +270,8 @@ class _TrimPreview:
                 except:
                     logging.exception(''.join(['--- TRIM PREVIEW TASK FAILED ---\n',
                                                encoding_task_copy.input_file.file_path]))
+                finally:
+                    encoding_task.temp_output_file.trim_preview_threading_event.set()
         except:
             logging.exception('--- TRIM PREVIEW QUEUE LOOP FAILED ---')
 
@@ -280,7 +287,6 @@ class _TrimPreview:
             raise Exception
         else:
             encoding_task.temp_output_file.trim_preview_file_path = encoding_task_copy.temp_output_file.file_path
-        encoding_task.temp_output_file.trim_preview_threading_event.set()
 
     def add_trim_task(self, encoding_task: encoding.Task, time_position=None):
         """
@@ -293,7 +299,7 @@ class _TrimPreview:
         Returns:
             None
         """
-        self.trim_tasks_queue.put((encoding_task.get_copy(), time_position))
+        self._trim_tasks_queue.put((encoding_task.get_copy(), time_position))
 
     def add_stop_task(self):
         """
@@ -302,7 +308,7 @@ class _TrimPreview:
         Returns:
             None
         """
-        self.trim_tasks_queue.put((False, None))
+        self._trim_tasks_queue.put((False, None))
 
     def empty_queue(self):
         """
@@ -311,8 +317,8 @@ class _TrimPreview:
         Returns:
             None
         """
-        while not self.trim_tasks_queue.empty():
-            self.trim_tasks_queue.get()
+        while not self._trim_tasks_queue.empty():
+            self._trim_tasks_queue.get()
 
 
 class _SettingsPreview:
@@ -331,7 +337,7 @@ class _SettingsPreview:
         """
         self.preview_generator = preview_generator
         self.app_settings = app_settings
-        self.settings_tasks_queue = queue.Queue()
+        self._settings_tasks_queue = queue.Queue()
 
         threading.Thread(target=self._run_queue_loop_instance, args=()).start()
 
@@ -339,7 +345,7 @@ class _SettingsPreview:
         # Loop that creates a preview file for each queued settings preview task.
         try:
             while True:
-                encoding_task, time_position = self.settings_tasks_queue.get()
+                encoding_task, time_position = self._settings_tasks_queue.get()
                 encoding_task_copy = encoding_task.get_copy()
 
                 try:
@@ -351,6 +357,8 @@ class _SettingsPreview:
                 except:
                     logging.exception(''.join(['--- SETTINGS PREVIEW TASK FAILED ---\n',
                                                encoding_task_copy.input_file.file_path]))
+                finally:
+                    encoding_task.temp_output_file.settings_preview_threading_event.set()
         except:
             logging.exception('--- SETTINGS PREVIEW QUEUE LOOP FAILED ---')
 
@@ -381,7 +389,6 @@ class _SettingsPreview:
             raise Exception
         else:
             encoding_task.temp_output_file.settings_preview_file_path = encoding_task_copy.temp_output_file.file_path
-        encoding_task.temp_output_file.settings_preview_threading_event.set()
 
     def _get_preview_subprocess_args(self, encoding_task: encoding.Task) -> list:
         # Returns a list that contains lists of subprocess args for the settings preview task.
@@ -417,7 +424,7 @@ class _SettingsPreview:
         Returns:
             None
         """
-        self.settings_tasks_queue.put((encoding_task, time_position))
+        self._settings_tasks_queue.put((encoding_task, time_position))
 
     def add_stop_task(self):
         """
@@ -426,7 +433,7 @@ class _SettingsPreview:
         Returns:
             None
         """
-        self.settings_tasks_queue.put((False, None))
+        self._settings_tasks_queue.put((False, None))
 
     def empty_queue(self):
         """
@@ -435,8 +442,108 @@ class _SettingsPreview:
         Returns:
             None
         """
-        while not self.settings_tasks_queue.empty():
-            self.settings_tasks_queue.get()
+        while not self._settings_tasks_queue.empty():
+            self._settings_tasks_queue.get()
+
+
+class _VideoPreview:
+    """Class that queues video preview tasks and generates a preview file for them."""
+
+    def __int__(self, preview_generator: PreviewGenerator, app_settings: app_preferences.Settings):
+        """
+        Initializes the _VideoPreview class with all necessary variables for queueing video preview tasks and
+        generating a preview file for them.
+
+        Parameters:
+            preview_generator: Preview generator that initialized this class.
+            app_settings: Application settings.
+        """
+        self.preview_generator = preview_generator
+        self.app_settings = app_settings
+        self._video_preview_queue = queue.Queue()
+
+        threading.Thread(target=self._run_queue_loop_instance, args=()).start()
+
+    def _run_queue_loop_instance(self):
+        # Loop that creates a preview file for each queued video preview task.
+        try:
+            while True:
+                encoding_task, time_position = self._video_preview_queue.get()
+                encoding_task_copy = encoding_task.get_copy()
+
+                try:
+                    if time_position is None:
+                        time_position = round(encoding_task_copy.input_file.duration / 4, 2)
+
+                    self._setup_encoding_task(encoding_task_copy, time_position)
+                    self._process_video_preview_task(encoding_task, encoding_task_copy)
+                except:
+                    logging.exception(''.join(['--- VIDEO PREVIEW TASK FAILED ---\n',
+                                               encoding_task_copy.input_file.file_path]))
+                finally:
+                    encoding_task.video_preview_threading_event.set()
+        except:
+            logging.exception('--- VIDEO PREVIEW QUEUE LOOP FAILED ---')
+
+    def _setup_encoding_task(self, encoding_task: encoding.Task, time_position: float | int):
+        # Creates a preview file for the video preview task.
+        encoding_task.temp_output_file.name = encoding_task.temp_output_file.name + '_preview'
+        encoding_task.temp_output_file.extension = encoding_task.output_file.extension
+        self._setup_encoding_task_trim_settings(encoding_task, time_position)
+
+    @staticmethod
+    def _setup_encoding_task_trim_settings(encoding_task: encoding.Task, time_position: float | int):
+        # Sets the encoding task's settings for generating a video preview file.
+        if time_position > (encoding_task.input_file.duration - encoding_task.video_preview_duration):
+            time_position -= encoding_task.video_preview_duration
+
+        trim_settings = trim.TrimSettings()
+        trim_settings.start_time = time_position
+        trim_settings.trim_duration = encoding_task.video_preview_duration
+        encoding_task.trim = trim_settings
+
+    def _process_video_preview_task(self, encoding_task: encoding.Task, encoding_task_copy: encoding.Task):
+        # Creates a preview file for the video preview task.
+        video_preview_args = encoding.FFmpegArgs.get_args(encoding_task)
+
+        if self.preview_generator.run_preview_subprocess(encoding_task_copy, video_preview_args):
+            encoding_task.temp_output_file.video_preview_file_path = None
+
+            raise Exception
+        else:
+            encoding_task.temp_output_file.video_preview_file_path = encoding_task_copy.temp_output_file.file_path
+
+    def add_video_task(self, encoding_task: encoding.Task, time_position=None):
+        """
+        Adds the given encoding task to the video preview queue.
+
+        Parameters:
+            encoding_task: Encoding task to add to the video tasks queue.
+            time_position: Time position in the video to create the preview.
+
+        Returns:
+            None
+        """
+        self._video_preview_queue.put((encoding_task, time_position))
+
+    def add_stop_task(self):
+        """
+        Adds a False boolean to the video preview queue to stop the queue loop.
+
+        Returns:
+            None
+        """
+        self._video_preview_queue.put((False, None))
+
+    def empty_queue(self):
+        """
+        Empties the video preview queue.
+
+        Returns:
+            None
+        """
+        while not self._video_preview_queue.empty():
+            self._video_preview_queue.get()
 
 
 def _get_preview_subprocess_args(encoding_task: encoding.Task, time_position: float | int) -> list:

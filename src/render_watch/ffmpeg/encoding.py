@@ -58,24 +58,28 @@ class Task:
         self._time_left = None
         self._current_position = None
         self._progress = None
+        self._video_preview_progress = None
+        self.video_preview_duration = None
         self._bitrate_lock = threading.Lock()
         self._file_size_lock = threading.Lock()
         self._speed_lock = threading.Lock()
         self._time_left_lock = threading.Lock()
         self._current_position_lock = threading.Lock()
         self._progress_lock = threading.Lock()
+        self._video_preview_progress_lock = threading.Lock()
         self._task_thread_lock = threading.Lock()
         self.is_video_chunk = video_chunk
         self._is_watch_folder = False
         self.is_no_video = False
         self.is_no_audio = False
         self._has_started = False
-        self.paused_threading_event = threading.Event()
         self._is_paused = False
         self._is_idle = False
         self._is_stopped = False
         self._is_done = False
         self._has_failed = False
+        self.paused_threading_event = threading.Event()
+        self.video_preview_threading_event = threading.Event()
         self.duration = 0
         self.child_encoding_task = None
 
@@ -228,6 +232,31 @@ class Task:
         """
         with self._progress_lock:
             self._progress = task_progress
+
+    @property
+    def video_preview_progress(self) -> float:
+        """
+        Returns the video preview's progress from 0.0 - 1.0. This property is thread safe.
+
+        Returns:
+            Progress of the video preview as a float from 0.0 - 1.0.
+        """
+        with self._video_preview_progress_lock:
+            return self._video_preview_progress
+
+    @video_preview_progress.setter
+    def video_preview_progress(self, preview_progress: float):
+        """
+        Sets the video preview's progress to the specified value. This property is thread safe.
+
+        Parameters:
+            preview_progress: Video preview's progress as a float from 0.0 - 1.0.
+
+        Returns:
+            None
+        """
+        with self._video_preview_progress_lock:
+            self._video_preview_progress = preview_progress
 
     @property
     def has_started(self) -> bool:

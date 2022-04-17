@@ -121,9 +121,11 @@ class TempOutputFile:
         self._crop_preview_file_path = None
         self._trim_preview_file_path = None
         self._settings_preview_file_path = None
+        self._video_preview_file_path = None
         self._crop_preview_thread_lock = threading.Lock()
         self._trim_preview_thread_lock = threading.Lock()
         self._settings_preview_thread_lock = threading.Lock()
+        self._video_preview_thread_lock = threading.Lock()
         self.crop_preview_threading_event = threading.Event()
         self.trim_preview_threading_event = threading.Event()
         self.settings_preview_threading_event = threading.Event()
@@ -264,6 +266,31 @@ class TempOutputFile:
         """
         with self._settings_preview_thread_lock:
             self._settings_preview_file_path = file_path
+
+    @property
+    def video_preview_file_path(self) -> str | None:
+        """
+        Returns the complete file path for the video preview file. This property is thread safe.
+
+        Returns:
+            Video preview file as a string or None if not set.
+        """
+        with self._video_preview_thread_lock:
+            return self._video_preview_file_path
+
+    @video_preview_file_path.setter
+    def video_preview_file_path(self, file_path: str):
+        """
+        Sets the file path for the video preview file. This property is thread safe.
+
+        Parameters:
+            file_path: Complete file path for the video preview file.
+
+        Returns:
+            None
+        """
+        with self._video_preview_thread_lock:
+            self._video_preview_file_path = file_path
 
 
 class AliasGenerator:
