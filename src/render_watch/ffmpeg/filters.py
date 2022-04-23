@@ -16,18 +16,34 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import logging
 import re
+import subprocess
 
+from render_watch.ffmpeg import encoding
 from render_watch.ffmpeg import input
+from render_watch.helpers import ffmpeg_helper
+from render_watch import app_preferences
 
 
 class Crop:
     """Class that configures all necessary crop options for Render Watch."""
 
-    def __init__(self):
-        """Initializes the Crop class with all necessary variables for the crop option."""
-        self.auto_crop_enabled = False
+    AUTO_CROP_SPLITS = 3
+
+    def __init__(self, encoding_task: encoding.Task, app_settings: app_preferences.Settings):
+        """
+        Initializes the Crop class with all necessary variables for the crop option.
+
+        Parameters:
+            app_settings: Application settings.
+        """
+        self.auto_crop_enabled = app_settings.is_auto_cropping_inputs
+        self._auto_crop_dimensions = None
         self.ffmpeg_args = None
+
+        if self.auto_crop_enabled:
+            self.process_auto_crop(encoding_task)
 
     @property
     def dimensions(self) -> tuple:
@@ -39,9 +55,9 @@ class Crop:
         """
         if self.ffmpeg_args:
             crop = re.search(r'\d+:\d+:\d+:\d+', self.ffmpeg_args).group()
-            width, height, x, y = crop.split(':')
+            width, height, x_pad, y_pad = crop.split(':')
 
-            return int(width), int(height), int(x), int(y)
+            return int(width), int(height), int(x_pad), int(y_pad)
         return ()
 
     @dimensions.setter
@@ -58,9 +74,135 @@ class Crop:
         if dimensions_tuple is None:
             self.ffmpeg_args = None
         else:
-            width, height, x, y = dimensions_tuple
-            crop_arg = 'crop=' + str(width) + ':' + str(height) + ':' + str(x) + ':' + str(y)
+            width, height, x_pad, y_pad = dimensions_tuple
+            crop_arg = 'crop=' + str(width) + ':' + str(height) + ':' + str(x_pad) + ':' + str(y_pad)
             self.ffmpeg_args = crop_arg
+
+    def process_auto_crop(self, encoding_task: encoding.Task) -> bool:
+        """
+        Detects letterboxing for the video stream in the encoding task's video stream and removes it by
+        automatically setting the crop dimensions.
+
+        Parameters:
+            encoding_task: Encoding task to use for the auto cropper.
+
+        Returns:
+            Boolean that represents whether the auto cropper was able to set the crop dimensions.
+        """
+        if self._auto_crop_dimensions is None:
+            self._auto_crop_dimensions = (0,) * self.AUTO_CROP_SPLITS
+            subprocess_args_list = self._get_auto_crop_subprocess_args_list(encoding_task)
+
+            if self._run_auto_crop_subprocess(subprocess_args_list):
+                return False
+
+        if self._is_auto_crop_dimensions_valid(encoding_task):
+            self.dimensions = self._auto_crop_dimensions
+
+            return True
+        return False
+
+    def _get_auto_crop_subprocess_args_list(self, encoding_task: encoding.Task) -> list:
+        # Returns a list of subprocess args for each split of the encoding task.
+        subprocess_args_list = []
+
+        for index in range(1, self.AUTO_CROP_SPLITS):
+            subprocess_args = self._get_auto_crop_subprocess_args(encoding_task, index)
+            subprocess_args_list.append(subprocess_args)
+
+        return subprocess_args_list
+
+    def _get_auto_crop_subprocess_args(self, encoding_task: encoding.Task, index: int):
+        # Returns subprocess args for detecting letterboxing in the encoding task's video stream.
+        start_time = round((encoding_task.input_file.duration / self.AUTO_CROP_SPLITS) * index, 2)
+
+        subprocess_args = ffmpeg_helper.FFMPEG_INIT_AUTO_CROP_ARGS.copy()
+        subprocess_args.append('-ss')
+        subprocess_args.append(str(start_time))
+        subprocess_args.append('-i')
+        subprocess_args.append(encoding_task.input_file.file_path)
+        subprocess_args.append('-map')
+        subprocess_args.append('0:' + str(encoding_task.video_stream.index))
+        subprocess_args.append('-an')
+        subprocess_args.append('-vframes')
+        subprocess_args.append('240')
+        subprocess_args.append('-vf')
+        subprocess_args.append('cropdetect')
+        subprocess_args.append('-f')
+        subprocess_args.append('null')
+        subprocess_args.append('-')
+
+        return subprocess_args
+
+    def _run_auto_crop_subprocess(self, subprocess_args_list: list) -> int:
+        # Runs the subprocess for the auto crop and checks stdout for auto crop values.
+        for index, subprocess_args in enumerate(subprocess_args_list):
+            with subprocess.Popen(subprocess_args,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.STDOUT,
+                                  universal_newlines=True,
+                                  bufsize=1) as auto_crop_subprocess:
+                while True:
+                    stdout = auto_crop_subprocess.stdout.readline().strip()
+                    if stdout == '' and auto_crop_subprocess.poll() is not None:
+                        break
+
+                    stdout_last_line = stdout
+
+                    try:
+                        crop_values = re.search(r'crop=\d+:\d+:\d+:\d+', stdout)
+                        if crop_values:
+                            self._set_crop_values(crop_values.group().split('=')[-1], index)
+                    except (TypeError, AttributeError, ValueError):
+                        continue
+
+                if auto_crop_subprocess.poll():
+                    logging.error(''.join(['--- AUTO CROP FAILED ---\n',
+                                           stdout_last_line,
+                                           '\n\n',
+                                           str(subprocess_args)]))
+
+                    break
+
+        self._set_best_auto_crop_dimension()
+
+        return auto_crop_subprocess.wait()
+
+    def _set_crop_values(self, crop_values: str, index: int):
+        # Sets crop values for the tuple at the specified index if the values are greater than existing values.
+        width, height, x_pad, y_pad = crop_values.split(':')
+        width = int(width)
+        height = int(height)
+        x_pad = int(x_pad)
+        y_pad = int(y_pad)
+
+        if self._auto_crop_dimensions[index]:
+            width_origin, height_origin, x_pad_origin, y_pad_origin = self._auto_crop_dimensions[index]
+
+            if width > width_origin or height > height_origin or x_pad < x_pad_origin or y_pad < y_pad_origin:
+                self._auto_crop_dimensions[index] = width, height, x_pad, y_pad
+        else:
+            self._auto_crop_dimensions[index] = width, height, x_pad, y_pad
+
+    def _set_best_auto_crop_dimension(self):
+        # Uses the highest auto crop dimensions in the tuple of auto crop dimensions.
+        for auto_crop_dimension in self._auto_crop_dimensions:
+            if all(auto_crop_dimension >= dimension for dimension in self._auto_crop_dimensions):
+                self._auto_crop_dimensions = auto_crop_dimension
+
+                return
+
+    def _is_auto_crop_dimensions_valid(self, encoding_task: encoding.Task) -> bool:
+        # Determines whether the auto crop dimensions can be used for the crop dimensions.
+        width, height, x_pad, y_pad = self._auto_crop_dimensions
+
+        try:
+            is_width_valid = ((int(width) + 10) < encoding_task.video_stream.width)
+            is_height_valid = ((int(height) + 10) < encoding_task.video_stream.height)
+
+            return is_width_valid or is_height_valid
+        except (TypeError, ValueError):
+            return False
 
 
 class Scale:

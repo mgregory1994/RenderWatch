@@ -47,7 +47,7 @@ class Task:
         self.temp_output_file = output.TempOutputFile(self.input_file, self.app_settings.temp_directory)
         self.is_using_temp_output_file = False
         self.general_settings = None
-        self.video_stream = None
+        self.video_stream = self.input_file.video_streams[0]
         self.video_codec = None
         self.audio_streams = {}
         self.trim = None

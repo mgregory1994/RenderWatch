@@ -28,6 +28,7 @@ from itertools import repeat
 
 from render_watch.encode import encoder, watch_folder
 from render_watch.ffmpeg import encoding
+from render_watch.ffmpeg import filters
 from render_watch.helpers import nvidia_helper, directory_helper
 from render_watch import app_preferences
 
@@ -613,12 +614,13 @@ class _WatchFolderTasksQueue:
         child_encoding_task = encoding_task.get_copy()
         child_encoding_task.input_file = encoding.input.InputFile(child_file_path)
         child_encoding_task.output_file = encoding.output.OutputFile(child_encoding_task.input_file, self.app_settings)
+        child_encoding_task.filter.crop = filters.Crop(child_encoding_task, self.app_settings)
 
         directory_helper.fix_same_name_occurences(encoding_task, self.app_settings)
 
-        if not child_encoding_task.input_file.is_valid():
-            return None
-        return child_encoding_task
+        if child_encoding_task.input_file.is_valid():
+            return child_encoding_task
+        return None
 
     def _run_child_encoding_task(self, child_encoding_task: encoding.Task, encoding_task: encoding.Task):
         # Sends the given child encoding task to the encoder.
