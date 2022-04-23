@@ -60,6 +60,12 @@ class Task:
         self._progress = None
         self._video_preview_progress = None
         self.video_preview_duration = None
+        self._benchmark_bitrate = None
+        self._benchmark_speed = None
+        self._benchmark_current_position = None
+        self._benchmark_progress = None
+        self._benchmark_file_size = None
+        self._benchmark_time_estimate = None
         self._bitrate_lock = threading.Lock()
         self._file_size_lock = threading.Lock()
         self._speed_lock = threading.Lock()
@@ -67,6 +73,12 @@ class Task:
         self._current_position_lock = threading.Lock()
         self._progress_lock = threading.Lock()
         self._video_preview_progress_lock = threading.Lock()
+        self._benchmark_bitrate_lock = threading.Lock()
+        self._benchmark_speed_lock = threading.Lock()
+        self._benchmark_current_position_lock = threading.Lock()
+        self._benchmark_progress_lock = threading.Lock()
+        self._benchmark_file_size_lock = threading.Lock()
+        self._benchmark_time_estimate_lock = threading.Lock()
         self._task_thread_lock = threading.Lock()
         self.is_video_chunk = video_chunk
         self._is_watch_folder = False
@@ -78,6 +90,8 @@ class Task:
         self._is_stopped = False
         self._is_done = False
         self._has_failed = False
+        self._has_benchmark_started = False
+        self._is_benchmark_stopped = False
         self.paused_threading_event = threading.Event()
         self.video_preview_threading_event = threading.Event()
         self.duration = 0
@@ -259,6 +273,154 @@ class Task:
             self._video_preview_progress = preview_progress
 
     @property
+    def benchmark_bitrate(self) -> float:
+        """
+        Returns the benchmark task's bitrate. This property is thread safe.
+
+        Returns:
+            Benchmark task's bitrate as an integer.
+        """
+        with self._benchmark_bitrate_lock:
+            return self._benchmark_bitrate
+
+    @benchmark_bitrate.setter
+    def benchmark_bitrate(self, bitrate: float):
+        """
+        Sets the benchmark task's bitrate to the specified value. This property is thread safe.
+
+        Parameters:
+            bitrate: Benchmark task's bitrate as an integer.
+
+        Returns:
+            None
+        """
+        with self._benchmark_bitrate_lock:
+            self._benchmark_bitrate = bitrate
+
+    @property
+    def benchmark_speed(self) -> float:
+        """
+        Returns the benchmark task's encoding speed ratio. This property is thread safe.
+
+        Returns:
+            Benchmark task's encoding speed ratio as a float.
+        """
+        with self._benchmark_speed_lock:
+            return self._benchmark_speed
+
+    @benchmark_speed.setter
+    def benchmark_speed(self, speed: float):
+        """
+        Sets the benchmark task's encoding speed ratio to the specified value. This property is thread safe.
+
+        Parameters:
+            speed: Benchmark task's speed ratio as a float.
+
+        Returns:
+            None
+        """
+        with self._benchmark_speed_lock:
+            self._benchmark_speed = speed
+
+    @property
+    def benchmark_current_position(self) -> int:
+        """
+        Returns the benchmark task's current time position. This property is thread safe.
+
+        Returns:
+            Benchmark task's current time position as an integer that represents the current time position in seconds.
+        """
+        with self._benchmark_current_position_lock:
+            return self._benchmark_current_position
+
+    @benchmark_current_position.setter
+    def benchmark_current_position(self, current_position: int):
+        """
+        Sets the benchmark task's current time position. This property is thread safe.
+
+        Parameters:
+            current_position: Benchmark task's current time position as an integer that represents the
+            current time position in seconds.
+        """
+        with self._benchmark_current_position_lock:
+            self._benchmark_current_position = current_position
+
+    @property
+    def benchmark_progress(self) -> float:
+        """
+        Returns the benchmark task's progress from 0.0 - 1.0. This property is thread safe.
+
+        Returns:
+            Progress of the benchmark task as a float from 0.0 - 1.0.
+        """
+        with self._benchmark_progress_lock:
+            return self._benchmark_progress
+
+    @benchmark_progress.setter
+    def benchmark_progress(self, progress: float):
+        """
+        Sets the benchmark task's progress to the specified value. This property is thread safe.
+
+        Parameters:
+            progress: Benchmark task's progress as a float from 0.0 - 1.0.
+
+        Returns:
+            None
+        """
+        with self._benchmark_progress_lock:
+            self._benchmark_progress = progress
+
+    @property
+    def benchmark_file_size(self) -> int:
+        """
+        Returns the benchmark task's file size in bytes. This property is thread safe.
+
+        Returns:
+            File size of the benchmark task as an int that represents file size in bytes.
+        """
+        with self._benchmark_file_size_lock:
+            return self._benchmark_file_size
+
+    @benchmark_file_size.setter
+    def benchmark_file_size(self, file_size: int):
+        """
+        Sets the benchmark task's file size to the specified value. This property is thread safe.
+
+        Parameters:
+            file_size: Benchmark task's file size as an int that represents the file size in bytes.
+
+        Returns:
+            None
+        """
+        with self._benchmark_file_size_lock:
+            self._benchmark_file_size = file_size
+
+    @property
+    def benchmark_time_estimate(self) -> int:
+        """
+        Returns the benchmark task's encoding time estimate. This property is thread safe.
+
+        Returns:
+            Benchmark task's encoding time estimate as an int that represents the number of seconds.
+        """
+        with self._benchmark_time_estimate_lock:
+            return self._benchmark_time_estimate
+
+    @benchmark_time_estimate.setter
+    def benchmark_time_estimate(self, time_estimate: int):
+        """
+        Sets the benchmark task's encoding time estimate. This property is thread safe.
+
+        Parameters:
+            time_estimate: Benchmark task's time estimate as an int that represents the number of seconds.
+
+        Returns:
+            None
+        """
+        with self._benchmark_time_estimate_lock:
+            self._benchmark_time_estimate = time_estimate
+
+    @property
     def has_started(self) -> bool:
         """
         Returns whether the task has started encoding. This property is thread safe.
@@ -418,6 +580,56 @@ class Task:
 
         with self._task_thread_lock:
             self._has_failed = has_encoder_failed
+
+    @property
+    def has_benchmark_started(self) -> bool:
+        """
+        Returns whether the benchmark task has started. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the benchmark task has started.
+        """
+        with self._task_thread_lock:
+            return self._has_benchmark_started
+
+    @has_benchmark_started.setter
+    def has_benchmark_started(self, has_started: bool):
+        """
+        Sets whether the benchmark task has started. This property is thread safe.
+
+        Parameters:
+            has_started: Boolean that represents whether the benchmark task has started.
+
+        Returns:
+            None
+        """
+        with self._task_thread_lock:
+            self._has_benchmark_started = has_started
+
+    @property
+    def is_benchmark_stopped(self) -> bool:
+        """
+        Returns whether the benchmark task has stopped. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the benchmark task has stopped.
+        """
+        with self._task_thread_lock:
+            return self._is_benchmark_stopped
+
+    @is_benchmark_stopped.setter
+    def is_benchmark_stopped(self, is_stopped: bool):
+        """
+        Sets whether the benchmark task has stopped. This property is thread safe.
+
+        Parameters:
+            is_stopped: Boolean that represents whether the benchmark task has stopped.
+
+        Returns:
+            None
+        """
+        with self._task_thread_lock:
+            self._is_benchmark_stopped = is_stopped
 
     @property
     def is_watch_folder(self) -> bool:

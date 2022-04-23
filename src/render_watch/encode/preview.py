@@ -31,7 +31,7 @@ class PreviewGenerator:
 
     def __init__(self, app_settings: app_preferences.Settings):
         """
-        Initializes the PreviewGenerator class with necessary variables for queueing encoding tasks and
+        Initializes the PreviewGenerator class with the necessary variables for queueing encoding tasks and
         sending them to the preview queues.
 
         Parameters:
@@ -168,7 +168,13 @@ class _CropPreview:
         try:
             while True:
                 encoding_task, time_position = self._crop_tasks_queue.get()
-                encoding_task_copy = encoding_task.get_copy()
+
+                if encoding_task:
+                    encoding_task_copy = encoding_task.get_copy()
+                else:
+                    logging.info('--- STOPPING CROP PREVIEW QUEUE LOOP ---')
+
+                    break
 
                 try:
                     if time_position is None:
@@ -177,6 +183,7 @@ class _CropPreview:
                     encoding_task_copy.temp_output_file.name = ''.join([encoding_task_copy.temp_output_file.name,
                                                                         '_crop_preview'])
                     encoding_task_copy.temp_output_file.extension = '.tiff'
+                    encoding_task_copy.is_using_temp_output_file = True
 
                     self._process_crop_preview_task(encoding_task, encoding_task_copy, time_position)
                 except:
@@ -256,7 +263,13 @@ class _TrimPreview:
         try:
             while True:
                 encoding_task, time_position = self._trim_tasks_queue.get()
-                encoding_task_copy = encoding_task.get_copy()
+
+                if encoding_task:
+                    encoding_task_copy = encoding_task.get_copy()
+                else:
+                    logging.info('--- STOPPING TRIM PREVIEW QUEUE LOOP ---')
+
+                    break
 
                 try:
                     if time_position is None:
@@ -265,6 +278,7 @@ class _TrimPreview:
                     encoding_task_copy.temp_output_file.name = ''.join([encoding_task_copy.temp_output_file.name,
                                                                         '_trim_preview'])
                     encoding_task_copy.temp_output_file.extension = '.tiff'
+                    encoding_task_copy.is_using_temp_output_file = True
 
                     self._process_trim_preview_task(encoding_task, encoding_task_copy, time_position)
                 except:
@@ -346,7 +360,13 @@ class _SettingsPreview:
         try:
             while True:
                 encoding_task, time_position = self._settings_tasks_queue.get()
-                encoding_task_copy = encoding_task.get_copy()
+
+                if encoding_task:
+                    encoding_task_copy = encoding_task.get_copy()
+                else:
+                    logging.info('--- STOPPING SETTINGS PREVIEW QUEUE LOOP ---')
+
+                    break
 
                 try:
                     if time_position is None:
@@ -366,6 +386,7 @@ class _SettingsPreview:
         # Sets the encoding task's settings for generating a settings preview file.
         encoding_task.temp_output_file.name = encoding_task.temp_output_file.name + '_preview'
         encoding_task.temp_output_file.extension = encoding_task.output_file.extension
+        encoding_task.is_using_temp_output_file = True
         self._setup_encoding_task_trim_settings(encoding_task, time_position)
 
     def _setup_encoding_task_trim_settings(self, encoding_task: encoding.Task, time_position: float | int):
@@ -469,7 +490,13 @@ class _VideoPreview:
         try:
             while True:
                 encoding_task, time_position = self._video_preview_queue.get()
-                encoding_task_copy = encoding_task.get_copy()
+
+                if encoding_task:
+                    encoding_task_copy = encoding_task.get_copy()
+                else:
+                    logging.info('--- STOPPING VIDEO PREVIEW QUEUE LOOP ---')
+
+                    break
 
                 try:
                     if time_position is None:
@@ -489,6 +516,7 @@ class _VideoPreview:
         # Creates a preview file for the video preview task.
         encoding_task.temp_output_file.name = encoding_task.temp_output_file.name + '_preview'
         encoding_task.temp_output_file.extension = encoding_task.output_file.extension
+        encoding_task.is_using_temp_output_file = True
         self._setup_encoding_task_trim_settings(encoding_task, time_position)
 
     @staticmethod
@@ -504,7 +532,7 @@ class _VideoPreview:
 
     def _process_video_preview_task(self, encoding_task: encoding.Task, encoding_task_copy: encoding.Task):
         # Creates a preview file for the video preview task.
-        video_preview_args = encoding.FFmpegArgs.get_args(encoding_task)
+        video_preview_args = encoding.FFmpegArgs.get_args(encoding_task_copy)
 
         if self.preview_generator.run_preview_subprocess(encoding_task_copy, video_preview_args):
             encoding_task.temp_output_file.video_preview_file_path = None
