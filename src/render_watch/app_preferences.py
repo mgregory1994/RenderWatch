@@ -22,11 +22,14 @@ import logging
 
 from PySide6 import QtCore
 
+from render_watch.helpers import directory_helper
+
 
 APP_NAME = 'io.github.renderwatch.RenderWatch'
 ORG_NAME = 'Michael Gregory'
 
-DEFAULT_APPLICATION_TEMP_DIRECTORY = os.path.join(os.getenv('HOME'), '.config', 'Render Watch', 'temp')
+APPLICATION_CONFIG_DIRECTORY = os.path.join(os.getenv('HOME'), '.config', 'Render Watch')
+DEFAULT_APPLICATION_TEMP_DIRECTORY = os.path.join(APPLICATION_CONFIG_DIRECTORY, 'temp')
 
 
 class Settings:
@@ -120,6 +123,11 @@ class Settings:
         self._settings.setValue('per_codec_x264', self.per_codec_parallel_tasks['x264'])
         self._settings.setValue('per_codec_x265', self.per_codec_parallel_tasks['x265'])
         self._settings.setValue('per_codec_vp9', self.per_codec_parallel_tasks['vp9'])
+
+
+def create_config_directory():
+    directory_helper.create_application_config_directory(APPLICATION_CONFIG_DIRECTORY,
+                                                         DEFAULT_APPLICATION_TEMP_DIRECTORY)
 
 
 def create_temp_directory(app_settings: Settings):

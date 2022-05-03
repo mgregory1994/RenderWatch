@@ -204,8 +204,8 @@ class TaskQueue:
             child_encoding_task = encoding_task.get_copy()
             child_encoding_task.input_file = encoding.input.InputFile(file_path)
             child_encoding_task.output_file = encoding.output.OutputFile(file_path, self.app_settings)
-
-            directory_helper.fix_same_name_occurences(encoding_task, self.app_settings)
+            child_encoding_task.output_file.name = directory_helper.get_unique_file_name(child_encoding_task.output_file.file_path,
+                                                                                         child_encoding_task.output_file.name)
 
             if child_encoding_task.input_file.is_valid():
                 TaskQueue._run_standard_encoding_task(child_encoding_task)
@@ -614,9 +614,9 @@ class _WatchFolderTasksQueue:
         child_encoding_task = encoding_task.get_copy()
         child_encoding_task.input_file = encoding.input.InputFile(child_file_path)
         child_encoding_task.output_file = encoding.output.OutputFile(child_encoding_task.input_file, self.app_settings)
+        child_encoding_task.output_file.name = directory_helper.get_unique_file_name(child_encoding_task.output_file.file_path,
+                                                                                     child_encoding_task.output_file.name)
         child_encoding_task.filter.crop = filters.Crop(child_encoding_task, self.app_settings)
-
-        directory_helper.fix_same_name_occurences(encoding_task, self.app_settings)
 
         if child_encoding_task.input_file.is_valid():
             return child_encoding_task

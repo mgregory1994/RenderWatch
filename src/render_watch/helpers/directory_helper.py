@@ -19,9 +19,6 @@
 import os
 import logging
 
-from render_watch import app_preferences
-from render_watch.ffmpeg import encoding
-
 
 def create_application_config_directory(app_config_directory: str, app_temp_directory: str):
     _create_new_directory(app_config_directory)
@@ -109,24 +106,19 @@ def _get_files_in_folders(directory_path: str, folders_list: list) -> list:
     return files_found
 
 
-def fix_same_name_occurences(encoding_task: encoding.Task, app_settings: app_preferences.Settings):
+def get_unique_file_name(output_file_path: str, output_file_name: str) -> str:
     counter = 0
 
     while True:
-        output_file_path = encoding_task.output_file.file_path
-        input_file_path = encoding_task.input_file.file_path
-
-        if input_file_path == output_file_path or _output_file_path_exists(output_file_path, app_settings):
-            encoding_task.output_file.name = ''.join([encoding_task.output_file.name,
-                                                      '_',
-                                                      str(counter)])
+        if _output_file_path_exists(output_file_path):
+            output_file_name = ''.join([output_file_name, '_', str(counter)])
         else:
             break
 
         counter += 1
 
+    return output_file_name
 
-def _output_file_path_exists(output_file_path: str, app_settings: app_preferences.Settings) -> bool:
-    if app_settings.is_overwriting_output_files:
-        return False
+
+def _output_file_path_exists(output_file_path: str) -> bool:
     return os.path.exists(output_file_path)

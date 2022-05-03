@@ -1,9 +1,9 @@
 import sys
 
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 import qdarktheme
 
-from rw_ui import Ui_MainWindow
+from render_watch.ui.rw_ui import Ui_MainWindow
 
 from render_watch import app_preferences
 
