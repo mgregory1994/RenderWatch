@@ -16,10 +16,4 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
-
-_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(__file__))
-
-
-def get_rw_ui():
-    return os.path.join(_ROOT_DIRECTORY, 'data/rw.ui')
+from render_watch import render_watch_rc

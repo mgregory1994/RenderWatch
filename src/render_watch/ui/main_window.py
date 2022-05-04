@@ -16,7 +16,7 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtWidgets, QtGui, QtCore
 
 from render_watch.ui.rw_ui import Ui_MainWindow
 from render_watch.ui.rw_settings_dialog import Ui_SettingsDialog
@@ -92,6 +92,14 @@ class AboutDialog(QtWidgets.QDialog):
 
         self.about_dialog_ui = Ui_AboutDialog()
         self.about_dialog_ui.setupUi(self)
+
+        self._setup_widgets()
+
+    def _setup_widgets(self):
+        self.logo_label = self.about_dialog_ui.logo_label
+        logo = QtGui.QPixmap(':data/rw_512.png')
+        logo = logo.scaled(200, 200, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        self.logo_label.setPixmap(logo)
 
 
 class PreferencesDialog(QtWidgets.QDialog):
