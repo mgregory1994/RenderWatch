@@ -350,7 +350,7 @@ class _ParallelTasksQueue:
         threading.Thread(target=self._initialize_x264_codec_queue_loop, args=(self.app_settings,), daemon=True).start()
         threading.Thread(target=self._initialize_x265_codec_queue_loop, args=(self.app_settings,), daemon=True).start()
         threading.Thread(target=self._initialize_vp9_codec_queue_loop, args=(self.app_settings,), daemon=True).start()
-        threading.Thread(target=self._initialize_copy_codec_queue_loop, args=(self.app_settings,), daemon=True).start()
+        threading.Thread(target=self._initialize_copy_codec_queue_loop, args=(), daemon=True).start()
 
         if nvidia_helper.Compatibility.is_nvenc_supported():
             threading.Thread(target=self._initialize_nvenc_codec_queue_loop, args=(), daemon=True).start()
@@ -363,7 +363,8 @@ class _ParallelTasksQueue:
         self.number_of_x264_tasks = app_settings.per_codec_parallel_tasks['x264']
 
         with ThreadPoolExecutor(max_workers=self.number_of_x264_tasks) as future_executor:
-            future_executor.map(self._run_codec_queue_loop_instance, repeat(self.x264_codec_queue))
+            future_executor.map(self._run_codec_queue_loop_instance,
+                                repeat(self.x264_codec_queue, self.number_of_x264_tasks))
 
     def _initialize_x265_codec_queue_loop(self, app_settings: app_preferences.Settings):
         # Starts queue loop instances for the user specified number of x265 encoding tasks.
@@ -371,7 +372,8 @@ class _ParallelTasksQueue:
         self.number_of_x265_tasks = app_settings.per_codec_parallel_tasks['x265']
 
         with ThreadPoolExecutor(max_workers=self.number_of_x265_tasks) as future_executor:
-            future_executor.map(self._run_codec_queue_loop_instance, repeat(self.x265_codec_queue))
+            future_executor.map(self._run_codec_queue_loop_instance,
+                                repeat(self.x265_codec_queue, self.number_of_x265_tasks))
 
     def _initialize_vp9_codec_queue_loop(self, app_settings: app_preferences.Settings):
         # Starts queue loop instances for the user specified number of vp9 encoding tasks.
@@ -379,7 +381,8 @@ class _ParallelTasksQueue:
         self.number_of_vp9_tasks = app_settings.per_codec_parallel_tasks['vp9']
 
         with ThreadPoolExecutor(max_workers=self.number_of_vp9_tasks) as future_executor:
-            future_executor.map(self._run_codec_queue_loop_instance, repeat(self.vp9_codec_queue))
+            future_executor.map(self._run_codec_queue_loop_instance,
+                                repeat(self.vp9_codec_queue, self.number_of_vp9_tasks))
 
     def _initialize_nvenc_codec_queue_loop(self):
         # Starts queue loop instances for the user specified number of NVENC encoding tasks.
@@ -388,7 +391,8 @@ class _ParallelTasksQueue:
             self.number_of_nvenc_tasks = nvidia_helper.Parallel.nvenc_max_workers
 
             with ThreadPoolExecutor(max_workers=self.number_of_nvenc_tasks) as future_executor:
-                future_executor.map(self._run_codec_queue_loop_instance, repeat(self.nvenc_codec_queue))
+                future_executor.map(self._run_codec_queue_loop_instance,
+                                    repeat(self.nvenc_codec_queue, self.number_of_nvenc_tasks))
         except ValueError:
             logging.info('--- PARALLEL NVENC QUEUE LOOP DISABLED ---')
 
@@ -398,7 +402,8 @@ class _ParallelTasksQueue:
         self.number_of_copy_codec_tasks = COPY_CODEC_TASK_WORKERS
 
         with ThreadPoolExecutor(max_workers=self.number_of_copy_codec_tasks) as future_executor:
-            future_executor.map(self._run_codec_queue_loop_instance, repeat(self.copy_codec_queue))
+            future_executor.map(self._run_codec_queue_loop_instance,
+                            repeat(self.copy_codec_queue, self.number_of_copy_codec_tasks))
 
     def _run_codec_queue_loop_instance(self, codec_queue: queue.Queue, codec_name: str):
         # Processes each encoding task added to the given codec queue.

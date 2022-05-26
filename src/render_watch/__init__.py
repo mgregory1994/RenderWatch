@@ -14,6 +14,3 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-
-
-from render_watch import render_watch_rc

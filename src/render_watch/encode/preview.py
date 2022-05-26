@@ -41,6 +41,7 @@ class PreviewGenerator:
         self._crop_preview = _CropPreview(self, app_settings)
         self._trim_preview = _TrimPreview(self, app_settings)
         self._settings_preview = _SettingsPreview(self, app_settings)
+        self._video_preview = _VideoPreview(self, app_settings)
 
     def generate_previews(self, encoding_task: encoding.Task):
         """
@@ -52,9 +53,14 @@ class PreviewGenerator:
         Returns:
             None
         """
+        if not encoding_task.input_file.is_video:
+            return
+
         self._crop_preview.add_crop_task(encoding_task)
         self._trim_preview.add_trim_task(encoding_task)
-        self._settings_preview.add_settings_task(encoding_task)
+
+        if encoding_task.video_codec:
+            self._settings_preview.add_settings_task(encoding_task)
 
     def generate_crop_preview(self, encoding_task: encoding.Task, time_position: int | float):
         """
@@ -89,8 +95,26 @@ class PreviewGenerator:
         Parameters:
             encoding_task: Encoding task to send to the settings preview queue.
             time_position: Time position in the video to create the preview.
+
+        Returns:
+            None
         """
-        self._settings_preview.add_settings_task(encoding_task, time_position)
+        if encoding_task.video_codec:
+            self._settings_preview.add_settings_task(encoding_task, time_position)
+
+    def generate_video_preview(self, encoding_task: encoding.Task, time_position: int | float):
+        """
+        Adds the given encoding task to the video preview queue and creates the preview at the given time position.
+
+        Parameters:
+            encoding_task: Encoding task to send to the settings preview queue.
+            time_position: Time position in the video to create the preview.
+
+        Returns:
+            None
+        """
+        if encoding_task.video_codec:
+            self._video_preview.add_video_task(encoding_task, time_position)
 
     def kill(self):
         """
@@ -107,12 +131,14 @@ class PreviewGenerator:
         self._crop_preview.empty_queue()
         self._trim_preview.empty_queue()
         self._settings_preview.empty_queue()
+        self._video_preview.empty_queue()
 
     def _stop_queues(self):
         # Adds a stop task to all preview queues.
         self._crop_preview.add_stop_task()
         self._trim_preview.add_stop_task()
         self._settings_preview.add_stop_task()
+        self._video_preview.add_stop_task()
 
     @staticmethod
     def run_preview_subprocess(encoding_task: encoding.Task, subprocess_args_list: list):
@@ -137,8 +163,8 @@ class PreviewGenerator:
             if process_return_code:
                 logging.exception(''.join(['--- PREVIEW SUBPROCESS FAILED:',
                                            encoding_task.temp_output_file.file_path,
-                                           '---\n',
-                                           args_list]))
+                                           ' ---\n',
+                                           str(args_list)]))
 
                 break
 
@@ -182,7 +208,7 @@ class _CropPreview:
 
                     encoding_task_copy.temp_output_file.name = ''.join([encoding_task_copy.temp_output_file.name,
                                                                         '_crop_preview'])
-                    encoding_task_copy.temp_output_file.extension = '.tiff'
+                    encoding_task_copy.temp_output_file.extension = '.png'
                     encoding_task_copy.is_using_temp_output_file = True
 
                     self._process_crop_preview_task(encoding_task, encoding_task_copy, time_position)
@@ -194,13 +220,14 @@ class _CropPreview:
         except:
             logging.exception('--- CROP PREVIEW QUEUE LOOP FAILED ---')
 
-    def _process_crop_preview_task(self, encoding_task: encoding.Task,
+    def _process_crop_preview_task(self,
+                                   encoding_task: encoding.Task,
                                    encoding_task_copy: encoding.Task,
                                    time_position: int | float):
         # Creates a preview file for the crop preview task.
         crop_preview_args = _get_preview_subprocess_args(encoding_task_copy, time_position)
 
-        if self.preview_generator.run_preview_subprocess(encoding_task_copy, crop_preview_args):
+        if self.preview_generator.run_preview_subprocess(encoding_task_copy, [crop_preview_args]):
             encoding_task.temp_output_file.crop_preview_file_path = None
 
             raise Exception
@@ -218,7 +245,7 @@ class _CropPreview:
         Returns:
             None
         """
-        self._crop_tasks_queue.put((encoding_task.get_copy(), time_position))
+        self._crop_tasks_queue.put((encoding_task, time_position))
 
     def add_stop_task(self):
         """
@@ -277,7 +304,7 @@ class _TrimPreview:
 
                     encoding_task_copy.temp_output_file.name = ''.join([encoding_task_copy.temp_output_file.name,
                                                                         '_trim_preview'])
-                    encoding_task_copy.temp_output_file.extension = '.tiff'
+                    encoding_task_copy.temp_output_file.extension = '.png'
                     encoding_task_copy.is_using_temp_output_file = True
 
                     self._process_trim_preview_task(encoding_task, encoding_task_copy, time_position)
@@ -289,13 +316,14 @@ class _TrimPreview:
         except:
             logging.exception('--- TRIM PREVIEW QUEUE LOOP FAILED ---')
 
-    def _process_trim_preview_task(self, encoding_task: encoding.Task,
+    def _process_trim_preview_task(self,
+                                   encoding_task: encoding.Task,
                                    encoding_task_copy: encoding.Task,
                                    time_position: int | float):
         # Creates a preview file for the trim preview task.
         trim_preview_args = _get_preview_subprocess_args(encoding_task_copy, time_position)
 
-        if self.preview_generator.run_preview_subprocess(encoding_task_copy, trim_preview_args):
+        if self.preview_generator.run_preview_subprocess(encoding_task_copy, [trim_preview_args]):
             encoding_task.temp_output_file.trim_preview_file_path = None
 
             raise Exception
@@ -313,7 +341,7 @@ class _TrimPreview:
         Returns:
             None
         """
-        self._trim_tasks_queue.put((encoding_task.get_copy(), time_position))
+        self._trim_tasks_queue.put((encoding_task, time_position))
 
     def add_stop_task(self):
         """
@@ -399,7 +427,8 @@ class _SettingsPreview:
         trim_settings.trim_duration = self.ENCODE_DURATION
         encoding_task.trim = trim_settings
 
-    def _process_settings_preview_task(self, encoding_task: encoding.Task,
+    def _process_settings_preview_task(self,
+                                       encoding_task: encoding.Task,
                                        encoding_task_copy: encoding.Task):
         # Creates a preview file for the settings preview task.
         settings_preview_args = self._get_preview_subprocess_args(encoding_task_copy)
@@ -424,7 +453,7 @@ class _SettingsPreview:
         single_image_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         single_image_args.append('-i')
         single_image_args.append(encoding_task.temp_output_file.file_path)
-        encoding_task.temp_output_file.extension = '.tiff'
+        encoding_task.temp_output_file.extension = '.png'
         single_image_args.append('-f')
         single_image_args.append('image2')
         single_image_args.append('-an')
@@ -470,7 +499,7 @@ class _SettingsPreview:
 class _VideoPreview:
     """Class that queues video preview tasks and generates a preview file for them."""
 
-    def __int__(self, preview_generator: PreviewGenerator, app_settings: app_preferences.Settings):
+    def __init__(self, preview_generator: PreviewGenerator, app_settings: app_preferences.Settings):
         """
         Initializes the _VideoPreview class with all necessary variables for queueing video preview tasks and
         generating a preview file for them.
@@ -583,8 +612,11 @@ def _get_preview_subprocess_args(encoding_task: encoding.Task, time_position: fl
     subprocess_args.append(encoding_task.input_file.file_path)
     subprocess_args.append('-vframes')
     subprocess_args.append('1')
-    subprocess_args.append('-filter_complex')
-    subprocess_args.append(encoding_task.filter.ffmpeg_args['-filter_complex'])
+
+    if encoding_task.filter.ffmpeg_args['-filter_complex'] is not None:
+        subprocess_args.append('-filter_complex')
+        subprocess_args.append(encoding_task.filter.ffmpeg_args['-filter_complex'])
+
     subprocess_args.append('-an')
     subprocess_args.append(encoding_task.temp_output_file.file_path)
 

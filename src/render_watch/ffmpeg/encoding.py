@@ -25,7 +25,7 @@ from render_watch import app_preferences
 from render_watch.ffmpeg import input, output
 from render_watch.ffmpeg import trim
 from render_watch.ffmpeg import filters
-from render_watch.ffmpeg import h264_nvenc, hevc_nvenc, x264, x265, vp9
+from render_watch.ffmpeg import h264_nvenc, hevc_nvenc, x264, x265, vp9, aac
 from render_watch.helpers import ffmpeg_helper, nvidia_helper
 
 
@@ -47,8 +47,8 @@ class Task:
         self.temp_output_file = output.TempOutputFile(self.input_file, self.app_settings.temp_directory)
         self.is_using_temp_output_file = False
         self.general_settings = None
-        self.video_stream = self.input_file.video_streams[0]
-        self.video_codec = None
+        self.video_stream = None
+        self.video_codec = x264.X264()
         self.audio_streams = {}
         self.trim = None
         self.filter = filters.Filter(self.input_file)
@@ -96,6 +96,20 @@ class Task:
         self.video_preview_threading_event = threading.Event()
         self.duration = 0
         self.child_encoding_task = None
+
+        self._set_default_streams()
+
+    def _set_default_streams(self):
+        if self.input_file.is_folder:
+            return
+
+        if self.input_file.is_video:
+            self.video_stream = self.input_file.video_streams[0]
+
+        if self.input_file.is_audio:
+            self.add_audio_stream(self.input_file.audio_streams[0])
+            default_audio_codec = aac.Aac(self.get_audio_stream_index(self.input_file.audio_streams[0]))
+            self.set_audio_stream_codec(self.input_file.audio_streams[0], default_audio_codec)
 
     @property
     def bitrate(self) -> float:
@@ -895,13 +909,13 @@ class Parallel:
     def _get_per_codec_number_of_chunks(encoding_task: Task, app_settings: app_preferences.Settings) -> int:
         # Returns the number of encoding task chunks to generate depending on which video codec the task is using.
         if encoding_task.is_video_x264():
-            return app_settings.per_codec_parallel_tasks['x264']
+            return app_settings.per_codec_x264
 
         if encoding_task.is_video_x265():
-            return app_settings.per_codec_parallel_tasks['x265']
+            return app_settings.per_codec_x265
 
         if encoding_task.is_video_vp9():
-            return app_settings.per_codec_parallel_tasks['vp9']
+            return app_settings.per_codec_vp9
         return 1
 
     @staticmethod

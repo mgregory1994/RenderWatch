@@ -14,3 +14,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
+
+
+import gi
+gi.require_version(namespace='Gtk', version='4.0')
+gi.require_version(namespace='Adw', version='1')
+from gi.repository import Gtk, Gdk, Gio, GLib, GdkPixbuf, Pango
+from gi.repository import Adw

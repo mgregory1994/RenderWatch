@@ -20,8 +20,10 @@ import logging
 import subprocess
 import time
 
+from itertools import repeat
 from concurrent.futures import ThreadPoolExecutor
 
+from render_watch import app_preferences
 from render_watch.helpers import ffmpeg_helper
 
 
@@ -154,12 +156,12 @@ class Parallel:
     nvenc_max_workers = 1
 
     @staticmethod
-    def setup_nvenc_max_workers(app_preferences):
-        if app_preferences.get_parallel_nvenc_value():
-            Parallel.nvenc_max_workers = app_preferences.get_parallel_nvenc_value()
+    def setup_nvenc_max_workers(app_settings: app_preferences.Settings):
+        if app_settings.parallel_nvenc_workers:
+            Parallel.nvenc_max_workers = app_settings.parallel_nvenc_workers
 
             logging.info(''.join(['--- NVENC MAX WORKERS SET TO: ',
-                                  str(app_preferences.get_parallel_nvenc_value),
+                                  str(app_settings.parallel_nvenc_workers),
                                   ' ---']))
         else:
             Parallel._test_nvenc_max_workers()
@@ -171,7 +173,7 @@ class Parallel:
         while True:
             with ThreadPoolExecutor(max_workers=counter) as future_executor:
                 results = future_executor.map(Compatibility.run_test_process,
-                                              Compatibility.get_nvenc_test_args(),
+                                              repeat(Compatibility.get_nvenc_test_args()),
                                               range(counter))
 
                 if counter > MAX_NVENC_WORKERS or Parallel._has_future_executor_results_failed(results):

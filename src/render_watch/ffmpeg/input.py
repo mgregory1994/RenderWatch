@@ -25,21 +25,21 @@ from pathlib import Path
 from render_watch.helpers import format_converter
 
 
-VALID_EXTENSIONS = ('mp4',
-                    'm4v',
-                    'mov',
-                    'mkv',
-                    'ts',
-                    'm2ts',
-                    'mpg',
-                    'webm',
-                    'wmv',
-                    'vob',
-                    'avi',
-                    'aac',
-                    'wav',
-                    'flac',
-                    'mp3')
+VALID_EXTENSIONS = ('.mp4',
+                    '.m4v',
+                    '.mov',
+                    '.mkv',
+                    '.ts',
+                    '.m2ts',
+                    '.mpg',
+                    '.webm',
+                    '.wmv',
+                    '.vob',
+                    '.avi',
+                    '.aac',
+                    '.wav',
+                    '.flac',
+                    '.mp3')
 VALID_SUBTITLE_CODECS = ('hdmv_pgs_subtitle',)
 
 FFPROBE_ARGS = [
@@ -441,7 +441,7 @@ class _InputInformation:
 
     def _get_ffprobe_args(self) -> list:
         # Generates and returns the FFprobe process arguments.
-        args = FFPROBE_ARGS
+        args = FFPROBE_ARGS.copy()
         args.append(self.input_file.file_path)
 
         return args

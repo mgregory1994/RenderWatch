@@ -1,8 +1,0 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
-    <file>data/RenderWatch.png</file>
-    <file>data/rw_64.png</file>
-    <file>data/rw_128.png</file>
-    <file>data/rw_512.png</file>
-</qresource>
-</RCC>

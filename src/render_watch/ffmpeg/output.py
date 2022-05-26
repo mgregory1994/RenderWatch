@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-
-
+import os.path
 import threading
 from datetime import datetime
 
@@ -105,6 +104,12 @@ class OutputFile:
         if self.input_file.is_folder:
             return self.dir
         return ''.join([self.dir, '/', self.name, self.extension])
+
+    def get_name_and_extension(self):
+        if self.input_file.is_folder:
+            return self.dir
+
+        return ''.join([self.name, self.extension])
 
 
 class TempOutputFile:

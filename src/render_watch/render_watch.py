@@ -21,9 +21,11 @@ import sys
 from render_watch import logger
 from render_watch import app_preferences
 from render_watch.ui import application
+from render_watch.helpers import nvidia_helper
 
 
 def main(args=None):
+    """Main function that starts the application."""
     if args:
         sys.argv.extend(args)
 
@@ -31,9 +33,15 @@ def main(args=None):
 
 
 def _start_render_watch():
+    # Creates application settings, configures NVENC and the logger, and starts the application's UI loop.
     app_settings = app_preferences.Settings()
     app_preferences.create_config_directory()
+    app_preferences.create_temp_directory(app_settings)
+
+    if nvidia_helper.Compatibility.is_nvenc_supported():
+        nvidia_helper.Parallel.setup_nvenc_max_workers(app_settings)
 
     logger.setup_logging(app_preferences.APPLICATION_CONFIG_DIRECTORY)
 
-    sys.exit(application.Application(app_settings).start_application())
+    app = application.RenderWatch(app_settings)
+    sys.exit(app.run(sys.argv))
