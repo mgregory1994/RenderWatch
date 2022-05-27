@@ -14,7 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
-import os.path
+
+
 import threading
 from datetime import datetime
 
