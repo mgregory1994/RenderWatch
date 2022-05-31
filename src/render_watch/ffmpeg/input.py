@@ -341,8 +341,13 @@ class AudioStream:
                         str(self.index),
                         ',',
                         self.language,
-                        ']',
-                        self.codec_name])
+                        '] ',
+                        self.codec_name,
+                        ' (',
+                        str(self.channels),
+                        ' Ch,',
+                        str(self.sample_rate),
+                        'hz)'])
 
 
 class SubtitleStream:

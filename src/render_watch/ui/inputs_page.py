@@ -449,7 +449,8 @@ class InputsPageWidgets:
         self.inputs_list_box = Gtk.ListBox()
         self.inputs_list_box.set_placeholder(self.placeholder_vertical_box)
         self.inputs_list_box.set_show_separators(True)
-        self.inputs_list_box.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.inputs_list_box.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
+        self.inputs_list_box.set_activate_on_single_click(False)
         self.inputs_list_box.set_vexpand(True)
         self.inputs_list_box.set_hexpand(True)
         self.inputs_list_box.connect('selected-rows-changed', self.on_inputs_list_box_selected_rows_changed)
@@ -549,11 +550,9 @@ class InputsPageWidgets:
 
     def _setup_input_options_widgets(self):
         self._setup_auto_crop_widgets()
-        self._setup_apply_settings_to_all_widgets()
 
         self.input_options_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
         self.input_options_vertical_box.append(self.auto_crop_tasks_horizontal_box)
-        self.input_options_vertical_box.append(self.apply_settings_to_all_horizontal_box)
 
     def _setup_auto_crop_widgets(self):
         auto_crop_tasks_label = Gtk.Label(label='Auto-Crop New Tasks:')
@@ -569,18 +568,6 @@ class InputsPageWidgets:
         self.auto_crop_tasks_horizontal_box.append(auto_crop_tasks_label)
         self.auto_crop_tasks_horizontal_box.append(auto_crop_tasks_switch)
 
-    def _setup_apply_settings_to_all_widgets(self):
-        apply_settings_to_all_tasks_label = Gtk.Label(label='Apply Settings To All Tasks:')
-        apply_settings_to_all_tasks_label.set_halign(Gtk.Align.START)
-
-        self.apply_settings_to_all_tasks_switch = Gtk.Switch()
-        self.apply_settings_to_all_tasks_switch.set_hexpand(True)
-        self.apply_settings_to_all_tasks_switch.set_halign(Gtk.Align.END)
-
-        self.apply_settings_to_all_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.apply_settings_to_all_horizontal_box.append(apply_settings_to_all_tasks_label)
-        self.apply_settings_to_all_horizontal_box.append(self.apply_settings_to_all_tasks_switch)
-
     def _setup_encoder_options_widgets(self):
         self._setup_encoder_type_widgets()
         self._setup_task_chunks_widgets()
@@ -592,10 +579,14 @@ class InputsPageWidgets:
     def _setup_encoder_type_widgets(self):
         standard_tasks_check_button = Gtk.CheckButton(label='Standard Tasks')
         standard_tasks_check_button.set_active(True)
+        standard_tasks_check_button.set_hexpand(True)
+        standard_tasks_check_button.set_halign(Gtk.Align.START)
 
         parallel_tasks_check_button = Gtk.CheckButton(label='Parallel Tasks')
         parallel_tasks_check_button.set_group(standard_tasks_check_button)
         parallel_tasks_check_button.set_active(self.app_settings.is_encoding_parallel_tasks)
+        parallel_tasks_check_button.set_hexpand(True)
+        parallel_tasks_check_button.set_halign(Gtk.Align.START)
         parallel_tasks_check_button.connect('toggled', self.on_parallel_tasks_check_button_toggled)
 
         self.encoder_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
@@ -604,9 +595,9 @@ class InputsPageWidgets:
 
     def _setup_task_chunks_widgets(self):
         task_chunks_label = Gtk.Label(label='Task Chunks:')
-        task_chunks_label.set_halign(Gtk.Align.END)
+        task_chunks_label.set_halign(Gtk.Align.START)
         task_chunks_label.set_hexpand(True)
-        task_chunks_label.set_margin_end(10)
+        task_chunks_label.set_margin_start(20)
 
         self.task_chunks_switch = Gtk.Switch()
         self.task_chunks_switch.set_halign(Gtk.Align.END)

@@ -252,7 +252,7 @@ class SettingsSidebarWidgets:
         audio_stream_row = self.AudioStreamRow(encoding_task)
         self.audio_stream_settings_group.add(audio_stream_row)
 
-    class AudioStreamRow(Adw.ActionRow):  # Redesign needed
+    class AudioStreamRow(Adw.ExpanderRow):  # Redesign needed
         def __init__(self, encoding_task: encoding.Task):
             super().__init__()
 
@@ -261,29 +261,48 @@ class SettingsSidebarWidgets:
             self._setup_audio_stream_row()
 
         def _setup_audio_stream_row(self):
-            self._setup_stream_combobox()
-            self._setup_audio_codecs_combobox()
+            self._setup_stream_row()
+            self._setup_codec_row()
+            self._setup_channels_setting_row()
+            self._setup_sample_rate_setting_row()
 
             audio_stream = self.encoding_task.input_file.audio_streams[0]
             self.set_title(''.join(['Audio Stream ', str(self.encoding_task.get_audio_stream_index(audio_stream))]))
             self.set_subtitle(''.join([str(audio_stream.channels), ' channels']))
 
+            self.add_row(self.stream_row)
+            self.add_row(self.audio_codec_row)
+            self.add_row(self.channels_setting_row)
+            self.add_row(self.sample_rate_setting_row)
+
+        def _setup_stream_row(self):
+            self._setup_stream_combobox()
+
+            self.stream_row = Adw.ActionRow()
+            self.stream_row.set_title('Selected Stream')
+            self.stream_row.add_suffix(self.stream_combobox)
+
         def _setup_stream_combobox(self):
-            stream_combobox = Gtk.ComboBoxText()
-            stream_combobox.set_vexpand(False)
-            stream_combobox.set_valign(Gtk.Align.CENTER)
+            self.stream_combobox = Gtk.ComboBoxText()
+            self.stream_combobox.set_vexpand(False)
+            self.stream_combobox.set_valign(Gtk.Align.CENTER)
 
             for stream in self.encoding_task.input_file.audio_streams:
-                stream_combobox.append_text(stream.get_info())
+                self.stream_combobox.append_text(stream.get_info())
 
-            stream_combobox.set_active(0)
+            self.stream_combobox.set_active(0)
 
-            self.add_prefix(stream_combobox)
+        def _setup_codec_row(self):
+            self._setup_audio_codecs_combobox()
+
+            self.audio_codec_row = Adw.ActionRow()
+            self.audio_codec_row.set_title('Codec')
+            self.audio_codec_row.add_suffix(self.audio_codecs_combobox)
 
         def _setup_audio_codecs_combobox(self):
-            audio_codecs_combobox = Gtk.ComboBoxText()
-            audio_codecs_combobox.set_vexpand(False)
-            audio_codecs_combobox.set_valign(Gtk.Align.CENTER)
+            self.audio_codecs_combobox = Gtk.ComboBoxText()
+            self.audio_codecs_combobox.set_vexpand(False)
+            self.audio_codecs_combobox.set_valign(Gtk.Align.CENTER)
 
             if self.encoding_task.output_file.extension == '.mp4':
                 audio_codecs = self.encoding_task.AUDIO_CODECS_MP4_UI
@@ -297,8 +316,36 @@ class SettingsSidebarWidgets:
                 audio_codecs = []
 
             for audio_codec in audio_codecs:
-                audio_codecs_combobox.append_text(audio_codec)
+                self.audio_codecs_combobox.append_text(audio_codec)
 
-            audio_codecs_combobox.set_active(0)
+            self.audio_codecs_combobox.set_active(0)
 
-            self.add_suffix(audio_codecs_combobox)
+        def _setup_channels_setting_row(self):
+            self._setup_channels_combobox()
+
+            self.channels_setting_row = Adw.ActionRow()
+            self.channels_setting_row.set_title('Channels')
+            self.channels_setting_row.add_suffix(self.channels_combobox)
+
+        def _setup_channels_combobox(self):
+            self.channels_combobox = Gtk.ComboBoxText()
+            self.channels_combobox.set_vexpand(False)
+            self.channels_combobox.set_valign(Gtk.Align.CENTER)
+
+            self.channels_combobox.append_text('Copy')
+            self.channels_combobox.set_active(0)
+
+        def _setup_sample_rate_setting_row(self):
+            self._setup_sample_rate_combobox()
+
+            self.sample_rate_setting_row = Adw.ActionRow()
+            self.sample_rate_setting_row.set_title('Sample Rate')
+            self.sample_rate_setting_row.add_suffix(self.sample_rate_combobox)
+
+        def _setup_sample_rate_combobox(self):
+            self.sample_rate_combobox = Gtk.ComboBoxText()
+            self.sample_rate_combobox.set_vexpand(False)
+            self.sample_rate_combobox.set_valign(Gtk.Align.CENTER)
+
+            self.sample_rate_combobox.append_text('Copy')
+            self.sample_rate_combobox.set_active(0)
