@@ -611,12 +611,12 @@ class InputsPageWidgets:
         self.task_chunks_switch = Gtk.Switch()
         self.task_chunks_switch.set_halign(Gtk.Align.END)
         self.task_chunks_switch.set_active(self.app_settings.is_encoding_parallel_method_chunking)
-        self.task_chunks_switch.set_sensitive(self.app_settings.is_encoding_parallel_tasks)
         self.task_chunks_switch.connect('state-set', self.on_task_chunks_switch_state_set)
 
         self.task_chunks_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self.task_chunks_horizontal_box.append(task_chunks_label)
         self.task_chunks_horizontal_box.append(self.task_chunks_switch)
+        self.task_chunks_horizontal_box.set_sensitive(self.app_settings.is_encoding_parallel_tasks)
 
     def on_remove_all_button_clicked(self, button):
         self.main_window_widgets.options_popover.popdown()

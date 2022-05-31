@@ -21,12 +21,12 @@ import subprocess
 import threading
 import copy
 
-from render_watch import app_preferences
 from render_watch.ffmpeg import input, output
 from render_watch.ffmpeg import trim
 from render_watch.ffmpeg import filters
 from render_watch.ffmpeg import h264_nvenc, hevc_nvenc, x264, x265, vp9, aac
 from render_watch.helpers import ffmpeg_helper, nvidia_helper
+from render_watch import app_preferences
 
 
 class Task:
