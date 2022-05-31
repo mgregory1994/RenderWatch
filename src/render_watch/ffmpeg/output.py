@@ -108,8 +108,7 @@ class OutputFile:
 
     def get_name_and_extension(self):
         if self.input_file.is_folder:
-            return self.dir
-
+            return self.name
         return ''.join([self.name, self.extension])
 
 

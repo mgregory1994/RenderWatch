@@ -23,28 +23,30 @@ class ActivePageWidgets:
     def __init__(self):
         self.main_widget = Gtk.ListBox()
 
-        self._setup_active_tasks_widgets()
+        self._setup_active_page_widgets()
 
-    def _setup_active_tasks_widgets(self):
+    def _setup_active_page_widgets(self):
         self._setup_active_tasks_list_placeholder_widgets()
         self._setup_options_popover_widgets()
 
+        self.main_widget.set_placeholder(self.placeholder_vertical_box)
         self.main_widget.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.main_widget.set_show_separators(True)
-        self.main_widget.set_placeholder(self.placeholder_vertical_box)
         self.main_widget.set_vexpand(True)
         self.main_widget.set_hexpand(True)
 
     def _setup_active_tasks_list_placeholder_widgets(self):
         placeholder_icon = Gtk.Image.new_from_icon_name('action-unavailable-symbolic')
         placeholder_icon.set_pixel_size(128)
+        placeholder_icon.set_opacity(0.5)
         placeholder_icon.set_vexpand(True)
         placeholder_icon.set_valign(Gtk.Align.END)
-        placeholder_icon.set_opacity(0.5)
+
         placeholder_label = Gtk.Label(label='No Active Tasks')
         placeholder_label.set_vexpand(True)
         placeholder_label.set_valign(Gtk.Align.START)
         placeholder_label.set_sensitive(False)
+
         self.placeholder_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=40)
         self.placeholder_vertical_box.append(placeholder_icon)
         self.placeholder_vertical_box.append(placeholder_label)
@@ -52,22 +54,24 @@ class ActivePageWidgets:
     def _setup_options_popover_widgets(self):
         self._setup_task_preview_widgets()
 
-        self.pause_all_button = Gtk.Button(label='Pause All')
-        self.stop_all_button = Gtk.Button(label='Stop All')
-        self.stop_all_button.add_css_class('destructive-action')
+        pause_all_button = Gtk.Button(label='Pause All')
+
+        stop_all_button = Gtk.Button(label='Stop All')
+        stop_all_button.add_css_class('destructive-action')
 
         self.popover_options_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
-        self.popover_options_vertical_box.append(self.pause_all_button)
-        self.popover_options_vertical_box.append(self.stop_all_button)
+        self.popover_options_vertical_box.append(pause_all_button)
+        self.popover_options_vertical_box.append(stop_all_button)
         self.popover_options_vertical_box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
         self.popover_options_vertical_box.append(self.task_preview_horizontal_box)
 
     def _setup_task_preview_widgets(self):
         task_preview_label = Gtk.Label(label='Preview Running Tasks')
-        self.task_preview_switch = Gtk.Switch()
-        self.task_preview_switch.set_hexpand(True)
-        self.task_preview_switch.set_halign(Gtk.Align.END)
+
+        task_preview_switch = Gtk.Switch()
+        task_preview_switch.set_hexpand(True)
+        task_preview_switch.set_halign(Gtk.Align.END)
 
         self.task_preview_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.task_preview_horizontal_box.append(task_preview_label)
-        self.task_preview_horizontal_box.append(self.task_preview_switch)
+        self.task_preview_horizontal_box.append(task_preview_switch)

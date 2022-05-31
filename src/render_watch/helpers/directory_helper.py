@@ -19,6 +19,8 @@
 import os
 import logging
 
+from render_watch.ui import Gio
+
 
 def create_application_config_directory(app_config_directory: str, app_temp_directory: str):
     _create_new_directory(app_config_directory)
@@ -104,6 +106,16 @@ def _get_files_in_folders(directory_path: str, folders_list: list) -> list:
         files_found.extend(get_files_in_directory(folder_path))
 
     return files_found
+
+
+def get_gfiles_from_directory(directory_path: str) -> list:
+    gfiles = []
+
+    for file in get_files_in_directory(directory_path):
+        if not os.path.isdir(file):
+            gfiles.append(Gio.File.new_for_path(file))
+
+    return gfiles
 
 
 def get_unique_file_name(output_file_path: str, output_file_name: str) -> str:

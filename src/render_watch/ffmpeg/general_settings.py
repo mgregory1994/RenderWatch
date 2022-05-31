@@ -22,19 +22,6 @@ class GeneralSettings:
     FRAME_RATE = ('23.98', '24', '25', '29.97', '30', '50', '59.94', '60')
     FRAME_RATE_LENGTH = len(FRAME_RATE)
 
-    VIDEO_CODECS_MP4_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265')
-    VIDEO_CODECS_MP4_UI = ('copy', 'H264', 'H265')
-    VIDEO_CODECS_MKV_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265', 'VP9')
-    VIDEO_CODECS_MKV_UI = ('copy', 'H264', 'H265', 'VP9')
-    VIDEO_CODECS_TS_NVENC_UI = ('copy', 'H264', 'NVENC H264')
-    VIDEO_CODECS_TS_UI = ('copy', 'H264')
-    VIDEO_CODECS_WEBM_UI = ('copy', 'VP9')
-
-    AUDIO_CODECS_MP4_UI = ('copy', 'aac')
-    AUDIO_CODECS_MKV_UI = ('copy', 'aac', 'opus')
-    AUDIO_CODECS_TS_UI = ('copy', 'aac')
-    AUDIO_CODECS_WEBM_UI = ('copy', 'opus')
-
     def __init__(self):
         """Initializes the GeneralSettings class with all necessary variables the general options."""
         self.ffmpeg_args = {}

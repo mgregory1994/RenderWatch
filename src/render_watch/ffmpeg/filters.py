@@ -124,7 +124,7 @@ class Crop:
         subprocess_args.append('0:' + str(encoding_task.video_stream.index))
         subprocess_args.append('-an')
         subprocess_args.append('-vframes')
-        subprocess_args.append('240')
+        subprocess_args.append('120')
         subprocess_args.append('-vf')
         subprocess_args.append('cropdetect')
         subprocess_args.append('-f')
@@ -535,7 +535,6 @@ class Filter:
         filter_args = self._get_filter_arg()
 
         if filter_args:
-            # self.ffmpeg_args['-filter_complex'] = ''.join(['\"', filter_args, '\"'])
             self.ffmpeg_args['-filter_complex'] = filter_args
 
         subtitle_args = self.subtitles.ffmpeg_args

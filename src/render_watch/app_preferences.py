@@ -49,6 +49,11 @@ class Settings:
     TEMP_DIRECTORY = 'temp-directory'
     ENCODER_PREVIEW_ENABLED = 'encoder-preview'
 
+    TASK_MIN = 2
+    TASK_MAX = 8
+    NVENC_TASK_MIN = 2
+    NVENC_TASK_MAX = 12
+
     def __init__(self):
         self._settings = Gio.Settings.new(APP_NAME)
         self._settings_thread_lock = threading.Lock()

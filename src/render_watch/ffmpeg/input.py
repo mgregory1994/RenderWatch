@@ -342,12 +342,7 @@ class AudioStream:
                         ',',
                         self.language,
                         ']',
-                        self.codec_name,
-                        '(',
-                        str(self.channels),
-                        ' channels,',
-                        str(self.sample_rate),
-                        'hz)'])
+                        self.codec_name])
 
 
 class SubtitleStream:
@@ -398,6 +393,7 @@ class SubtitleStream:
 
 class _InputInformation:
     """Class that generates the necessary information about an input file."""
+    IMAGE_CODECS = ('mjpeg')
 
     def __init__(self, input_file: InputFile):
         """
@@ -496,6 +492,8 @@ class _InputInformation:
             return
 
         if video_stream.codec_name is None:
+            return
+        elif video_stream.codec_name in self.IMAGE_CODECS:
             return
 
         if video_stream.width is None or video_stream.height is None:

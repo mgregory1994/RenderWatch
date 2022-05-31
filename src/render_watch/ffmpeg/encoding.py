@@ -29,15 +29,25 @@ from render_watch.ffmpeg import h264_nvenc, hevc_nvenc, x264, x265, vp9, aac
 from render_watch.helpers import ffmpeg_helper, nvidia_helper
 
 
-MIN_CHUNK_LENGTH_SECONDS = 10
-
-
 class Task:
     """
     Class that configures the encoding task with all necessary variables to store settings about the task's
     input file, output file, video codec, audio codec, filters, general settings, task type as well as information
     about the task's encoding status.
     """
+
+    VIDEO_CODECS_MP4_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265')
+    VIDEO_CODECS_MP4_UI = ('copy', 'H264', 'H265')
+    VIDEO_CODECS_MKV_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265', 'VP9')
+    VIDEO_CODECS_MKV_UI = ('copy', 'H264', 'H265', 'VP9')
+    VIDEO_CODECS_TS_NVENC_UI = ('copy', 'H264', 'NVENC H264')
+    VIDEO_CODECS_TS_UI = ('copy', 'H264')
+    VIDEO_CODECS_WEBM_UI = ('copy', 'VP9')
+
+    AUDIO_CODECS_MP4_UI = ('copy', 'aac')
+    AUDIO_CODECS_MKV_UI = ('copy', 'aac', 'opus')
+    AUDIO_CODECS_TS_UI = ('copy', 'aac')
+    AUDIO_CODECS_WEBM_UI = ('copy', 'opus')
 
     def __init__(self, input_file_path: str, app_settings: app_preferences.Settings, video_chunk=False):
         """Initializes the Task class with all necessary variables for storing its setting and encode status."""
@@ -882,6 +892,8 @@ class Task:
 class Parallel:
     """Class that contains functions for setting up an encoding task for parallel encoding."""
 
+    MIN_CHUNK_LENGTH_SECONDS = 10
+
     @staticmethod
     def get_task_chunks(encoding_task: Task, app_settings: app_preferences.Settings) -> tuple | None:
         """
@@ -925,9 +937,9 @@ class Parallel:
             return False
 
         if encoding_task.trim and not encoding_task.is_audio_copy():
-            if (encoding_task.trim.trim_duration / number_of_chunks) >= MIN_CHUNK_LENGTH_SECONDS:
+            if (encoding_task.trim.trim_duration / number_of_chunks) >= Parallel.MIN_CHUNK_LENGTH_SECONDS:
                 return True
-        elif (encoding_task.input_file.duration / number_of_chunks) >= MIN_CHUNK_LENGTH_SECONDS:
+        elif (encoding_task.input_file.duration / number_of_chunks) >= Parallel.MIN_CHUNK_LENGTH_SECONDS:
             return True
         return False
 
