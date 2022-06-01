@@ -162,7 +162,7 @@ class SettingsSidebarWidgets:
         add_audio_stream_button.set_child(add_audio_stream_button_child)
         add_audio_stream_button.connect('clicked', self.on_add_audio_stream_button_clicked)
 
-        self.audio_stream_settings_group = Adw.PreferencesGroup()
+        self.audio_stream_settings_group = self.SettingsGroup()
         self.audio_stream_settings_group.set_title('Audio Streams')
         self.audio_stream_settings_group.set_header_suffix(add_audio_stream_button)
 
@@ -249,14 +249,37 @@ class SettingsSidebarWidgets:
 
     def on_add_audio_stream_button_clicked(self, button):
         encoding_task = self.inputs_page.inputs_list_box.get_selected_row().encoding_task
-        audio_stream_row = self.AudioStreamRow(encoding_task)
+        audio_stream_row = self.AudioStreamRow(encoding_task,
+                                               encoding_task.input_file.audio_streams[0],
+                                               self.audio_stream_settings_group.number_of_children + 1)
         self.audio_stream_settings_group.add(audio_stream_row)
 
+    class SettingsGroup(Adw.PreferencesGroup):
+        def __init__(self):
+            super().__init__()
+
+            self.children = []
+            self.number_of_children = 0
+
+        def add(self, preferences_row: Adw.PreferencesRow):
+            super().add(preferences_row)
+
+            if preferences_row not in self.children:
+                self.children.append(preferences_row)
+                self.number_of_children += 1
+
+        def remove_children(self):
+            for child in self.children:
+                super().remove(child)
+
     class AudioStreamRow(Adw.ExpanderRow):  # Redesign needed
-        def __init__(self, encoding_task: encoding.Task):
+        def __init__(self, encoding_task: encoding.Task, audio_stream, row_count: int):
             super().__init__()
 
             self.encoding_task = encoding_task
+            self.audio_stream = audio_stream
+            self.row_count = row_count
+            self.audio_stream_codec = self.encoding_task.get_audio_stream_codec(self.audio_stream)
 
             self._setup_audio_stream_row()
 
@@ -264,16 +287,22 @@ class SettingsSidebarWidgets:
             self._setup_stream_row()
             self._setup_codec_row()
             self._setup_channels_setting_row()
-            self._setup_sample_rate_setting_row()
+            self._setup_bitrate_setting_row()
 
-            audio_stream = self.encoding_task.input_file.audio_streams[0]
-            self.set_title(''.join(['Audio Stream ', str(self.encoding_task.get_audio_stream_index(audio_stream))]))
-            self.set_subtitle(''.join([str(audio_stream.channels), ' channels']))
+            self.set_title(''.join(['Audio Stream ', str(self.row_count)]))
+
+            if self.audio_stream_codec.channels < 1:
+                self.set_subtitle(''.join([str(self.audio_stream.channels), ' channels']))
+            else:
+                self.set_subtitle(''.join([str(self.audio_stream_codec.channels_str), ' channels']))
 
             self.add_row(self.stream_row)
             self.add_row(self.audio_codec_row)
             self.add_row(self.channels_setting_row)
-            self.add_row(self.sample_rate_setting_row)
+            self.add_row(self.bitrate_setting_row)
+
+            if self.audio_stream_codec is None:
+                self.set_codec_copy_state()
 
         def _setup_stream_row(self):
             self._setup_stream_combobox()
@@ -304,21 +333,26 @@ class SettingsSidebarWidgets:
             self.audio_codecs_combobox.set_vexpand(False)
             self.audio_codecs_combobox.set_valign(Gtk.Align.CENTER)
 
+            audio_codec_name = self.audio_stream_codec.codec_name
+
             if self.encoding_task.output_file.extension == '.mp4':
                 audio_codecs = self.encoding_task.AUDIO_CODECS_MP4_UI
+                audio_codec_index = self.encoding_task.AUDIO_CODECS_MP4_UI.index(audio_codec_name)
             elif self.encoding_task.output_file.extension == '.mkv':
                 audio_codecs = self.encoding_task.AUDIO_CODECS_MKV_UI
+                audio_codec_index = self.encoding_task.AUDIO_CODECS_MKV_UI.index(audio_codec_name)
             elif self.encoding_task.output_file.extension == '.ts':
                 audio_codecs = self.encoding_task.AUDIO_CODECS_TS_UI
-            elif self.encoding_task.output_file.extension == '.webm':
-                audio_codecs = self.encoding_task.AUDIO_CODECS_WEBM_UI
+                audio_codec_index = self.encoding_task.AUDIO_CODECS_TS_UI.index(audio_codec_name)
             else:
-                audio_codecs = []
+                audio_codecs = self.encoding_task.AUDIO_CODECS_WEBM_UI
+                audio_codec_index = self.encoding_task.AUDIO_CODECS_WEBM_UI.index(audio_codec_name)
 
             for audio_codec in audio_codecs:
                 self.audio_codecs_combobox.append_text(audio_codec)
 
-            self.audio_codecs_combobox.set_active(0)
+            self.audio_codecs_combobox.set_active(audio_codec_index)
+            self.audio_codecs_combobox.connect('changed', self.on_audio_codec_combobox_changed)
 
         def _setup_channels_setting_row(self):
             self._setup_channels_combobox()
@@ -329,23 +363,50 @@ class SettingsSidebarWidgets:
 
         def _setup_channels_combobox(self):
             self.channels_combobox = Gtk.ComboBoxText()
+
+            for channel_setting in self.audio_stream_codec.CHANNELS_UI:
+                self.channels_combobox.append_text(channel_setting)
+
+            self.channels_combobox.set_active(self.audio_stream_codec.channels)
             self.channels_combobox.set_vexpand(False)
             self.channels_combobox.set_valign(Gtk.Align.CENTER)
+            self.channels_combobox.connect('changed', self.on_channels_combobox_changed)
 
-            self.channels_combobox.append_text('Copy')
-            self.channels_combobox.set_active(0)
+        def _setup_bitrate_setting_row(self):
+            self._setup_bitrate_spin_button()
 
-        def _setup_sample_rate_setting_row(self):
-            self._setup_sample_rate_combobox()
+            self.bitrate_setting_row = Adw.ActionRow()
+            self.bitrate_setting_row.set_title('Bitrate')
+            self.bitrate_setting_row.add_suffix(self.bitrate_spin_button)
 
-            self.sample_rate_setting_row = Adw.ActionRow()
-            self.sample_rate_setting_row.set_title('Sample Rate')
-            self.sample_rate_setting_row.add_suffix(self.sample_rate_combobox)
+        def _setup_bitrate_spin_button(self):
+            self.bitrate_spin_button = Gtk.SpinButton()
+            self.bitrate_spin_button.set_range(32, 996)
+            self.bitrate_spin_button.set_digits(0)
+            self.bitrate_spin_button.set_increments(32.0, 64.0)
+            self.bitrate_spin_button.set_numeric(True)
+            self.bitrate_spin_button.set_snap_to_ticks(True)
 
-        def _setup_sample_rate_combobox(self):
-            self.sample_rate_combobox = Gtk.ComboBoxText()
-            self.sample_rate_combobox.set_vexpand(False)
-            self.sample_rate_combobox.set_valign(Gtk.Align.CENTER)
+            if self.audio_stream_codec:
+                self.bitrate_spin_button.set_value(self.audio_stream_codec.bitrate)
+            else:
+                self.bitrate_spin_button.set_value(128)
 
-            self.sample_rate_combobox.append_text('Copy')
-            self.sample_rate_combobox.set_active(0)
+            self.bitrate_spin_button.set_vexpand(False)
+            self.bitrate_spin_button.set_valign(Gtk.Align.CENTER)
+
+        def set_codec_copy_state(self):
+            self.channels_setting_row.set_sensitive(False)
+            self.bitrate_setting_row.set_sensitive(False)
+
+        def on_channels_combobox_changed(self, combobox):
+            if combobox.get_active() < 1:
+                self.set_subtitle(''.join([str(self.audio_stream.channels), ' channels']))
+            else:
+                self.set_subtitle(''.join([combobox.get_active_text(), ' channels']))
+
+        def on_audio_codec_combobox_changed(self, combobox):
+            is_codec_settings_editable = bool(combobox.get_active())
+
+            self.channels_setting_row.set_sensitive(is_codec_settings_editable)
+            self.bitrate_setting_row.set_sensitive(is_codec_settings_editable)

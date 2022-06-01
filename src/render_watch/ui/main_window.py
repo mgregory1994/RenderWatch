@@ -27,7 +27,7 @@ from render_watch import app_preferences
 
 class MainWindowWidgets:
     def __init__(self,
-                 application: Gtk.Application,
+                 application: Adw.Application,
                  task_queue,
                  preview_generator: preview.PreviewGenerator,
                  app_settings: app_preferences.Settings):
@@ -145,7 +145,7 @@ class MainWindowWidgets:
 
     def _setup_settings_sidebar_button(self):
         self.toggle_settings_sidebar_button = Gtk.Button()
-        self.toggle_settings_sidebar_button.set_icon_name('sidebar-show-rtl-symbolic')
+        self.toggle_settings_sidebar_button.set_icon_name('view-dual-symbolic')
         self.toggle_settings_sidebar_button.set_sensitive(False)
         self.toggle_settings_sidebar_button.connect('clicked', self.inputs_page_widgets.toggle_settings_sidebar)
 

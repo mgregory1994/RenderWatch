@@ -23,6 +23,9 @@ class Opus:
     CHANNELS = ('auto', '1', '2', '3', '4', '6', '8')
     CHANNELS_LENGTH = len(CHANNELS)
 
+    BITRATE_MIN = 32
+    BITRATE_MAX = 996
+
     def __init__(self, audio_stream_index: int):
         """
         Initializes the Opus class with all necessary variables for the codec's options.

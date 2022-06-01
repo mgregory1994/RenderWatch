@@ -23,6 +23,9 @@ class Aac:
     CHANNELS = ('auto', '1', '2', '3', '4', '6', '8')
     CHANNELS_LENGTH = len(CHANNELS)
 
+    BITRATE_MIN = 32
+    BITRATE_MAX = 996
+
     def __init__(self, audio_stream_index):
         """
         Initializes the Aac class with all necessary variables for the codec's options.
