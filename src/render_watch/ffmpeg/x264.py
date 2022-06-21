@@ -69,6 +69,42 @@ class X264:
     DIRECT_UI = ('auto', 'none', 'spatial', 'temporal')
     DIRECT_LENGTH = len(DIRECT)
 
+    CRF_MIN = 0.0
+    CRF_MAX = 51.0
+
+    QP_MIN = 0.0
+    QP_MAX = 51.0
+
+    BITRATE_MIN = 0
+    BITRATE_MAX = 99999
+
+    KEYINT_MIN = 10
+    KEYINT_MAX = 990
+
+    SCENECUT_MIN = 10
+    SCENECUT_MAX = 990
+
+    B_FRAMES_MIN = 0
+    B_FRAMES_MAX = 16
+
+    REF_MIN = 0
+    REF_MAX = 16
+
+    DEBLOCK_MIN = -9
+    DEBLOCK_MAX = 9
+
+    AQ_STRENGTH_MIN = 0.0
+    AQ_STRENGTH_MAX = 2.0
+
+    ME_RANGE_MIN = 4
+    ME_RANGE_MAX = 64
+
+    PSYRD_MIN = 0.0
+    PSYRD_MAX = 2.0
+
+    PSYRD_TRELLIS_MIN = 0.0
+    PSYRD_TRELLIS_MAX = 1.0
+
     def __init__(self):
         """Initializes the X264 class with all necessary variables for the codec's options."""
         self.is_advanced_enabled = False
@@ -366,7 +402,7 @@ class X264:
         """
         if 'scenecut=' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['scenecut='])
-        return 0
+        return 40
 
     @scenecut.setter
     def scenecut(self, scenecut_value: int | None):

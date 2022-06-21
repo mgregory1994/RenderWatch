@@ -78,7 +78,8 @@ class InputActionRow(Adw.PreferencesRow):
         else:
             self.subtitle_label = Gtk.Label(label='Audio')
 
-        self.subtitle_label.set_sensitive(False)
+        self.subtitle_label.add_css_class('dim-label')
+        self.subtitle_label.add_css_class('caption')
         self.subtitle_label.set_vexpand(True)
         self.subtitle_label.set_valign(Gtk.Align.START)
         self.subtitle_label.set_hexpand(False)
@@ -185,6 +186,7 @@ class InputActionRow(Adw.PreferencesRow):
 
     def _setup_task_info_popover_input_contents(self):
         input_label = Gtk.Label(label='Input')
+        input_label.add_css_class('heading')
         input_label.set_hexpand(True)
         input_label.set_halign(Gtk.Align.CENTER)
 
@@ -293,6 +295,7 @@ class InputActionRow(Adw.PreferencesRow):
 
     def _setup_task_info_popover_output_contents(self):
         output_label = Gtk.Label(label='Output')
+        output_label.add_css_class('heading')
         output_label.set_hexpand(True)
         output_label.set_halign(Gtk.Align.CENTER)
 
@@ -468,7 +471,7 @@ class InputsPageWidgets:
     def _setup_inputs_list_placeholder_widget(self):
         placeholder_add_file_icon = Gtk.Image.new_from_icon_name('document-new-symbolic')
         placeholder_add_file_icon.set_pixel_size(128)
-        placeholder_add_file_icon.set_opacity(0.5)
+        placeholder_add_file_icon.add_css_class('dim-label')
         placeholder_add_file_icon.set_vexpand(True)
         placeholder_add_file_icon.set_valign(Gtk.Align.END)
         placeholder_add_file_icon.set_hexpand(True)
@@ -476,7 +479,7 @@ class InputsPageWidgets:
 
         placeholder_add_folder_icon = Gtk.Image.new_from_icon_name('folder-new-symbolic')
         placeholder_add_folder_icon.set_pixel_size(128)
-        placeholder_add_folder_icon.set_opacity(0.5)
+        placeholder_add_folder_icon.add_css_class('dim-label')
         placeholder_add_folder_icon.set_vexpand(True)
         placeholder_add_folder_icon.set_valign(Gtk.Align.END)
         placeholder_add_folder_icon.set_hexpand(True)
