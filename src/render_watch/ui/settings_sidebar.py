@@ -17,7 +17,7 @@
 
 
 from render_watch.ui import Gtk, Adw
-from render_watch.ffmpeg import encoding, general_settings, filters, x264
+from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265
 from render_watch import app_preferences
 
 
@@ -277,9 +277,12 @@ class SettingsSidebarWidgets:
 
         def _setup_video_codec_settings_pages(self):
             x264_page = self.X264StackPage()
+            x265_page = self.X265StackPage()
 
             self.video_codec_settings_stack = Gtk.Stack()
             self.video_codec_settings_stack.add_named(x264_page, 'x264_page')
+            self.video_codec_settings_stack.add_named(x265_page, 'x265_page')
+            self.video_codec_settings_stack.set_visible_child_name('x265_page')
             self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
 
         class X264StackPage(Gtk.Box):
@@ -1134,7 +1137,7 @@ class SettingsSidebarWidgets:
                 if check_button.get_active():
                     self.rate_type_stack.set_visible_child_name('qp_page')
                     self.rate_type_settings_row.set_title('QP')
-                    self.rate_type_settings_row.set_subtitle('Constant quantizer: P-frames')
+                    self.rate_type_settings_row.set_subtitle('Constant Quantizer: P-frames')
 
             def on_bitrate_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -1187,7 +1190,1070 @@ class SettingsSidebarWidgets:
                 self.deblock_row.set_sensitive(is_enabled)
                 self.deblock_values_vertical_box.set_sensitive(not self.no_deblock_check_button.get_active())
 
+        class X265StackPage(Gtk.Box):
+            def __init__(self):
+                super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
 
+                self._setup_codec_settings()
+                self._setup_codec_advanced_settings()
+
+                self.append(self.codec_settings_group)
+                self.append(self.advanced_settings_group)
+
+            def _setup_codec_settings(self):
+                self._setup_preset_row()
+                self._setup_profile_row()
+                self._setup_level_row()
+                self._setup_tune_row()
+                self._setup_rate_type_row()
+                self._setup_rate_type_settings_row()
+
+                self.codec_settings_group = Adw.PreferencesGroup()
+                self.codec_settings_group.set_title('X265 Settings')
+                self.codec_settings_group.add(self.preset_row)
+                self.codec_settings_group.add(self.profile_row)
+                self.codec_settings_group.add(self.level_row)
+                self.codec_settings_group.add(self.tune_row)
+                self.codec_settings_group.add(self.rate_type_row)
+                self.codec_settings_group.add(self.rate_type_settings_row)
+
+            def _setup_preset_row(self):
+                self._setup_preset_combobox()
+
+                self.preset_row = Adw.ActionRow()
+                self.preset_row.set_title('Preset')
+                self.preset_row.set_subtitle('Encoder preset')
+                self.preset_row.add_suffix(self.preset_combobox)
+
+            def _setup_preset_combobox(self):
+                self.preset_combobox = Gtk.ComboBoxText()
+                self.preset_combobox.set_vexpand(False)
+                self.preset_combobox.set_valign(Gtk.Align.CENTER)
+
+                for preset_setting in x265.X265.PRESET:
+                    self.preset_combobox.append_text(preset_setting)
+
+                self.preset_combobox.set_active(0)
+
+            def _setup_profile_row(self):
+                self._setup_profile_combobox()
+
+                self.profile_row = Adw.ActionRow()
+                self.profile_row.set_title('Profile')
+                self.profile_row.set_subtitle('Encoder profile')
+                self.profile_row.add_suffix(self.profile_combobox)
+
+            def _setup_profile_combobox(self):
+                self.profile_combobox = Gtk.ComboBoxText()
+                self.profile_combobox.set_vexpand(False)
+                self.profile_combobox.set_valign(Gtk.Align.CENTER)
+
+                for profile_setting in x265.X265.PROFILE:
+                    self.profile_combobox.append_text(profile_setting)
+
+                self.profile_combobox.set_active(0)
+
+            def _setup_level_row(self):
+                self._setup_level_combobox()
+
+                self.level_row = Adw.ActionRow()
+                self.level_row.set_title('Level')
+                self.level_row.set_subtitle('Encoder level')
+                self.level_row.add_suffix(self.level_combobox)
+
+            def _setup_level_combobox(self):
+                self.level_combobox = Gtk.ComboBoxText()
+                self.level_combobox.set_vexpand(False)
+                self.level_combobox.set_valign(Gtk.Align.CENTER)
+
+                for level_setting in x265.X265.LEVEL:
+                    self.level_combobox.append_text(level_setting)
+
+                self.level_combobox.set_active(0)
+
+            def _setup_tune_row(self):
+                self._setup_tune_combobox()
+
+                self.tune_row = Adw.ActionRow()
+                self.tune_row.set_title('Tune')
+                self.tune_row.set_subtitle('Encoder tune')
+                self.tune_row.add_suffix(self.tune_combobox)
+
+            def _setup_tune_combobox(self):
+                self.tune_combobox = Gtk.ComboBoxText()
+                self.tune_combobox.set_vexpand(False)
+                self.tune_combobox.set_valign(Gtk.Align.CENTER)
+
+                for tune_setting in x265.X265.TUNE:
+                    self.tune_combobox.append_text(tune_setting)
+
+                self.tune_combobox.set_active(0)
+
+            def _setup_rate_type_row(self):
+                self._setup_rate_type_radio_buttons()
+
+                self.rate_type_row = Adw.ActionRow()
+                self.rate_type_row.set_title('Rate Type')
+                self.rate_type_row.set_subtitle('COdec rate type method')
+                self.rate_type_row.add_suffix(self.rate_type_horizontal_box)
+
+            def _setup_rate_type_radio_buttons(self):
+                crf_check_button = Gtk.CheckButton(label='CRF')
+                crf_check_button.set_active(True)
+                crf_check_button.connect('toggled', self.on_crf_check_button_toggled)
+
+                qp_check_button = Gtk.CheckButton(label='QP')
+                qp_check_button.set_group(crf_check_button)
+                qp_check_button.connect('toggled', self.on_qp_check_button_toggled)
+
+                self.bitrate_check_button = Gtk.CheckButton(label='Bitrate')
+                self.bitrate_check_button.set_group(crf_check_button)
+                self.bitrate_check_button.connect('toggled', self.on_bitrate_check_button_toggled)
+
+                self.rate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.rate_type_horizontal_box.append(crf_check_button)
+                self.rate_type_horizontal_box.append(qp_check_button)
+                self.rate_type_horizontal_box.append(self.bitrate_check_button)
+
+            def _setup_rate_type_settings_row(self):
+                self._setup_rate_type_settings_stack()
+
+                self.rate_type_settings_row = Adw.ActionRow()
+                self.rate_type_settings_row.set_title('CRF')
+                self.rate_type_settings_row.set_subtitle('Constant Ratefactor')
+                self.rate_type_settings_row.add_suffix(self.rate_type_stack)
+
+            def _setup_rate_type_settings_stack(self):
+                self._setup_crf_page()
+                self._setup_qp_page()
+                self._setup_bitrate_page()
+
+                self.rate_type_stack = Gtk.Stack()
+                self.rate_type_stack.add_named(self.crf_scale, 'crf_page')
+                self.rate_type_stack.add_named(self.qp_scale, 'qp_page')
+                self.rate_type_stack.add_named(self.bitrate_page_vertical_box, 'bitrate_page')
+                self.rate_type_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+
+            def _setup_crf_page(self):
+                self.crf_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                          min=x265.X265.CRF_MIN,
+                                                          max=x265.X265.CRF_MAX,
+                                                          step=1.0)
+                self.crf_scale.set_value(20.0)
+                self.crf_scale.set_digits(1)
+                self.crf_scale.set_draw_value(True)
+                self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.crf_scale.set_hexpand(True)
+
+            def _setup_qp_page(self):
+                self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                         min=x265.X265.QP_MIN,
+                                                         max=x265.X265.QP_MAX,
+                                                         step=1.0)
+                self.qp_scale.set_value(20.0)
+                self.qp_scale.set_digits(1)
+                self.qp_scale.set_draw_value(True)
+                self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.qp_scale.set_hexpand(True)
+
+            def _setup_bitrate_page(self):
+                self._setup_bitrate_spin_button()
+                self._setup_bitrate_type_widgets()
+
+                self.bitrate_page_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+                self.bitrate_page_vertical_box.append(self.bitrate_spin_button)
+                self.bitrate_page_vertical_box.append(self.bitrate_type_horizontal_box)
+                self.bitrate_page_vertical_box.set_margin_top(10)
+                self.bitrate_page_vertical_box.set_margin_bottom(10)
+                self.bitrate_page_vertical_box.set_hexpand(False)
+                self.bitrate_page_vertical_box.set_halign(Gtk.Align.END)
+
+            def _setup_bitrate_spin_button(self):
+                self.bitrate_spin_button = Gtk.SpinButton()
+                self.bitrate_spin_button.set_range(x265.X265.BITRATE_MIN, x265.X265.BITRATE_MAX)
+                self.bitrate_spin_button.set_digits(0)
+                self.bitrate_spin_button.set_increments(100, 500)
+                self.bitrate_spin_button.set_numeric(True)
+                self.bitrate_spin_button.set_snap_to_ticks(True)
+                self.bitrate_spin_button.set_value(2500)
+                self.bitrate_spin_button.set_size_request(125, -1)
+                self.bitrate_spin_button.set_vexpand(True)
+                self.bitrate_spin_button.set_valign(Gtk.Align.END)
+                self.bitrate_spin_button.set_hexpand(True)
+                self.bitrate_spin_button.set_halign(Gtk.Align.CENTER)
+
+            def _setup_bitrate_type_widgets(self):
+                self.average_check_button = Gtk.CheckButton(label='Average')
+                self.average_check_button.set_active(True)
+
+                self.dual_pass_check_button = Gtk.CheckButton(label='2-Pass')
+                self.dual_pass_check_button.set_group(self.average_check_button)
+
+                self.bitrate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.bitrate_type_horizontal_box.append(self.average_check_button)
+                self.bitrate_type_horizontal_box.append(self.dual_pass_check_button)
+                self.bitrate_type_horizontal_box.set_vexpand(True)
+                self.bitrate_type_horizontal_box.set_valign(Gtk.Align.START)
+
+            def _setup_codec_advanced_settings(self):
+                self._setup_vbv_maxrate_row()
+                self._setup_vbv_bufsize_row()
+                self._setup_aq_mode_row()
+                self._setup_aq_strength_row()
+                self._setup_hevc_aq_row()
+                self._setup_keyint_row()
+                self._setup_min_keyint_row()
+                self._setup_ref_row()
+                self._setup_b_frames_row()
+                self._setup_b_adapt_row()
+                self._setup_no_b_pyramid_row()
+                self._setup_b_intra_row()
+                self._setup_no_gop_row()
+                self._setup_rc_lookahead_row()
+                self._setup_no_scenecut_row()
+                self._setup_no_high_tier_row()
+                self._setup_psy_rd_row()
+                self._setup_psy_rdoq_row()
+                self._setup_me_row()
+                self._setup_subme_row()
+                self._setup_weight_b_row()
+                self._setup_no_weight_p_row()
+                self._setup_deblock_row()
+                self._setup_no_sao_row()
+                self._setup_sao_non_deblock_row()
+                self._setup_limit_sao_row()
+                self._setup_selective_sao_row()
+                self._setup_rd_row()
+                self._setup_rdoq_level_row()
+                self._setup_rd_refine_row()
+                self._setup_max_cu_size_row()
+                self._setup_min_cu_size_row()
+                self._setup_rect_row()
+                self._setup_amp_row()
+                self._setup_wpp_row()
+                self._setup_pmode_row()
+                self._setup_pme_row()
+                self._setup_uhd_bd_row()
+
+                advanced_settings_switch = Gtk.Switch()
+                advanced_settings_switch.set_vexpand(False)
+                advanced_settings_switch.set_valign(Gtk.Align.CENTER)
+                advanced_settings_switch.connect('state-set', self.on_advanced_settings_switch_state_set)
+
+                self.advanced_settings_group = Adw.PreferencesGroup()
+                self.advanced_settings_group.set_title('Advanced Settings')
+                self.advanced_settings_group.set_header_suffix(advanced_settings_switch)
+                self.advanced_settings_group.add(self.vbv_maxrate_row)
+                self.advanced_settings_group.add(self.vbv_bufsize_row)
+                self.advanced_settings_group.add(self.keyint_row)
+                self.advanced_settings_group.add(self.min_keyint_row)
+                self.advanced_settings_group.add(self.ref_row)
+                self.advanced_settings_group.add(self.b_frames_row)
+                self.advanced_settings_group.add(self.b_adapt_row)
+                self.advanced_settings_group.add(self.no_b_pyramid_row)
+                self.advanced_settings_group.add(self.b_intra_row)
+                self.advanced_settings_group.add(self.weight_b_row)
+                self.advanced_settings_group.add(self.no_weight_p_row)
+                self.advanced_settings_group.add(self.no_high_tier_row)
+                self.advanced_settings_group.add(self.no_gop_row)
+                self.advanced_settings_group.add(self.no_scenecut_row)
+                self.advanced_settings_group.add(self.me_row)
+                self.advanced_settings_group.add(self.subme_row)
+                self.advanced_settings_group.add(self.deblock_row)
+                self.advanced_settings_group.add(self.aq_mode_row)
+                self.advanced_settings_group.add(self.aq_strength_row)
+                self.advanced_settings_group.add(self.hevc_aq_row)
+                self.advanced_settings_group.add(self.rc_lookahead_row)
+                self.advanced_settings_group.add(self.psy_rd_row)
+                self.advanced_settings_group.add(self.psy_rdoq_row)
+                self.advanced_settings_group.add(self.rd_row)
+                self.advanced_settings_group.add(self.rd_refine_row)
+                self.advanced_settings_group.add(self.rdoq_level_row)
+                self.advanced_settings_group.add(self.no_sao_row)
+                self.advanced_settings_group.add(self.limit_sao_row)
+                self.advanced_settings_group.add(self.sao_non_deblock_row)
+                self.advanced_settings_group.add(self.selective_sao_row)
+                self.advanced_settings_group.add(self.min_cu_size_row)
+                self.advanced_settings_group.add(self.max_cu_size_row)
+                self.advanced_settings_group.add(self.rect_row)
+                self.advanced_settings_group.add(self.amp_row)
+                self.advanced_settings_group.add(self.wpp_row)
+                self.advanced_settings_group.add(self.pmode_row)
+                self.advanced_settings_group.add(self.pme_row)
+                self.advanced_settings_group.add(self.uhd_bd_row)
+
+            def _setup_vbv_maxrate_row(self):
+                self._setup_vbv_maxrate_spin_button()
+
+                self.vbv_maxrate_row = Adw.ActionRow()
+                self.vbv_maxrate_row.set_title('VBV Max Rate')
+                self.vbv_maxrate_row.set_subtitle('Maximum local bitrate in kbps')
+                self.vbv_maxrate_row.add_suffix(self.vbv_maxrate_spin_button)
+                self.vbv_maxrate_row.set_sensitive(False)
+
+            def _setup_vbv_maxrate_spin_button(self):
+                self.vbv_maxrate_spin_button = Gtk.SpinButton()
+                self.vbv_maxrate_spin_button.set_range(x265.X265.BITRATE_MIN, x265.X265.BITRATE_MAX)
+                self.vbv_maxrate_spin_button.set_digits(0)
+                self.vbv_maxrate_spin_button.set_increments(100, 500)
+                self.vbv_maxrate_spin_button.set_numeric(True)
+                self.vbv_maxrate_spin_button.set_snap_to_ticks(True)
+                self.vbv_maxrate_spin_button.set_value(2500)
+                self.vbv_maxrate_spin_button.set_size_request(125, -1)
+                self.vbv_maxrate_spin_button.set_vexpand(False)
+                self.vbv_maxrate_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_vbv_bufsize_row(self):
+                self._setup_vbv_bufsize_spin_button()
+
+                self.vbv_bufsize_row = Adw.ActionRow()
+                self.vbv_bufsize_row.set_title('VBV Bufsize')
+                self.vbv_bufsize_row.set_subtitle('Size of the VBV buffer in kb')
+                self.vbv_bufsize_row.add_suffix(self.vbv_bufsize_spin_button)
+                self.vbv_bufsize_row.set_sensitive(False)
+
+            def _setup_vbv_bufsize_spin_button(self):
+                self.vbv_bufsize_spin_button = Gtk.SpinButton()
+                self.vbv_bufsize_spin_button.set_range(x265.X265.BITRATE_MIN, x265.X265.BITRATE_MAX)
+                self.vbv_bufsize_spin_button.set_digits(0)
+                self.vbv_bufsize_spin_button.set_increments(100, 500)
+                self.vbv_bufsize_spin_button.set_numeric(True)
+                self.vbv_bufsize_spin_button.set_snap_to_ticks(True)
+                self.vbv_bufsize_spin_button.set_value(2500)
+                self.vbv_bufsize_spin_button.set_size_request(125, -1)
+                self.vbv_bufsize_spin_button.set_vexpand(False)
+                self.vbv_bufsize_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_aq_mode_row(self):
+                self._setup_aq_mode_combobox()
+
+                self.aq_mode_row = Adw.ActionRow()
+                self.aq_mode_row.set_title('AQ Mode')
+                self.aq_mode_row.set_subtitle('Adaptive quantization operating mode')
+                self.aq_mode_row.add_suffix(self.aq_mode_combobox)
+                self.aq_mode_row.set_sensitive(False)
+
+            def _setup_aq_mode_combobox(self):
+                self.aq_mode_combobox = Gtk.ComboBoxText()
+                self.aq_mode_combobox.set_vexpand(False)
+                self.aq_mode_combobox.set_valign(Gtk.Align.CENTER)
+
+                for aq_mode_setting in x265.X265.AQ_MODE_UI:
+                    self.aq_mode_combobox.append_text(aq_mode_setting)
+
+                self.aq_mode_combobox.set_active(0)
+
+            def _setup_aq_strength_row(self):
+                self._setup_aq_strength_spin_button()
+
+                self.aq_strength_row = Adw.ActionRow()
+                self.aq_strength_row.set_title('AQ Strength')
+                self.aq_strength_row.set_subtitle('Strength of the adaptive quantization offsets')
+                self.aq_strength_row.add_suffix(self.aq_strength_spin_button)
+                self.aq_strength_row.set_sensitive(False)
+
+            def _setup_aq_strength_spin_button(self):
+                self.aq_strength_spin_button = Gtk.SpinButton()
+                self.aq_strength_spin_button.set_range(x265.X265.AQ_STRENGTH_MIN, x265.X265.AQ_STRENGTH_MAX)
+                self.aq_strength_spin_button.set_digits(1)
+                self.aq_strength_spin_button.set_increments(0.1, 0.5)
+                self.aq_strength_spin_button.set_numeric(True)
+                self.aq_strength_spin_button.set_snap_to_ticks(True)
+                self.aq_strength_spin_button.set_value(1.0)
+                self.aq_strength_spin_button.set_vexpand(False)
+                self.aq_strength_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_hevc_aq_row(self):
+                self._setup_hevc_aq_switch()
+
+                self.hevc_aq_row = Adw.ActionRow()
+                self.hevc_aq_row.set_title('HEVC AQ')
+                self.hevc_aq_row.set_subtitle('Adaptive quantization that scales the quantization step size to spatial activity')
+                self.hevc_aq_row.add_suffix(self.hevc_aq_switch)
+                self.hevc_aq_row.set_sensitive(False)
+
+            def _setup_hevc_aq_switch(self):
+                self.hevc_aq_switch = Gtk.Switch()
+                self.hevc_aq_switch.set_vexpand(False)
+                self.hevc_aq_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_keyint_row(self):
+                self._setup_keyint_spin_button()
+
+                self.keyint_row = Adw.ActionRow()
+                self.keyint_row.set_title('Keyframe Interval')
+                self.keyint_row.set_subtitle('Maximum intra period in frames')
+                self.keyint_row.add_suffix(self.keyint_spin_button)
+                self.keyint_row.set_sensitive(False)
+
+            def _setup_keyint_spin_button(self):
+                self.keyint_spin_button = Gtk.SpinButton()
+                self.keyint_spin_button.set_range(x265.X265.KEYINT_MIN, x265.X265.KEYINT_MAX)
+                self.keyint_spin_button.set_digits(0)
+                self.keyint_spin_button.set_increments(10, 50)
+                self.keyint_spin_button.set_numeric(True)
+                self.keyint_spin_button.set_snap_to_ticks(True)
+                self.keyint_spin_button.set_value(240)
+                self.keyint_spin_button.set_vexpand(False)
+                self.keyint_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_min_keyint_row(self):
+                self._setup_min_keyint_spin_button()
+
+                self.min_keyint_row = Adw.ActionRow()
+                self.min_keyint_row.set_title('Min Keyframe Interval')
+                self.min_keyint_row.set_subtitle('Minimum GOP size')
+                self.min_keyint_row.add_suffix(self.min_keyint_spin_button)
+                self.min_keyint_row.set_sensitive(False)
+
+            def _setup_min_keyint_spin_button(self):
+                self.min_keyint_spin_button = Gtk.SpinButton()
+                self.min_keyint_spin_button.set_range(x265.X265.MIN_KEYINT_MIN, x265.X265.MIN_KEYINT_MAX)
+                self.min_keyint_spin_button.set_digits(0)
+                self.min_keyint_spin_button.set_increments(10, 50)
+                self.min_keyint_spin_button.set_numeric(True)
+                self.min_keyint_spin_button.set_snap_to_ticks(True)
+                self.min_keyint_spin_button.set_value(24)
+                self.min_keyint_spin_button.set_vexpand(False)
+                self.min_keyint_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_ref_row(self):
+                self._setup_ref_spin_button()
+
+                self.ref_row = Adw.ActionRow()
+                self.ref_row.set_title('Reference Frames')
+                self.ref_row.set_subtitle('Maximum number of L0 references')
+                self.ref_row.add_suffix(self.ref_spin_button)
+                self.ref_row.set_sensitive(False)
+
+            def _setup_ref_spin_button(self):
+                self.ref_spin_button = Gtk.SpinButton()
+                self.ref_spin_button.set_range(x265.X265.REFS_MIN, x265.X265.REFS_MAX)
+                self.ref_spin_button.set_digits(0)
+                self.ref_spin_button.set_increments(1, 5)
+                self.ref_spin_button.set_numeric(True)
+                self.ref_spin_button.set_snap_to_ticks(True)
+                self.ref_spin_button.set_value(3)
+                self.ref_spin_button.set_vexpand(False)
+                self.ref_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_b_frames_row(self):
+                self._setup_b_frames_spin_button()
+
+                self.b_frames_row = Adw.ActionRow()
+                self.b_frames_row.set_title('B-Frames')
+                self.b_frames_row.set_subtitle('Maximum number of consecutive B-frames')
+                self.b_frames_row.add_suffix(self.b_frames_spin_button)
+                self.b_frames_row.set_sensitive(False)
+
+            def _setup_b_frames_spin_button(self):
+                self.b_frames_spin_button = Gtk.SpinButton()
+                self.b_frames_spin_button.set_range(x265.X265.REFS_MIN, x265.X265.REFS_MAX)
+                self.b_frames_spin_button.set_digits(0)
+                self.b_frames_spin_button.set_increments(1, 5)
+                self.b_frames_spin_button.set_numeric(True)
+                self.b_frames_spin_button.set_snap_to_ticks(True)
+                self.b_frames_spin_button.set_value(3)
+                self.b_frames_spin_button.set_vexpand(False)
+                self.b_frames_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_b_adapt_row(self):
+                self._setup_b_adapt_combobox()
+
+                self.b_adapt_row = Adw.ActionRow()
+                self.b_adapt_row.set_title('B-adapt')
+                self.b_adapt_row.set_subtitle('Level of optimization to place B-frames')
+                self.b_adapt_row.add_suffix(self.b_adapt_combobox)
+                self.b_adapt_row.set_sensitive(False)
+
+            def _setup_b_adapt_combobox(self):
+                self.b_adapt_combobox = Gtk.ComboBoxText()
+                self.b_adapt_combobox.set_vexpand(False)
+                self.b_adapt_combobox.set_valign(Gtk.Align.CENTER)
+
+                for b_adapt_setting in x265.X265.B_ADAPT_UI:
+                    self.b_adapt_combobox.append_text(b_adapt_setting)
+
+                self.b_adapt_combobox.set_active(0)
+
+            def _setup_no_b_pyramid_row(self):
+                self._setup_no_b_pyramid_switch()
+
+                self.no_b_pyramid_row = Adw.ActionRow()
+                self.no_b_pyramid_row.set_title('No B-pyramid')
+                self.no_b_pyramid_row.set_subtitle('Disables B-frames as references')
+                self.no_b_pyramid_row.add_suffix(self.no_b_pyramid_switch)
+                self.no_b_pyramid_row.set_sensitive(False)
+
+            def _setup_no_b_pyramid_switch(self):
+                self.no_b_pyramid_switch = Gtk.Switch()
+                self.no_b_pyramid_switch.set_vexpand(False)
+                self.no_b_pyramid_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_b_intra_row(self):
+                self._setup_b_intra_switch()
+
+                self.b_intra_row = Adw.ActionRow()
+                self.b_intra_row.set_title('B-Intra')
+                self.b_intra_row.set_subtitle('Evaluation of intra modes in B slices')
+                self.b_intra_row.add_suffix(self.b_intra_switch)
+                self.b_intra_row.set_sensitive(False)
+
+            def _setup_b_intra_switch(self):
+                self.b_intra_switch = Gtk.Switch()
+                self.b_intra_switch.set_vexpand(False)
+                self.b_intra_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_no_gop_row(self):
+                self._setup_no_gop_switch()
+
+                self.no_gop_row = Adw.ActionRow()
+                self.no_gop_row.set_title('No Open GOP')
+                self.no_gop_row.set_subtitle('Disables I-slices to be non-IDR')
+                self.no_gop_row.add_suffix(self.no_gop_switch)
+                self.no_gop_row.set_sensitive(False)
+
+            def _setup_no_gop_switch(self):
+                self.no_gop_switch = Gtk.Switch()
+                self.no_gop_switch.set_vexpand(False)
+                self.no_gop_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_rc_lookahead_row(self):
+                self._setup_rc_lookahead_spin_button()
+
+                self.rc_lookahead_row = Adw.ActionRow()
+                self.rc_lookahead_row.set_title('RC Lookahead')
+                self.rc_lookahead_row.set_subtitle('Lookahead for slice-type decisions in frames')
+                self.rc_lookahead_row.add_suffix(self.rc_lookahead_spin_button)
+                self.rc_lookahead_row.set_sensitive(False)
+
+            def _setup_rc_lookahead_spin_button(self):
+                self.rc_lookahead_spin_button = Gtk.SpinButton()
+                self.rc_lookahead_spin_button.set_range(x265.X265.RC_LOOKAHEAD_MIN, x265.X265.RC_LOOKAHEAD_MAX)
+                self.rc_lookahead_spin_button.set_digits(0)
+                self.rc_lookahead_spin_button.set_increments(10, 50)
+                self.rc_lookahead_spin_button.set_numeric(True)
+                self.rc_lookahead_spin_button.set_snap_to_ticks(True)
+                self.rc_lookahead_spin_button.set_value(20)
+                self.rc_lookahead_spin_button.set_vexpand(False)
+                self.rc_lookahead_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_no_scenecut_row(self):
+                self._setup_no_scenecut_switch()
+
+                self.no_scenecut_row = Adw.ActionRow()
+                self.no_scenecut_row.set_title('No Scenecut')
+                self.no_scenecut_row.set_subtitle('Disabled adaptive I-frame placement')
+                self.no_scenecut_row.add_suffix(self.no_scenecut_switch)
+                self.no_scenecut_row.set_sensitive(False)
+
+            def _setup_no_scenecut_switch(self):
+                self.no_scenecut_switch = Gtk.Switch()
+                self.no_scenecut_switch.set_vexpand(False)
+                self.no_scenecut_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_no_high_tier_row(self):
+                self._setup_no_high_tier_switch()
+
+                self.no_high_tier_row = Adw.ActionRow()
+                self.no_high_tier_row.set_title('No High Tier')
+                self.no_high_tier_row.set_subtitle('Allow high tier at encoder level when necessary')
+                self.no_high_tier_row.add_suffix(self.no_high_tier_switch)
+                self.no_high_tier_row.set_sensitive(False)
+
+            def _setup_no_high_tier_switch(self):
+                self.no_high_tier_switch = Gtk.Switch()
+                self.no_high_tier_switch.set_vexpand(False)
+                self.no_high_tier_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_psy_rd_row(self):
+                self._setup_psy_rd_spin_button()
+
+                self.psy_rd_row = Adw.ActionRow()
+                self.psy_rd_row.set_title('PsyRD')
+                self.psy_rd_row.set_subtitle('Bias RDO to preserve energy from source image')
+                self.psy_rd_row.add_suffix(self.psy_rd_spin_button)
+                self.psy_rd_row.set_sensitive(False)
+
+            def _setup_psy_rd_spin_button(self):
+                self.psy_rd_spin_button = Gtk.SpinButton()
+                self.psy_rd_spin_button.set_range(x265.X265.PSY_RD_MIN, x265.X265.PSY_RD_MAX)
+                self.psy_rd_spin_button.set_digits(1)
+                self.psy_rd_spin_button.set_increments(.1, .5)
+                self.psy_rd_spin_button.set_numeric(True)
+                self.psy_rd_spin_button.set_snap_to_ticks(True)
+                self.psy_rd_spin_button.set_value(2.0)
+                self.psy_rd_spin_button.set_vexpand(False)
+                self.psy_rd_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_psy_rdoq_row(self):
+                self._setup_psy_rdoq_spin_button()
+
+                self.psy_rdoq_row = Adw.ActionRow()
+                self.psy_rdoq_row.set_title('Psy RDOQ')
+                self.psy_rdoq_row.set_subtitle('Bias RDOQ towards higher energy in the reconstructed image')
+                self.psy_rdoq_row.add_suffix(self.psy_rdoq_spin_button)
+                self.psy_rdoq_row.set_sensitive(False)
+
+            def _setup_psy_rdoq_spin_button(self):
+                self.psy_rdoq_spin_button = Gtk.SpinButton()
+                self.psy_rdoq_spin_button.set_range(x265.X265.PSY_RDOQ_MIN, x265.X265.PSY_RDOQ_MAX)
+                self.psy_rdoq_spin_button.set_digits(1)
+                self.psy_rdoq_spin_button.set_increments(.1, .5)
+                self.psy_rdoq_spin_button.set_numeric(True)
+                self.psy_rdoq_spin_button.set_snap_to_ticks(True)
+                self.psy_rdoq_spin_button.set_value(2.0)
+                self.psy_rdoq_spin_button.set_vexpand(False)
+                self.psy_rdoq_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_me_row(self):
+                self._setup_me_combobox()
+
+                self.me_row = Adw.ActionRow()
+                self.me_row.set_title('Motion Estimation')
+                self.me_row.set_subtitle('Motion search complexity method to use')
+                self.me_row.add_suffix(self.me_combobox)
+                self.me_row.set_sensitive(False)
+
+            def _setup_me_combobox(self):
+                self.me_combobox = Gtk.ComboBoxText()
+                self.me_combobox.set_vexpand(False)
+                self.me_combobox.set_valign(Gtk.Align.CENTER)
+
+                for me_setting in x265.X265.ME:
+                    self.me_combobox.append_text(me_setting)
+
+                self.me_combobox.set_active(0)
+
+            def _setup_subme_row(self):
+                self._setup_subme_spin_button()
+
+                self.subme_row = Adw.ActionRow()
+                self.subme_row.set_title('Sub-Motion Estimation')
+                self.subme_row.set_subtitle('Amount of subpel refinement to perform')
+                self.subme_row.add_suffix(self.subme_spin_button)
+                self.subme_row.set_sensitive(False)
+
+            def _setup_subme_spin_button(self):
+                self.subme_spin_button = Gtk.SpinButton()
+                self.subme_spin_button.set_range(x265.X265.SUBME_MIN, x265.X265.SUBME_MAX)
+                self.subme_spin_button.set_digits(0)
+                self.subme_spin_button.set_increments(1, 5)
+                self.subme_spin_button.set_numeric(True)
+                self.subme_spin_button.set_snap_to_ticks(True)
+                self.subme_spin_button.set_value(2)
+                self.subme_spin_button.set_vexpand(False)
+                self.subme_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_weight_b_row(self):
+                self._setup_weight_b_switch()
+
+                self.weight_b_row = Adw.ActionRow()
+                self.weight_b_row.set_title('Weight-B')
+                self.weight_b_row.set_subtitle('Enable weighted prediction in B slices')
+                self.weight_b_row.add_suffix(self.weight_b_switch)
+                self.weight_b_row.set_sensitive(False)
+
+            def _setup_weight_b_switch(self):
+                self.weight_b_switch = Gtk.Switch()
+                self.weight_b_switch.set_vexpand(False)
+                self.weight_b_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_no_weight_p_row(self):
+                self._setup_no_weight_p_switch()
+
+                self.no_weight_p_row = Adw.ActionRow()
+                self.no_weight_p_row.set_title('No Weight-P')
+                self.no_weight_p_row.set_subtitle('Disable weighted prediction in P slices')
+                self.no_weight_p_row.add_suffix(self.no_weight_p_switch)
+                self.no_weight_p_row.set_sensitive(False)
+
+            def _setup_no_weight_p_switch(self):
+                self.no_weight_p_switch = Gtk.Switch()
+                self.no_weight_p_switch.set_vexpand(False)
+                self.no_weight_p_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_deblock_row(self):
+                self._setup_no_deblock_check_button()
+                self._setup_deblock_strength_widgets()
+
+                deblock_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                deblock_horizontal_box.append(self.no_deblock_check_button)
+                deblock_horizontal_box.append(self.deblock_strength_vertical_box)
+                deblock_horizontal_box.set_margin_top(10)
+                deblock_horizontal_box.set_margin_bottom(10)
+
+                self.deblock_row = Adw.ActionRow()
+                self.deblock_row.set_title('Deblock')
+                self.deblock_row.set_subtitle('Deblocking loop filter strength offsets')
+                self.deblock_row.add_suffix(deblock_horizontal_box)
+                self.deblock_row.set_sensitive(False)
+
+            def _setup_no_deblock_check_button(self):
+                self.no_deblock_check_button = Gtk.CheckButton(label='No Deblock')
+                self.no_deblock_check_button.connect('toggled', self.on_non_deblock_check_button_toggled)
+
+            def _setup_deblock_strength_widgets(self):
+                self.deblock_alpha_spin_button = Gtk.SpinButton()
+                self.deblock_alpha_spin_button.set_range(x265.X265.DEBLOCK_MIN, x265.X265.DEBLOCK_MAX)
+                self.deblock_alpha_spin_button.set_digits(0)
+                self.deblock_alpha_spin_button.set_increments(1, 5)
+                self.deblock_alpha_spin_button.set_numeric(True)
+                self.deblock_alpha_spin_button.set_snap_to_ticks(True)
+                self.deblock_alpha_spin_button.set_value(0)
+                self.deblock_alpha_spin_button.set_vexpand(False)
+                self.deblock_alpha_spin_button.set_valign(Gtk.Align.CENTER)
+
+                self.deblock_beta_spin_button = Gtk.SpinButton()
+                self.deblock_beta_spin_button.set_range(x265.X265.DEBLOCK_MIN, x265.X265.DEBLOCK_MAX)
+                self.deblock_beta_spin_button.set_digits(0)
+                self.deblock_beta_spin_button.set_increments(1, 5)
+                self.deblock_beta_spin_button.set_numeric(True)
+                self.deblock_beta_spin_button.set_snap_to_ticks(True)
+                self.deblock_beta_spin_button.set_value(0)
+                self.deblock_beta_spin_button.set_vexpand(False)
+                self.deblock_beta_spin_button.set_valign(Gtk.Align.CENTER)
+
+                self.deblock_strength_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+                self.deblock_strength_vertical_box.append(self.deblock_alpha_spin_button)
+                self.deblock_strength_vertical_box.append(self.deblock_beta_spin_button)
+
+            def _setup_no_sao_row(self):
+                self._setup_no_sao_switch()
+
+                self.no_sao_row = Adw.ActionRow()
+                self.no_sao_row.set_title('No SAO')
+                self.no_sao_row.set_subtitle('Whether non-deblocked pixels are used for SAO analysis')
+                self.no_sao_row.add_suffix(self.no_sao_switch)
+                self.no_sao_row.set_sensitive(False)
+
+            def _setup_no_sao_switch(self):
+                self.no_sao_switch = Gtk.Switch()
+                self.no_sao_switch.set_vexpand(False)
+                self.no_sao_switch.set_valign(Gtk.Align.CENTER)
+                self.no_sao_switch.connect('state-set', self.on_no_sao_switch_state_set)
+
+            def _setup_sao_non_deblock_row(self):
+                self._setup_sao_non_deblock_switch()
+
+                self.sao_non_deblock_row = Adw.ActionRow()
+                self.sao_non_deblock_row.set_title('SAO Non-Deblock')
+                self.sao_non_deblock_row.set_subtitle('SAO Non-Deblock')
+                self.sao_non_deblock_row.add_suffix(self.sao_non_deblock_switch)
+                self.sao_non_deblock_row.set_sensitive(False)
+
+            def _setup_sao_non_deblock_switch(self):
+                self.sao_non_deblock_switch = Gtk.Switch()
+                self.sao_non_deblock_switch.set_vexpand(False)
+                self.sao_non_deblock_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_limit_sao_row(self):
+                self._setup_limit_sao_switch()
+
+                self.limit_sao_row = Adw.ActionRow()
+                self.limit_sao_row.set_title('Limit SAO')
+                self.limit_sao_row.set_subtitle('Early terminates SAO process based on inter prediction mode')
+                self.limit_sao_row.add_suffix(self.limit_sao_switch)
+                self.limit_sao_row.set_sensitive(False)
+
+            def _setup_limit_sao_switch(self):
+                self.limit_sao_switch = Gtk.Switch()
+                self.limit_sao_switch.set_vexpand(False)
+                self.limit_sao_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_selective_sao_row(self):
+                self._setup_selective_sao_spin_button()
+
+                self.selective_sao_row = Adw.ActionRow()
+                self.selective_sao_row.set_title('Selective SAO')
+                self.selective_sao_row.set_subtitle('Enables SAO at the slice level')
+                self.selective_sao_row.add_suffix(self.selective_sao_spin_button)
+                self.selective_sao_row.set_sensitive(False)
+
+            def _setup_selective_sao_spin_button(self):
+                self.selective_sao_spin_button = Gtk.SpinButton()
+                self.selective_sao_spin_button.set_range(x265.X265.SELECTIVE_SAO_MIN, x265.X265.SELECTIVE_SAO_MAX)
+                self.selective_sao_spin_button.set_digits(0)
+                self.selective_sao_spin_button.set_increments(1, 5)
+                self.selective_sao_spin_button.set_numeric(True)
+                self.selective_sao_spin_button.set_snap_to_ticks(True)
+                self.selective_sao_spin_button.set_value(0)
+                self.selective_sao_spin_button.set_vexpand(False)
+                self.selective_sao_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_rd_row(self):
+                self._setup_rd_spin_button()
+
+                self.rd_row = Adw.ActionRow()
+                self.rd_row.set_title('Rate Distortion')
+                self.rd_row.set_subtitle('Level of RDO in mode decision')
+                self.rd_row.add_suffix(self.rd_spin_button)
+                self.rd_row.set_sensitive(False)
+
+            def _setup_rd_spin_button(self):
+                self.rd_spin_button = Gtk.SpinButton()
+                self.rd_spin_button.set_range(x265.X265.RD_MIN, x265.X265.RD_MAX)
+                self.rd_spin_button.set_digits(0)
+                self.rd_spin_button.set_increments(1, 5)
+                self.rd_spin_button.set_numeric(True)
+                self.rd_spin_button.set_snap_to_ticks(True)
+                self.rd_spin_button.set_value(0)
+                self.rd_spin_button.set_vexpand(False)
+                self.rd_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_rdoq_level_row(self):
+                self._setup_rdoq_level_combobox()
+
+                self.rdoq_level_row = Adw.ActionRow()
+                self.rdoq_level_row.set_title('RDOQ Level')
+                self.rdoq_level_row.set_subtitle('Amount of rate-distortion analysis to use within quantization')
+                self.rdoq_level_row.add_suffix(self.rdoq_level_combobox)
+                self.rdoq_level_row.set_sensitive(False)
+
+            def _setup_rdoq_level_combobox(self):
+                self.rdoq_level_combobox = Gtk.ComboBoxText()
+                self.rdoq_level_combobox.set_vexpand(False)
+                self.rdoq_level_combobox.set_valign(Gtk.Align.CENTER)
+
+                for rdoq_level_setting in x265.X265.RDOQ_LEVEL_UI:
+                    self.rdoq_level_combobox.append_text(rdoq_level_setting)
+
+                self.rdoq_level_combobox.set_active(0)
+
+            def _setup_rd_refine_row(self):
+                self._setup_rd_refine_switch()
+
+                self.rd_refine_row = Adw.ActionRow()
+                self.rd_refine_row.set_title('Rate Distortion Refine')
+                self.rd_refine_row.set_subtitle('Calculate R-D cost on the best partition mode for each analysed CU')
+                self.rd_refine_row.add_suffix(self.rd_refine_switch)
+                self.rd_refine_row.set_sensitive(False)
+
+            def _setup_rd_refine_switch(self):
+                self.rd_refine_switch = Gtk.Switch()
+                self.rd_refine_switch.set_vexpand(False)
+                self.rd_refine_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_max_cu_size_row(self):
+                self._setup_max_cu_size_combobox()
+
+                self.max_cu_size_row = Adw.ActionRow()
+                self.max_cu_size_row.set_title('Max CU Size')
+                self.max_cu_size_row.set_subtitle('Larger CU threshold is considered')
+                self.max_cu_size_row.add_suffix(self.max_cu_size_combobox)
+                self.max_cu_size_row.set_sensitive(False)
+
+            def _setup_max_cu_size_combobox(self):
+                self.max_cu_size_combobox = Gtk.ComboBoxText()
+                self.max_cu_size_combobox.set_vexpand(False)
+                self.max_cu_size_combobox.set_valign(Gtk.Align.CENTER)
+
+                for max_cu_size_setting in x265.X265.MAX_CU_SIZE:
+                    self.max_cu_size_combobox.append_text(max_cu_size_setting)
+
+                self.max_cu_size_combobox.set_active(0)
+
+            def _setup_min_cu_size_row(self):
+                self._setup_min_cu_size_combobox()
+
+                self.min_cu_size_row = Adw.ActionRow()
+                self.min_cu_size_row.set_title('Min CU Size')
+                self.min_cu_size_row.set_subtitle('Cost of CUs below minimum threshold not considered')
+                self.min_cu_size_row.add_suffix(self.min_cu_size_combobox)
+                self.min_cu_size_row.set_sensitive(False)
+
+            def _setup_min_cu_size_combobox(self):
+                self.min_cu_size_combobox = Gtk.ComboBoxText()
+                self.min_cu_size_combobox.set_vexpand(False)
+                self.min_cu_size_combobox.set_valign(Gtk.Align.CENTER)
+
+                for min_cu_size_setting in x265.X265.MIN_CU_SIZE:
+                    self.min_cu_size_combobox.append_text(min_cu_size_setting)
+
+                self.min_cu_size_combobox.set_active(0)
+
+            def _setup_rect_row(self):
+                self._setup_rect_switch()
+
+                self.rect_row = Adw.ActionRow()
+                self.rect_row.set_title('Rect')
+                self.rect_row.set_subtitle('Analysis of rectangular motion partitions')
+                self.rect_row.add_suffix(self.rect_switch)
+                self.rect_row.set_sensitive(False)
+
+            def _setup_rect_switch(self):
+                self.rect_switch = Gtk.Switch()
+                self.rect_switch.set_vexpand(False)
+                self.rect_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_amp_row(self):
+                self._setup_amp_switch()
+
+                self.amp_row = Adw.ActionRow()
+                self.amp_row.set_title('AMP')
+                self.amp_row.set_subtitle('Analysis of asymmetric motion partitions')
+                self.amp_row.add_suffix(self.amp_switch)
+                self.amp_row.set_sensitive(False)
+
+            def _setup_amp_switch(self):
+                self.amp_switch = Gtk.Switch()
+                self.amp_switch.set_vexpand(False)
+                self.amp_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_wpp_row(self):
+                self._setup_wpp_switch()
+
+                self.wpp_row = Adw.ActionRow()
+                self.wpp_row.set_title('WPP')
+                self.wpp_row.set_subtitle('Wavefront parallel processing')
+                self.wpp_row.add_suffix(self.wpp_switch)
+                self.wpp_row.set_sensitive(False)
+
+            def _setup_wpp_switch(self):
+                self.wpp_switch = Gtk.Switch()
+                self.wpp_switch.set_vexpand(False)
+                self.wpp_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_pmode_row(self):
+                self._setup_pmode_switch()
+
+                self.pmode_row = Adw.ActionRow()
+                self.pmode_row.set_title('PMode')
+                self.pmode_row.set_subtitle('Parallel mode decision')
+                self.pmode_row.add_suffix(self.pmode_switch)
+                self.pmode_row.set_sensitive(False)
+
+            def _setup_pmode_switch(self):
+                self.pmode_switch = Gtk.Switch()
+                self.pmode_switch.set_vexpand(False)
+                self.pmode_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_pme_row(self):
+                self._setup_pme_switch()
+
+                self.pme_row = Adw.ActionRow()
+                self.pme_row.set_title('PME')
+                self.pme_row.set_subtitle('Parallel motion estimation')
+                self.pme_row.add_suffix(self.pme_switch)
+                self.pme_row.set_sensitive(False)
+
+            def _setup_pme_switch(self):
+                self.pme_switch = Gtk.Switch()
+                self.pme_switch.set_vexpand(False)
+                self.pme_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_uhd_bd_row(self):
+                self._setup_uhd_bd_switch()
+
+                self.uhd_bd_row = Adw.ActionRow()
+                self.uhd_bd_row.set_title('UHD BD')
+                self.uhd_bd_row.set_subtitle('Ultra HD Blu-ray format support')
+                self.uhd_bd_row.add_suffix(self.uhd_bd_switch)
+                self.uhd_bd_row.set_sensitive(False)
+
+            def _setup_uhd_bd_switch(self):
+                self.uhd_bd_switch = Gtk.Switch()
+                self.uhd_bd_switch.set_vexpand(False)
+                self.uhd_bd_switch.set_valign(Gtk.Align.CENTER)
+
+            def on_crf_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.rate_type_stack.set_visible_child_name('crf_page')
+                    self.rate_type_settings_row.set_title('CRF')
+                    self.rate_type_settings_row.set_subtitle('Constant Ratefactor')
+
+            def on_qp_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.rate_type_stack.set_visible_child_name('qp_page')
+                    self.rate_type_settings_row.set_title('QP')
+                    self.rate_type_settings_row.set_subtitle('Constant Quantizer: P-frames')
+
+            def on_bitrate_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.rate_type_stack.set_visible_child_name('bitrate_page')
+                    self.rate_type_settings_row.set_title('Bitrate')
+                    self.rate_type_settings_row.set_subtitle('Target video bitrate in kbps')
+
+            def on_non_deblock_check_button_toggled(self, check_button):
+                self.deblock_alpha_spin_button.set_sensitive(not check_button.get_active())
+                self.deblock_beta_spin_button.set_sensitive(not check_button.get_active())
+
+            def on_no_sao_switch_state_set(self, switch, user_data):
+                self.limit_sao_row.set_sensitive(not switch.get_active())
+                self.sao_non_deblock_row.set_sensitive(not switch.get_active())
+                self.selective_sao_row.set_sensitive(not switch.get_active())
+
+            def on_advanced_settings_switch_state_set(self, switch, user_data):
+                is_state_enabled = switch.get_active()
+                self._set_vbv_maxrate_row_enabled(is_state_enabled)
+                self._set_vbv_bufsize_row_enabled(is_state_enabled)
+                self.keyint_row.set_sensitive(is_state_enabled)
+                self.min_keyint_row.set_sensitive(is_state_enabled)
+                self.ref_row.set_sensitive(is_state_enabled)
+                self.b_frames_row.set_sensitive(is_state_enabled)
+                self.b_adapt_row.set_sensitive(is_state_enabled)
+                self.no_b_pyramid_row.set_sensitive(is_state_enabled)
+                self.b_intra_row.set_sensitive(is_state_enabled)
+                self.weight_b_row.set_sensitive(is_state_enabled)
+                self.no_weight_p_row.set_sensitive(is_state_enabled)
+                self.no_high_tier_row.set_sensitive(is_state_enabled)
+                self.no_gop_row.set_sensitive(is_state_enabled)
+                self.no_scenecut_row.set_sensitive(is_state_enabled)
+                self.me_row.set_sensitive(is_state_enabled)
+                self.subme_row.set_sensitive(is_state_enabled)
+                self._set_deblock_row_enabled(is_state_enabled)
+                self.aq_mode_row.set_sensitive(is_state_enabled)
+                self.aq_strength_row.set_sensitive(is_state_enabled)
+                self.hevc_aq_row.set_sensitive(is_state_enabled)
+                self.rc_lookahead_row.set_sensitive(is_state_enabled)
+                self.psy_rd_row.set_sensitive(is_state_enabled)
+                self.psy_rdoq_row.set_sensitive(is_state_enabled)
+                self.rd_row.set_sensitive(is_state_enabled)
+                self.rd_refine_row.set_sensitive(is_state_enabled)
+                self.rdoq_level_row.set_sensitive(is_state_enabled)
+                self._set_sao_rows_enabled(is_state_enabled)
+                self.min_cu_size_row.set_sensitive(is_state_enabled)
+                self.max_cu_size_row.set_sensitive(is_state_enabled)
+                self.rect_row.set_sensitive(is_state_enabled)
+                self.amp_row.set_sensitive(is_state_enabled)
+                self.wpp_row.set_sensitive(is_state_enabled)
+                self.pmode_row.set_sensitive(is_state_enabled)
+                self.pme_row.set_sensitive(is_state_enabled)
+                self.uhd_bd_row.set_sensitive(is_state_enabled)
+
+            def _set_vbv_maxrate_row_enabled(self, is_enabled: bool):
+                if self.bitrate_check_button.get_active():
+                    self.vbv_maxrate_row.set_sensitive(is_enabled)
+                else:
+                    self.vbv_maxrate_row.set_sensitive(False)
+
+            def _set_vbv_bufsize_row_enabled(self, is_enabled: bool):
+                if self.bitrate_check_button.get_active():
+                    self.vbv_bufsize_row.set_sensitive(is_enabled)
+                else:
+                    self.vbv_bufsize_row.set_sensitive(False)
+
+            def _set_deblock_row_enabled(self, is_enabled: bool):
+                self.deblock_row.set_sensitive(is_enabled)
+
+                if not self.no_deblock_check_button.get_active():
+                    self.deblock_alpha_spin_button.set_sensitive(is_enabled)
+                    self.deblock_beta_spin_button.set_sensitive(is_enabled)
+                else:
+                    self.deblock_alpha_spin_button.set_sensitive(False)
+                    self.deblock_beta_spin_button.set_sensitive(False)
+
+            def _set_sao_rows_enabled(self, is_enabled: bool):
+                self.no_sao_row.set_sensitive(is_enabled)
+
+                if not self.no_sao_switch.get_active():
+                    self.limit_sao_row.set_sensitive(is_enabled)
+                    self.sao_non_deblock_row.set_sensitive(is_enabled)
+                    self.selective_sao_row.set_sensitive(is_enabled)
+                else:
+                    self.limit_sao_row.set_sensitive(False)
+                    self.sao_non_deblock_row.set_sensitive(False)
+                    self.selective_sao_row.set_sensitive(False)
 
     class AudioCodecSettingsPage(Gtk.ScrolledWindow):
         def __init__(self, inputs_page):

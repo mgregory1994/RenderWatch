@@ -52,6 +52,48 @@ class X265:
     MIN_CU_SIZE = ('auto', '8', '16', '32')
     MIN_CU_SIZE_LENGTH = len(MIN_CU_SIZE)
 
+    CRF_MIN = 0.0
+    CRF_MAX = 51.0
+
+    QP_MIN = 0.0
+    QP_MAX = 51.0
+
+    BITRATE_MIN = 100
+    BITRATE_MAX = 99999
+
+    AQ_STRENGTH_MIN = 0.0
+    AQ_STRENGTH_MAX = 3.0
+
+    KEYINT_MIN = 0
+    KEYINT_MAX = 990
+
+    MIN_KEYINT_MIN = 0
+    MIN_KEYINT_MAX = 990
+
+    REFS_MIN = 1
+    REFS_MAX = 16
+
+    RC_LOOKAHEAD_MIN = 10
+    RC_LOOKAHEAD_MAX = 990
+
+    PSY_RD_MIN = 0.0
+    PSY_RD_MAX = 5.0
+
+    PSY_RDOQ_MIN = 0.0
+    PSY_RDOQ_MAX = 50.0
+
+    SUBME_MIN = 0
+    SUBME_MAX = 7
+
+    DEBLOCK_MIN = -6
+    DEBLOCK_MAX = 6
+
+    SELECTIVE_SAO_MIN = 0
+    SELECTIVE_SAO_MAX = 4
+
+    RD_MIN = 1
+    RD_MAX = 6
+
     def __init__(self):
         """Initializes the X265 class with all necessary variables for the codec's settings."""
         self.is_advanced_enabled = False
