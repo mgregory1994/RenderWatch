@@ -25,6 +25,12 @@ class VP9:
     SPEED = ('auto', '0', '1', '2', '3', '4', '5')
     SPEED_LENGTH = len(SPEED)
 
+    CRF_MIN = 0.0
+    CRF_MAX = 63.0
+
+    BITRATE_MIN = 0
+    BITRATE_MAX = 99999
+
     def __init__(self):
         """Initializes the VP9 class with all necessary variables for the codec's options."""
         self.ffmpeg_args = {

@@ -29,6 +29,7 @@ class Crop:
     """Class that configures all necessary crop options for Render Watch."""
 
     AUTO_CROP_SEGMENTS = 3
+    AUTO_CROP_LENGTH = 15
 
     def __init__(self, encoding_task, app_settings: app_preferences.Settings):
         """
@@ -124,7 +125,7 @@ class Crop:
         subprocess_args.append('0:' + str(encoding_task.video_stream.index))
         subprocess_args.append('-an')
         subprocess_args.append('-vframes')
-        subprocess_args.append('120')
+        subprocess_args.append(str(self.AUTO_CROP_LENGTH))
         subprocess_args.append('-vf')
         subprocess_args.append('cropdetect')
         subprocess_args.append('-f')

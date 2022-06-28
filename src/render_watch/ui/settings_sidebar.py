@@ -17,7 +17,7 @@
 
 
 from render_watch.ui import Gtk, Adw
-from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265
+from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9
 from render_watch import app_preferences
 
 
@@ -278,12 +278,15 @@ class SettingsSidebarWidgets:
         def _setup_video_codec_settings_pages(self):
             x264_page = self.X264StackPage()
             x265_page = self.X265StackPage()
+            vp9_page = self.Vp9StackPage()
 
             self.video_codec_settings_stack = Gtk.Stack()
             self.video_codec_settings_stack.add_named(x264_page, 'x264_page')
             self.video_codec_settings_stack.add_named(x265_page, 'x265_page')
-            self.video_codec_settings_stack.set_visible_child_name('x265_page')
+            self.video_codec_settings_stack.add_named(vp9_page, 'vp9_page')
+            self.video_codec_settings_stack.set_visible_child_name('vp9_page')
             self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+            self.video_codec_settings_stack.set_vhomogeneous(False)
 
         class X264StackPage(Gtk.Box):
             def __init__(self):
@@ -2254,6 +2257,300 @@ class SettingsSidebarWidgets:
                     self.limit_sao_row.set_sensitive(False)
                     self.sao_non_deblock_row.set_sensitive(False)
                     self.selective_sao_row.set_sensitive(False)
+
+        class Vp9StackPage(Gtk.Box):
+            def __init__(self):
+                super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+                self._setup_codec_settings()
+
+                self.append(self.codec_settings_group)
+
+            def _setup_codec_settings(self):
+                self._setup_quality_row()
+                self._setup_speed_row()
+                self._setup_row_multithreading_row()
+                self._setup_rate_tyoe_row()
+                self._setup_2_pass_row()
+                self._setup_crf_row()
+                self._setup_bitrate_row()
+                self._setup_max_bitrate_row()
+                self._setup_min_bitrate_row()
+                self._setup_bitrate_tyoe_row()
+
+                self.codec_settings_group = Adw.PreferencesGroup()
+                self.codec_settings_group.set_title('VP9 Settings')
+                self.codec_settings_group.add(self.quality_row)
+                self.codec_settings_group.add(self.speed_row)
+                self.codec_settings_group.add(self.row_multithreading_row)
+                self.codec_settings_group.add(self.rate_type_row)
+                self.codec_settings_group.add(self.crf_row)
+                self.codec_settings_group.add(self.max_bitrate_row)
+                self.codec_settings_group.add(self.bitrate_row)
+                self.codec_settings_group.add(self.min_bitrate_row)
+                self.codec_settings_group.add(self.bitrate_type_row)
+                self.codec_settings_group.add(self.two_pass_row)
+
+            def _setup_quality_row(self):
+                self._setup_quality_combobox()
+
+                self.quality_row = Adw.ActionRow()
+                self.quality_row.set_title('Quality')
+                self.quality_row.set_subtitle('Encoder quality')
+                self.quality_row.add_suffix(self.quality_combobox)
+
+            def _setup_quality_combobox(self):
+                self.quality_combobox = Gtk.ComboBoxText()
+                self.quality_combobox.set_vexpand(False)
+                self.quality_combobox.set_valign(Gtk.Align.CENTER)
+
+                for quality_setting in vp9.VP9.QUALITY:
+                    self.quality_combobox.append_text(quality_setting)
+
+                self.quality_combobox.set_active(0)
+
+            def _setup_speed_row(self):
+                self._setup_speed_combobox()
+
+                self.speed_row = Adw.ActionRow()
+                self.speed_row.set_title('Speed')
+                self.speed_row.set_subtitle('Encoder speed')
+                self.speed_row.add_suffix(self.speed_combobox)
+
+            def _setup_speed_combobox(self):
+                self.speed_combobox = Gtk.ComboBoxText()
+                self.speed_combobox.set_vexpand(False)
+                self.speed_combobox.set_valign(Gtk.Align.CENTER)
+
+                for speed_setting in vp9.VP9.SPEED:
+                    self.speed_combobox.append_text(speed_setting)
+
+                self.speed_combobox.set_active(0)
+
+            def _setup_row_multithreading_row(self):
+                self._setup_row_multithreading_switch()
+
+                self.row_multithreading_row = Adw.ActionRow()
+                self.row_multithreading_row.set_title('Row Multithreading')
+                self.row_multithreading_row.set_subtitle('Row multithreading')
+                self.row_multithreading_row.add_suffix(self.row_multithreading_switch)
+
+            def _setup_row_multithreading_switch(self):
+                self.row_multithreading_switch = Gtk.Switch()
+                self.row_multithreading_switch.set_vexpand(False)
+                self.row_multithreading_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_rate_tyoe_row(self):
+                self._setup_rate_type_radio_buttons()
+
+                self.rate_type_row = Adw.ActionRow()
+                self.rate_type_row.set_title('Rate Type')
+                self.rate_type_row.set_subtitle('Rate type method')
+                self.rate_type_row.add_suffix(self.rate_type_horizontal_box)
+
+            def _setup_rate_type_radio_buttons(self):
+                self.crf_check_button = Gtk.CheckButton(label='CRF')
+                self.crf_check_button.set_active(True)
+                self.crf_check_button.connect('toggled', self.on_crf_check_button_toggled)
+
+                self.bitrate_check_button = Gtk.CheckButton(label='Bitrate')
+                self.bitrate_check_button.set_group(self.crf_check_button)
+                self.bitrate_check_button.connect('toggled', self.on_bitrate_check_button_toggled)
+
+                self.constrained_check_button = Gtk.CheckButton(label='Constrained')
+                self.constrained_check_button.set_group(self.crf_check_button)
+                self.constrained_check_button.connect('toggled', self.on_constrained_check_button_toggled)
+
+                self.rate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.rate_type_horizontal_box.append(self.crf_check_button)
+                self.rate_type_horizontal_box.append(self.bitrate_check_button)
+                self.rate_type_horizontal_box.append(self.constrained_check_button)
+
+            def _setup_2_pass_row(self):
+                self._setup_2_pass_switch()
+
+                self.two_pass_row = Adw.ActionRow()
+                self.two_pass_row.set_title('2-Pass')
+                self.two_pass_row.set_subtitle('2-Pass encoding')
+                self.two_pass_row.add_suffix(self.two_pass_switch)
+
+            def _setup_2_pass_switch(self):
+                self.two_pass_switch = Gtk.Switch()
+                self.two_pass_switch.set_vexpand(False)
+                self.two_pass_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_crf_row(self):
+                self._setup_crf_scale()
+
+                self.crf_row = Adw.ActionRow()
+                self.crf_row.set_title('CRF')
+                self.crf_row.set_subtitle('Constant Ratefactor')
+                self.crf_row.add_suffix(self.crf_scale)
+
+            def _setup_crf_scale(self):
+                self.crf_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                          min=vp9.VP9.CRF_MIN,
+                                                          max=vp9.VP9.CRF_MAX,
+                                                          step=1.0)
+                self.crf_scale.set_value(30.0)
+                self.crf_scale.set_digits(1)
+                self.crf_scale.set_draw_value(True)
+                self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.crf_scale.set_hexpand(True)
+
+            def _setup_bitrate_row(self):
+                self._setup_bitrate_spin_button()
+
+                self.bitrate_row = Adw.ActionRow()
+                self.bitrate_row.set_title('Bitrate')
+                self.bitrate_row.set_subtitle('Target bitrate')
+                self.bitrate_row.add_suffix(self.bitrate_spin_button)
+                self.bitrate_row.set_sensitive(False)
+
+            def _setup_bitrate_spin_button(self):
+                self.bitrate_spin_button = Gtk.SpinButton()
+                self.bitrate_spin_button.set_range(vp9.VP9.BITRATE_MIN, vp9.VP9.BITRATE_MAX)
+                self.bitrate_spin_button.set_digits(0)
+                self.bitrate_spin_button.set_increments(100, 500)
+                self.bitrate_spin_button.set_numeric(True)
+                self.bitrate_spin_button.set_snap_to_ticks(True)
+                self.bitrate_spin_button.set_value(2500)
+                self.bitrate_spin_button.set_size_request(125, -1)
+                self.bitrate_spin_button.set_vexpand(False)
+                self.bitrate_spin_button.set_valign(Gtk.Align.CENTER)
+                self.bitrate_spin_button.connect('value-changed', self.on_bitrate_spin_button_value_changed)
+
+            def _setup_max_bitrate_row(self):
+                self._setup_max_bitrate_spin_button()
+
+                self.max_bitrate_row = Adw.ActionRow()
+                self.max_bitrate_row.set_title('Max Bitrate')
+                self.max_bitrate_row.set_subtitle('Maximum bitrate')
+                self.max_bitrate_row.add_suffix(self.max_bitrate_spin_button)
+                self.max_bitrate_row.set_sensitive(False)
+
+            def _setup_max_bitrate_spin_button(self):
+                self.max_bitrate_spin_button = Gtk.SpinButton()
+                self.max_bitrate_spin_button.set_range(vp9.VP9.BITRATE_MIN, vp9.VP9.BITRATE_MAX)
+                self.max_bitrate_spin_button.set_digits(0)
+                self.max_bitrate_spin_button.set_increments(100, 500)
+                self.max_bitrate_spin_button.set_numeric(True)
+                self.max_bitrate_spin_button.set_snap_to_ticks(True)
+                self.max_bitrate_spin_button.set_value(2500)
+                self.max_bitrate_spin_button.set_size_request(125, -1)
+                self.max_bitrate_spin_button.set_vexpand(False)
+                self.max_bitrate_spin_button.set_valign(Gtk.Align.CENTER)
+                self.max_bitrate_spin_button.connect('value-changed', self.on_max_bitrate_spin_button_value_changed)
+
+            def _setup_min_bitrate_row(self):
+                self._setup_min_bitrate_spin_button()
+
+                self.min_bitrate_row = Adw.ActionRow()
+                self.min_bitrate_row.set_title('Min Bitrate')
+                self.min_bitrate_row.set_subtitle('Minimum bitrate')
+                self.min_bitrate_row.add_suffix(self.min_bitrate_spin_button)
+                self.min_bitrate_row.set_sensitive(False)
+
+            def _setup_min_bitrate_spin_button(self):
+                self.min_bitrate_spin_button = Gtk.SpinButton()
+                self.min_bitrate_spin_button.set_range(vp9.VP9.BITRATE_MIN, vp9.VP9.BITRATE_MAX)
+                self.min_bitrate_spin_button.set_digits(0)
+                self.min_bitrate_spin_button.set_increments(100, 500)
+                self.min_bitrate_spin_button.set_numeric(True)
+                self.min_bitrate_spin_button.set_snap_to_ticks(True)
+                self.min_bitrate_spin_button.set_value(2500)
+                self.min_bitrate_spin_button.set_size_request(125, -1)
+                self.min_bitrate_spin_button.set_vexpand(False)
+                self.min_bitrate_spin_button.set_valign(Gtk.Align.CENTER)
+                self.min_bitrate_spin_button.connect('value-changed', self.on_min_bitrate_spin_button_value_changed)
+
+            def _setup_bitrate_tyoe_row(self):
+                self._setup_bitrate_type_radio_buttons()
+
+                self.bitrate_type_row = Adw.ActionRow()
+                self.bitrate_type_row.set_title('Bitrate Type')
+                self.bitrate_type_row.set_subtitle('Bitrate method')
+                self.bitrate_type_row.add_suffix(self.bitrate_type_horizontal_box)
+                self.bitrate_type_row.set_sensitive(False)
+
+            def _setup_bitrate_type_radio_buttons(self):
+                self.average_bitrate_check_button = Gtk.CheckButton(label='Average')
+                self.average_bitrate_check_button.set_active(True)
+                self.average_bitrate_check_button.connect('toggled', self.on_average_bitrate_check_button_toggled)
+
+                self.vbr_bitrate_check_button = Gtk.CheckButton(label='VBR')
+                self.vbr_bitrate_check_button.set_group(self.average_bitrate_check_button)
+                self.vbr_bitrate_check_button.connect('toggled', self.on_vbr_bitrate_check_button_toggled)
+
+                self.constant_bitrate_check_button = Gtk.CheckButton(label='Constant')
+                self.constant_bitrate_check_button.set_group(self.average_bitrate_check_button)
+                self.constant_bitrate_check_button.connect('toggled', self.on_average_bitrate_check_button_toggled)
+
+                self.bitrate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.bitrate_type_horizontal_box.append(self.average_bitrate_check_button)
+                self.bitrate_type_horizontal_box.append(self.vbr_bitrate_check_button)
+                self.bitrate_type_horizontal_box.append(self.constant_bitrate_check_button)
+
+            def on_crf_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.crf_row.set_sensitive(True)
+                    self.max_bitrate_row.set_sensitive(False)
+                    self.bitrate_row.set_sensitive(False)
+                    self.min_bitrate_row.set_sensitive(False)
+                    self.bitrate_type_row.set_sensitive(False)
+
+            def on_bitrate_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.crf_row.set_sensitive(False)
+                    self.bitrate_row.set_sensitive(True)
+                    self.bitrate_type_row.set_sensitive(True)
+
+                    if self.vbr_bitrate_check_button.get_active():
+                        self.max_bitrate_row.set_sensitive(True)
+                        self.min_bitrate_row.set_sensitive(True)
+
+            def on_constrained_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.crf_row.set_sensitive(True)
+                    self.max_bitrate_row.set_sensitive(False)
+                    self.bitrate_row.set_sensitive(True)
+                    self.min_bitrate_row.set_sensitive(False)
+                    self.bitrate_type_row.set_sensitive(False)
+
+            def on_bitrate_spin_button_value_changed(self, spin_button):
+                bitrate_value = spin_button.get_value()
+                max_bitrate_value = self.max_bitrate_spin_button.get_value()
+                min_bitrate_value = self.min_bitrate_spin_button.get_value()
+
+                if bitrate_value > max_bitrate_value:
+                    self.max_bitrate_spin_button.set_value(bitrate_value)
+
+                if bitrate_value < min_bitrate_value:
+                    self.min_bitrate_spin_button.set_value(bitrate_value)
+
+            def on_max_bitrate_spin_button_value_changed(self, spin_button):
+                bitrate_value = self.bitrate_spin_button.get_value()
+                max_bitrate_value = spin_button.get_value()
+
+                if max_bitrate_value < bitrate_value:
+                    self.bitrate_spin_button.set_value(max_bitrate_value)
+
+            def on_min_bitrate_spin_button_value_changed(self, spin_button):
+                bitrate_value = self.bitrate_spin_button.get_value()
+                min_bitrate_value = spin_button.get_value()
+
+                if min_bitrate_value > bitrate_value:
+                    self.bitrate_spin_button.set_value(min_bitrate_value)
+
+            def on_average_bitrate_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.max_bitrate_row.set_sensitive(False)
+                    self.min_bitrate_row.set_sensitive(False)
+
+            def on_vbr_bitrate_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.max_bitrate_row.set_sensitive(True)
+                    self.min_bitrate_row.set_sensitive(True)
 
     class AudioCodecSettingsPage(Gtk.ScrolledWindow):
         def __init__(self, inputs_page):
