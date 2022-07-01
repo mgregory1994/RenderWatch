@@ -17,7 +17,7 @@
 
 
 from render_watch.ui import Gtk, Adw
-from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9
+from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9, h264_nvenc, hevc_nvenc
 from render_watch import app_preferences
 
 
@@ -279,12 +279,16 @@ class SettingsSidebarWidgets:
             x264_page = self.X264StackPage()
             x265_page = self.X265StackPage()
             vp9_page = self.Vp9StackPage()
+            nvenc_page = self.NvencStackPage()
+            codec_settings_no_avail_page = self.CodecSettingsNoAvailPage()
 
             self.video_codec_settings_stack = Gtk.Stack()
             self.video_codec_settings_stack.add_named(x264_page, 'x264_page')
             self.video_codec_settings_stack.add_named(x265_page, 'x265_page')
             self.video_codec_settings_stack.add_named(vp9_page, 'vp9_page')
-            self.video_codec_settings_stack.set_visible_child_name('vp9_page')
+            self.video_codec_settings_stack.add_named(nvenc_page, 'nvenc_page')
+            self.video_codec_settings_stack.add_named(codec_settings_no_avail_page, 'codec_settings_no_avail_page')
+            self.video_codec_settings_stack.set_visible_child_name('codec_settings_no_avail_page')
             self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
             self.video_codec_settings_stack.set_vhomogeneous(False)
 
@@ -2551,6 +2555,641 @@ class SettingsSidebarWidgets:
                 if check_button.get_active():
                     self.max_bitrate_row.set_sensitive(True)
                     self.min_bitrate_row.set_sensitive(True)
+
+        class NvencStackPage(Gtk.Box):
+            def __init__(self):
+                super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+                self._setup_codec_settings()
+                self._setup_codec_advanced_settings()
+
+                self.append(self.codec_settings_group)
+                self.append(self.codec_advanced_settings_group)
+
+            def _setup_codec_settings(self):
+                self._setup_preset_row()
+                self._setup_profile_row()
+                self._setup_level_row()
+                self._setup_tune_row()
+                self._setup_rate_type_row()
+                self._setup_rate_type_settings_row()
+                self._setup_multi_pass_row()
+
+                self.codec_settings_group = Adw.PreferencesGroup()
+                self.codec_settings_group.set_title('Nvenc Settings')
+                self.codec_settings_group.add(self.preset_row)
+                self.codec_settings_group.add(self.profile_row)
+                self.codec_settings_group.add(self.level_row)
+                self.codec_settings_group.add(self.tune_row)
+                self.codec_settings_group.add(self.rate_type_row)
+                self.codec_settings_group.add(self.rate_type_settings_row)
+                self.codec_settings_group.add(self.multi_pass_row)
+
+            def _setup_preset_row(self):
+                self._setup_preset_combobox()
+
+                self.preset_row = Adw.ActionRow()
+                self.preset_row.set_title('Preset')
+                self.preset_row.set_subtitle('Encoder preset')
+                self.preset_row.add_suffix(self.preset_combobox)
+
+            def _setup_preset_combobox(self):
+                self.preset_combobox = Gtk.ComboBoxText()
+                self.preset_combobox.set_vexpand(False)
+                self.preset_combobox.set_valign(Gtk.Align.CENTER)
+
+                for preset_setting in h264_nvenc.H264Nvenc.PRESET:
+                    self.preset_combobox.append_text(preset_setting)
+
+                self.preset_combobox.set_active(0)
+
+            def _setup_profile_row(self):
+                self._setup_profile_combobox()
+
+                self.profile_row = Adw.ActionRow()
+                self.profile_row.set_title('Profile')
+                self.profile_row.set_subtitle('Encoder profile')
+                self.profile_row.add_suffix(self.profile_combobox)
+
+            def _setup_profile_combobox(self):
+                self.profile_combobox = Gtk.ComboBoxText()
+                self.profile_combobox.set_vexpand(False)
+                self.profile_combobox.set_valign(Gtk.Align.CENTER)
+
+                for profile_setting in h264_nvenc.H264Nvenc.PROFILE:
+                    self.profile_combobox.append_text(profile_setting)
+
+                self.profile_combobox.set_active(0)
+
+            def _setup_level_row(self):
+                self._setup_level_combobox()
+
+                self.level_row = Adw.ActionRow()
+                self.level_row.set_title('Level')
+                self.level_row.set_subtitle('Encoder restrictions')
+                self.level_row.add_suffix(self.level_combobox)
+
+            def _setup_level_combobox(self):
+                self.level_combobox = Gtk.ComboBoxText()
+                self.level_combobox.set_vexpand(False)
+                self.level_combobox.set_valign(Gtk.Align.CENTER)
+
+                for level_setting in h264_nvenc.H264Nvenc.LEVEL:
+                    self.level_combobox.append_text(level_setting)
+
+                self.level_combobox.set_active(0)
+
+            def _setup_tune_row(self):
+                self._setup_tune_combobox()
+
+                self.tune_row = Adw.ActionRow()
+                self.tune_row.set_title('Tune')
+                self.tune_row.set_subtitle('Encoder tune')
+                self.tune_row.add_suffix(self.tune_combobox)
+
+            def _setup_tune_combobox(self):
+                self.tune_combobox = Gtk.ComboBoxText()
+                self.tune_combobox.set_vexpand(False)
+                self.tune_combobox.set_valign(Gtk.Align.CENTER)
+
+                for tune_setting in h264_nvenc.H264Nvenc.TUNE:
+                    self.tune_combobox.append_text(tune_setting)
+
+                self.tune_combobox.set_active(0)
+
+            def _setup_rate_type_row(self):
+                self._setup_rate_type_radio_buttons()
+
+                self.rate_type_row = Adw.ActionRow()
+                self.rate_type_row.set_title('Rate Type')
+                self.rate_type_row.set_subtitle('Rate type method')
+                self.rate_type_row.add_suffix(self.rate_type_horizontal_box)
+
+            def _setup_rate_type_radio_buttons(self):
+                self.qp_check_button = Gtk.CheckButton(label='QP')
+                self.qp_check_button.set_active(True)
+                self.qp_check_button.connect('toggled', self.on_qp_check_button_toggled)
+
+                self.bitrate_check_button = Gtk.CheckButton(label='Bitrate')
+                self.bitrate_check_button.set_group(self.qp_check_button)
+                self.bitrate_check_button.connect('toggled', self.on_bitrate_check_button_toggled)
+
+                self.rate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.rate_type_horizontal_box.append(self.qp_check_button)
+                self.rate_type_horizontal_box.append(self.bitrate_check_button)
+
+            def _setup_rate_type_settings_row(self):
+                self._setup_rate_type_settings_stack()
+
+                self.rate_type_settings_row = Adw.ActionRow()
+                self.rate_type_settings_row.set_title('QP')
+                self.rate_type_settings_row.set_subtitle('Constant Quantizer: P-frames')
+                self.rate_type_settings_row.add_suffix(self.rate_type_settings_stack)
+
+            def _setup_rate_type_settings_stack(self):
+                self._setup_qp_page()
+                self._setup_bitrate_page()
+
+                self.rate_type_settings_stack = Gtk.Stack()
+                self.rate_type_settings_stack.add_named(self.qp_scale, 'qp_page')
+                self.rate_type_settings_stack.add_named(self.bitrate_page_vertical_box, 'bitrate_page')
+                self.rate_type_settings_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+
+            def _setup_qp_page(self):
+                self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                         min=h264_nvenc.H264Nvenc.QP_MIN,
+                                                         max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                         step=1.0)
+                self.qp_scale.set_value(20.0)
+                self.qp_scale.set_digits(1)
+                self.qp_scale.set_draw_value(True)
+                self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.qp_scale.set_hexpand(True)
+
+            def _setup_bitrate_page(self):
+                self._setup_bitrate_spin_button()
+                self._setup_bitrate_type_widgets()
+
+                self.bitrate_page_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+                self.bitrate_page_vertical_box.append(self.bitrate_spin_button)
+                self.bitrate_page_vertical_box.append(self.bitrate_type_horizontal_box)
+                self.bitrate_page_vertical_box.set_margin_top(10)
+                self.bitrate_page_vertical_box.set_margin_bottom(10)
+                self.bitrate_page_vertical_box.set_hexpand(False)
+                self.bitrate_page_vertical_box.set_halign(Gtk.Align.END)
+
+            def _setup_bitrate_spin_button(self):
+                self.bitrate_spin_button = Gtk.SpinButton()
+                self.bitrate_spin_button.set_range(h264_nvenc.H264Nvenc.BITRATE_MIN, h264_nvenc.H264Nvenc.BITRATE_MAX)
+                self.bitrate_spin_button.set_digits(0)
+                self.bitrate_spin_button.set_increments(100, 500)
+                self.bitrate_spin_button.set_numeric(True)
+                self.bitrate_spin_button.set_snap_to_ticks(True)
+                self.bitrate_spin_button.set_value(2500)
+                self.bitrate_spin_button.set_size_request(125, -1)
+                self.bitrate_spin_button.set_vexpand(False)
+                self.bitrate_spin_button.set_valign(Gtk.Align.CENTER)
+                self.bitrate_spin_button.set_hexpand(False)
+                self.bitrate_spin_button.set_halign(Gtk.Align.CENTER)
+
+            def _setup_bitrate_type_widgets(self):
+                self.average_bitrate_check_button = Gtk.CheckButton(label='Average')
+                self.average_bitrate_check_button.set_active(True)
+
+                self.constant_bitrate_check_button = Gtk.CheckButton(label='Constant')
+                self.constant_bitrate_check_button.set_group(self.average_bitrate_check_button)
+
+                self.bitrate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.bitrate_type_horizontal_box.append(self.average_bitrate_check_button)
+                self.bitrate_type_horizontal_box.append(self.constant_bitrate_check_button)
+
+            def _setup_multi_pass_row(self):
+                self._setup_multi_pass_combobox()
+
+                self.multi_pass_row = Adw.ActionRow()
+                self.multi_pass_row.set_title('Multipass')
+                self.multi_pass_row.set_subtitle('Encoder multipass')
+                self.multi_pass_row.add_suffix(self.multi_pass_combobox)
+                self.multi_pass_row.set_sensitive(False)
+
+            def _setup_multi_pass_combobox(self):
+                self.multi_pass_combobox = Gtk.ComboBoxText()
+                self.multi_pass_combobox.set_vexpand(False)
+                self.multi_pass_combobox.set_valign(Gtk.Align.CENTER)
+
+                for multi_pass_setting in h264_nvenc.H264Nvenc.MULTI_PASS:
+                    self.multi_pass_combobox.append_text(multi_pass_setting)
+
+                self.multi_pass_combobox.set_active(0)
+
+            def _setup_codec_advanced_settings(self):
+                self._setup_custom_quantizer_row()
+                self._setup_qp_i_row()
+                self._setup_qp_p_row()
+                self._setup_qp_b_row()
+                self._setup_rc_row()
+                self._setup_rc_lookahead_row()
+                self._setup_surfaces_row()
+                self._setup_b_frames_row()
+                self._setup_refs_row()
+                self._setup_no_scenecut_row()
+                self._setup_forced_idr_row()
+                self._setup_b_adapt_row()
+                self._setup_aq_mode_row()
+                self._setup_non_ref_p_row()
+                self._setup_strict_gop_row()
+                self._setup_aq_strength_row()
+                self._setup_bluray_compat_row()
+                self._setup_weighted_pred_row()
+                self._setup_coder_row()
+                self._setup_b_ref_mode_row()
+                self._setup_tier_row()
+
+                self.codec_advanced_settings_group = Adw.PreferencesGroup()
+                self.codec_advanced_settings_group.set_title('Advanced Settings')
+                self.codec_advanced_settings_group.add(self.custom_quantizer_row)
+                self.codec_advanced_settings_group.add(self.qp_i_row)
+                self.codec_advanced_settings_group.add(self.qp_p_row)
+                self.codec_advanced_settings_group.add(self.qp_b_row)
+                self.codec_advanced_settings_group.add(self.rc_row)
+                self.codec_advanced_settings_group.add(self.rc_lookahead_row)
+                self.codec_advanced_settings_group.add(self.surfaces_row)
+                self.codec_advanced_settings_group.add(self.tier_row)
+                self.codec_advanced_settings_group.add(self.refs_row)
+                self.codec_advanced_settings_group.add(self.forced_idr_row)
+                self.codec_advanced_settings_group.add(self.non_ref_p_row)
+                self.codec_advanced_settings_group.add(self.no_scenecut_row)
+                self.codec_advanced_settings_group.add(self.strict_gop_row)
+                self.codec_advanced_settings_group.add(self.b_frames_row)
+                self.codec_advanced_settings_group.add(self.b_ref_mode_row)
+                self.codec_advanced_settings_group.add(self.b_adapt_row)
+                self.codec_advanced_settings_group.add(self.weighted_pred_row)
+                self.codec_advanced_settings_group.add(self.aq_mode_row)
+                self.codec_advanced_settings_group.add(self.aq_strength_row)
+                self.codec_advanced_settings_group.add(self.coder_row)
+                self.codec_advanced_settings_group.add(self.bluray_compat_row)
+
+            def _setup_custom_quantizer_row(self):
+                self._setup_custom_quantizer_switch()
+
+                self.custom_quantizer_row = Adw.ActionRow()
+                self.custom_quantizer_row.set_title('Custom Quantizer')
+                self.custom_quantizer_row.set_subtitle('Quantizer value for each frame slice')
+                self.custom_quantizer_row.add_suffix(self.custom_quantizer_switch)
+
+            def _setup_custom_quantizer_switch(self):
+                self.custom_quantizer_switch = Gtk.Switch()
+                self.custom_quantizer_switch.set_vexpand(False)
+                self.custom_quantizer_switch.set_valign(Gtk.Align.CENTER)
+                self.custom_quantizer_switch.connect('state-set', self.on_custom_quantizer_switch_state_set)
+
+            def _setup_qp_i_row(self):
+                self._setup_qp_i_scale()
+
+                self.qp_i_row = Adw.ActionRow()
+                self.qp_i_row.set_title('QP-I')
+                self.qp_i_row.set_subtitle('Quantizer value for I-frames')
+                self.qp_i_row.add_suffix(self.qp_i_scale)
+                self.qp_i_row.set_sensitive(False)
+
+            def _setup_qp_i_scale(self):
+                self.qp_i_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                           min=h264_nvenc.H264Nvenc.QP_MIN,
+                                                           max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                           step=1.0)
+                self.qp_i_scale.set_value(20.0)
+                self.qp_i_scale.set_digits(1)
+                self.qp_i_scale.set_draw_value(True)
+                self.qp_i_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.qp_i_scale.set_hexpand(True)
+
+            def _setup_qp_p_row(self):
+                self._setup_qp_p_scale()
+
+                self.qp_p_row = Adw.ActionRow()
+                self.qp_p_row.set_title('QP-P')
+                self.qp_p_row.set_subtitle('Quantizer value for P-frames')
+                self.qp_p_row.add_suffix(self.qp_p_scale)
+                self.qp_p_row.set_sensitive(False)
+
+            def _setup_qp_p_scale(self):
+                self.qp_p_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                           min=h264_nvenc.H264Nvenc.QP_MIN,
+                                                           max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                           step=1.0)
+                self.qp_p_scale.set_value(20.0)
+                self.qp_p_scale.set_digits(1)
+                self.qp_p_scale.set_draw_value(True)
+                self.qp_p_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.qp_p_scale.set_hexpand(True)
+
+            def _setup_qp_b_row(self):
+                self._setup_qp_b_scale()
+
+                self.qp_b_row = Adw.ActionRow()
+                self.qp_b_row.set_title('QP-B')
+                self.qp_b_row.set_subtitle('Quantizer value for B-frames')
+                self.qp_b_row.add_suffix(self.qp_b_scale)
+                self.qp_b_row.set_sensitive(False)
+
+            def _setup_qp_b_scale(self):
+                self.qp_b_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                           min=h264_nvenc.H264Nvenc.QP_MIN,
+                                                           max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                           step=1.0)
+                self.qp_b_scale.set_value(20.0)
+                self.qp_b_scale.set_digits(1)
+                self.qp_b_scale.set_draw_value(True)
+                self.qp_b_scale.set_value_pos(Gtk.PositionType.BOTTOM)
+                self.qp_b_scale.set_hexpand(True)
+
+            def _setup_rc_row(self):
+                self._setup_rc_combobox()
+
+                self.rc_row = Adw.ActionRow()
+                self.rc_row.set_title('Rate Control')
+                self.rc_row.set_subtitle('Rate control type')
+                self.rc_row.add_suffix(self.rc_combobox)
+
+            def _setup_rc_combobox(self):
+                self.rc_combobox = Gtk.ComboBoxText()
+                self.rc_combobox.set_vexpand(False)
+                self.rc_combobox.set_valign(Gtk.Align.CENTER)
+
+                for rc_setting in h264_nvenc.H264Nvenc.RATE_CONTROL:
+                    self.rc_combobox.append_text(rc_setting)
+
+                self.rc_combobox.set_active(0)
+
+            def _setup_rc_lookahead_row(self):
+                self._setup_rc_lookahead_spin_button()
+
+                self.rc_lookahead_row = Adw.ActionRow()
+                self.rc_lookahead_row.set_title('Rate Control Lookahead')
+                self.rc_lookahead_row.set_subtitle('Lookahead in frames')
+                self.rc_lookahead_row.add_suffix(self.rc_lookahead_spin_button)
+
+            def _setup_rc_lookahead_spin_button(self):
+                self.rc_lookahead_spin_button = Gtk.SpinButton()
+                self.rc_lookahead_spin_button.set_range(h264_nvenc.H264Nvenc.RC_LOOKAHEAD_MIN,
+                                                        h264_nvenc.H264Nvenc.RC_LOOKAHEAD_MAX)
+                self.rc_lookahead_spin_button.set_digits(0)
+                self.rc_lookahead_spin_button.set_increments(10, 50)
+                self.rc_lookahead_spin_button.set_numeric(True)
+                self.rc_lookahead_spin_button.set_snap_to_ticks(True)
+                self.rc_lookahead_spin_button.set_value(0)
+                self.rc_lookahead_spin_button.set_vexpand(False)
+                self.rc_lookahead_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_surfaces_row(self):
+                self._setup_surfaces_spin_button()
+
+                self.surfaces_row = Adw.ActionRow()
+                self.surfaces_row.set_title('Surfaces')
+                self.surfaces_row.set_subtitle('Surfaces')
+                self.surfaces_row.add_suffix(self.surfaces_spin_button)
+
+            def _setup_surfaces_spin_button(self):
+                self.surfaces_spin_button = Gtk.SpinButton()
+                self.surfaces_spin_button.set_range(h264_nvenc.H264Nvenc.SURFACES_MIN,
+                                                    h264_nvenc.H264Nvenc.SURFACES_MAX)
+                self.surfaces_spin_button.set_digits(0)
+                self.surfaces_spin_button.set_increments(2, 8)
+                self.surfaces_spin_button.set_numeric(True)
+                self.surfaces_spin_button.set_snap_to_ticks(True)
+                self.surfaces_spin_button.set_value(0)
+                self.surfaces_spin_button.set_vexpand(False)
+                self.surfaces_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_b_frames_row(self):
+                self._setup_b_frames_spin_button()
+
+                self.b_frames_row = Adw.ActionRow()
+                self.b_frames_row.set_title('B-frames')
+                self.b_frames_row.set_subtitle('Number of consecutive B-frames in GOP')
+                self.b_frames_row.add_suffix(self.b_frames_spin_button)
+
+            def _setup_b_frames_spin_button(self):
+                self.b_frames_spin_button = Gtk.SpinButton()
+                self.b_frames_spin_button.set_range(h264_nvenc.H264Nvenc.B_FRAMES_MIN,
+                                                    h264_nvenc.H264Nvenc.B_FRAMES_MAX)
+                self.b_frames_spin_button.set_digits(0)
+                self.b_frames_spin_button.set_increments(1, 4)
+                self.b_frames_spin_button.set_numeric(True)
+                self.b_frames_spin_button.set_snap_to_ticks(True)
+                self.b_frames_spin_button.set_value(0)
+                self.b_frames_spin_button.set_vexpand(False)
+                self.b_frames_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_refs_row(self):
+                self._setup_refs_spin_button()
+
+                self.refs_row = Adw.ActionRow()
+                self.refs_row.set_title('Reference Frames')
+                self.refs_row.set_subtitle('Consecutive number of key-frames in GOP')
+                self.refs_row.add_suffix(self.refs_spin_button)
+
+            def _setup_refs_spin_button(self):
+                self.refs_spin_button = Gtk.SpinButton()
+                self.refs_spin_button.set_range(h264_nvenc.H264Nvenc.REFS_MIN, h264_nvenc.H264Nvenc.REFS_MAX)
+                self.refs_spin_button.set_digits(0)
+                self.refs_spin_button.set_increments(1, 4)
+                self.refs_spin_button.set_numeric(True)
+                self.refs_spin_button.set_snap_to_ticks(True)
+                self.refs_spin_button.set_value(0)
+                self.refs_spin_button.set_vexpand(False)
+                self.refs_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_no_scenecut_row(self):
+                self._setup_no_scenecut_switch()
+
+                self.no_scenecut_row = Adw.ActionRow()
+                self.no_scenecut_row.set_title('No Scenecut')
+                self.no_scenecut_row.set_subtitle('No Scenecut')
+                self.no_scenecut_row.add_suffix(self.no_scenecut_switch)
+
+            def _setup_no_scenecut_switch(self):
+                self.no_scenecut_switch = Gtk.Switch()
+                self.no_scenecut_switch.set_vexpand(False)
+                self.no_scenecut_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_forced_idr_row(self):
+                self._setup_forced_idr_switch()
+
+                self.forced_idr_row = Adw.ActionRow()
+                self.forced_idr_row.set_title('Forced IDR')
+                self.forced_idr_row.set_subtitle('Forced IDR')
+                self.forced_idr_row.add_suffix(self.forced_idr_switch)
+
+            def _setup_forced_idr_switch(self):
+                self.forced_idr_switch = Gtk.Switch()
+                self.forced_idr_switch.set_vexpand(False)
+                self.forced_idr_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_b_adapt_row(self):
+                self._setup_b_adapt_switch()
+
+                self.b_adapt_row = Adw.ActionRow()
+                self.b_adapt_row.set_title('B-Adapt')
+                self.b_adapt_row.set_subtitle('B-Adapt')
+                self.b_adapt_row.add_suffix(self.b_adapt_switch)
+
+            def _setup_b_adapt_switch(self):
+                self.b_adapt_switch = Gtk.Switch()
+                self.b_adapt_switch.set_vexpand(False)
+                self.b_adapt_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_aq_mode_row(self):
+                self._setup_aq_mode_radio_buttons()
+
+                self.aq_mode_row = Adw.ActionRow()
+                self.aq_mode_row.set_title('AQ Mode')
+                self.aq_mode_row.set_subtitle('Adaptive quantizer mode')
+                self.aq_mode_row.add_suffix(self.aq_mode_horizontal_box)
+
+            def _setup_aq_mode_radio_buttons(self):
+                self.spatial_aq_check_button = Gtk.CheckButton(label='Spatial AQ')
+                self.spatial_aq_check_button.set_active(True)
+                self.spatial_aq_check_button.connect('toggled', self.on_spatial_aq_check_button_toggled)
+
+                self.temporal_aq_check_button = Gtk.CheckButton(label='Temporal AQ')
+                self.temporal_aq_check_button.set_group(self.spatial_aq_check_button)
+
+                self.aq_mode_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                self.aq_mode_horizontal_box.append(self.spatial_aq_check_button)
+                self.aq_mode_horizontal_box.append(self.temporal_aq_check_button)
+
+            def _setup_non_ref_p_row(self):
+                self._setup_non_ref_p_switch()
+
+                self.non_ref_p_row = Adw.ActionRow()
+                self.non_ref_p_row.set_title('Non-Ref P-frames')
+                self.non_ref_p_row.set_subtitle('Allow for non-reference P-frames')
+                self.non_ref_p_row.add_suffix(self.non_ref_p_switch)
+
+            def _setup_non_ref_p_switch(self):
+                self.non_ref_p_switch = Gtk.Switch()
+                self.non_ref_p_switch.set_vexpand(False)
+                self.non_ref_p_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_strict_gop_row(self):
+                self._setup_strict_gop_switch()
+
+                self.strict_gop_row = Adw.ActionRow()
+                self.strict_gop_row.set_title('Strict GOP')
+                self.strict_gop_row.set_subtitle('Strict GOP')
+                self.strict_gop_row.add_suffix(self.strict_gop_switch)
+
+            def _setup_strict_gop_switch(self):
+                self.strict_gop_switch = Gtk.Switch()
+                self.strict_gop_switch.set_vexpand(False)
+                self.strict_gop_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_aq_strength_row(self):
+                self._setup_aq_strength_spin_button()
+
+                self.aq_strength_row = Adw.ActionRow()
+                self.aq_strength_row.set_title('AQ Strength')
+                self.aq_strength_row.set_subtitle('Adaptive quantizer strength')
+                self.aq_strength_row.add_suffix(self.aq_strength_spin_button)
+
+            def _setup_aq_strength_spin_button(self):
+                self.aq_strength_spin_button = Gtk.SpinButton()
+                self.aq_strength_spin_button.set_range(h264_nvenc.H264Nvenc.AQ_STRENGTH_MIN,
+                                                       h264_nvenc.H264Nvenc.AQ_STRENGTH_MAX)
+                self.aq_strength_spin_button.set_digits(0)
+                self.aq_strength_spin_button.set_increments(1, 4)
+                self.aq_strength_spin_button.set_numeric(True)
+                self.aq_strength_spin_button.set_snap_to_ticks(True)
+                self.aq_strength_spin_button.set_value(8)
+                self.aq_strength_spin_button.set_vexpand(False)
+                self.aq_strength_spin_button.set_valign(Gtk.Align.CENTER)
+
+            def _setup_bluray_compat_row(self):
+                self._setup_bluray_compat_switch()
+
+                self.bluray_compat_row = Adw.ActionRow()
+                self.bluray_compat_row.set_title('Blu-Ray Compatibility')
+                self.bluray_compat_row.add_suffix(self.bluray_compat_switch)
+
+            def _setup_bluray_compat_switch(self):
+                self.bluray_compat_switch = Gtk.Switch()
+                self.bluray_compat_switch.set_vexpand(False)
+                self.bluray_compat_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_weighted_pred_row(self):
+                self._setup_weighted_pred_switch()
+
+                self.weighted_pred_row = Adw.ActionRow()
+                self.weighted_pred_row.set_title('Weighted Predicition')
+                self.weighted_pred_row.set_subtitle('Weighted predicition')
+                self.weighted_pred_row.add_suffix(self.weighted_pred_switch)
+
+            def _setup_weighted_pred_switch(self):
+                self.weighted_pred_switch = Gtk.Switch()
+                self.weighted_pred_switch.set_vexpand(False)
+                self.weighted_pred_switch.set_valign(Gtk.Align.CENTER)
+
+            def _setup_coder_row(self):
+                self._setup_coder_combobox()
+
+                self.coder_row = Adw.ActionRow()
+                self.coder_row.set_title('Coder')
+                self.coder_row.set_subtitle('Coder')
+                self.coder_row.add_suffix(self.coder_combobox)
+
+            def _setup_coder_combobox(self):
+                self.coder_combobox = Gtk.ComboBoxText()
+                self.coder_combobox.set_vexpand(False)
+                self.coder_combobox.set_valign(Gtk.Align.CENTER)
+
+                for coder_setting in h264_nvenc.H264Nvenc.CODER:
+                    self.coder_combobox.append_text(coder_setting)
+
+                self.coder_combobox.set_active(0)
+
+            def _setup_b_ref_mode_row(self):
+                self._setup_b_ref_mode_combobox()
+
+                self.b_ref_mode_row = Adw.ActionRow()
+                self.b_ref_mode_row.set_title('B-Ref Mode')
+                self.b_ref_mode_row.set_subtitle('B-Ref Mode')
+                self.b_ref_mode_row.add_suffix(self.b_ref_mode_combobox)
+
+            def _setup_b_ref_mode_combobox(self):
+                self.b_ref_mode_combobox = Gtk.ComboBoxText()
+                self.b_ref_mode_combobox.set_vexpand(False)
+                self.b_ref_mode_combobox.set_valign(Gtk.Align.CENTER)
+
+                for b_ref_mode_setting in h264_nvenc.H264Nvenc.BREF_MODE:
+                    self.b_ref_mode_combobox.append_text(b_ref_mode_setting)
+
+                self.b_ref_mode_combobox.set_active(0)
+
+            def _setup_tier_row(self):
+                self._setup_tier_switch()
+
+                self.tier_row = Adw.ActionRow()
+                self.tier_row.set_title('Tier')
+                self.tier_row.set_subtitle('Tier')
+                self.tier_row.add_suffix(self.tier_switch)
+                self.tier_row.set_sensitive(False)
+
+            def _setup_tier_switch(self):
+                self.tier_switch = Gtk.Switch()
+                self.tier_switch.set_vexpand(False)
+                self.tier_switch.set_valign(Gtk.Align.CENTER)
+
+            def on_qp_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.rate_type_settings_stack.set_visible_child_name('qp_page')
+                    self.rate_type_settings_row.set_title('QP')
+                    self.rate_type_settings_row.set_subtitle('Constant Quantizer: P-frames')
+                    self.multi_pass_row.set_sensitive(False)
+
+            def on_bitrate_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.rate_type_settings_stack.set_visible_child_name('bitrate_page')
+                    self.rate_type_settings_row.set_title('Bitrate')
+                    self.rate_type_settings_row.set_subtitle('Encoder bitrate')
+                    self.multi_pass_row.set_sensitive(True)
+
+            def on_custom_quantizer_switch_state_set(self, switch, user_data):
+                self.qp_i_row.set_sensitive(switch.get_active())
+                self.qp_p_row.set_sensitive(switch.get_active())
+                self.qp_b_row.set_sensitive(switch.get_active())
+
+            def on_spatial_aq_check_button_toggled(self, check_button):
+                self.aq_strength_row.set_sensitive(check_button.get_active())
+
+        class CodecSettingsNoAvailPage(Gtk.Box):
+            def __init__(self):
+                super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+                self.settings_no_avail_label = Gtk.Label(label='Codec Settings Not Available')
+
+                self.append(self.settings_no_avail_label)
+                self.set_sensitive(False)
 
     class AudioCodecSettingsPage(Gtk.ScrolledWindow):
         def __init__(self, inputs_page):

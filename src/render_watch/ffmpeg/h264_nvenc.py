@@ -20,9 +20,7 @@ class H264Nvenc:
     """Class that configures all H264 Nvenc codec settings available for Render Watch."""
 
     PRESET = [
-        'default', 'slow', 'medium', 'fast', 'hp', 'hq', 'bd', 'll', 'llhq', 'llhp', 'lossless', 'losslesshp', 'p1',
-        'p2', 'p3', 'p4', 'p5', 'p6', 'p7'
-    ]
+        'default', 'slow', 'medium', 'fast', 'lossless', 'losslesshp', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']
     PRESET_LENGTH = len(PRESET)
 
     PROFILE = ['auto', 'baseline', 'main', 'high', 'high444p']
@@ -48,6 +46,27 @@ class H264Nvenc:
 
     BREF_MODE = ['auto', 'disabled', 'each', 'middle']
     BREF_MODE_LENGTH = len(BREF_MODE)
+
+    QP_MIN = 0.0
+    QP_MAX = 51.0
+
+    BITRATE_MIN = 100
+    BITRATE_MAX = 99999
+
+    RC_LOOKAHEAD_MIN = 0
+    RC_LOOKAHEAD_MAX = 990
+
+    SURFACES_MIN = 0
+    SURFACES_MAX = 64
+
+    B_FRAMES_MIN = 0
+    B_FRAMES_MAX = 16
+
+    REFS_MIN = 0
+    REFS_MAX = 16
+
+    AQ_STRENGTH_MIN = 1
+    AQ_STRENGTH_MAX = 15
 
     def __init__(self):
         """Initializes the H264Nvenc class with all necessary variables for the codec's options."""
@@ -462,7 +481,7 @@ class H264Nvenc:
         """
         if '-surfaces' in self._ffmpeg_advanced_args:
             return int(self._ffmpeg_advanced_args['-surfaces'])
-        return 8
+        return 0
 
     @surfaces.setter
     def surfaces(self, surfaces_value: int | None):
