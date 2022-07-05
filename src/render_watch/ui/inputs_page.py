@@ -612,13 +612,15 @@ class InputsPageWidgets:
         self.task_chunks_horizontal_box.append(self.task_chunks_switch)
         self.task_chunks_horizontal_box.set_sensitive(self.app_settings.is_encoding_parallel_tasks)
 
+    def get_selected_rows(self):
+        return self.inputs_list_box.get_selected_rows()
+
     def on_remove_all_button_clicked(self, button):
         self.main_window_widgets.options_popover.popdown()
         self.main_window_widgets.show_remove_all_confirmation_message()
 
     def on_remove_all_confirmation_message_response(self, message_dialog, response):
         if response == Gtk.ResponseType.YES:
-            self.inputs_list_box.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
             self.inputs_list_box.select_all()
 
             threading.Thread(target=self._remove_all_input_rows, args=()).start()
@@ -632,10 +634,13 @@ class InputsPageWidgets:
         for input_row in input_rows:
             GLib.idle_add(self.remove_input_row, input_row)
 
-        GLib.idle_add(self.inputs_list_box.set_selection_mode, Gtk.SelectionMode.SINGLE)
-
     def on_inputs_list_box_selected_rows_changed(self, list_box, user_data=None):
-        self.main_window_widgets.on_inputs_list_box_row_selected(list_box.get_selected_row())
+        list_box_row = list_box.get_selected_row()
+        self.main_window_widgets.on_inputs_list_box_row_selected(list_box_row)
+
+        if list_box_row:
+            threading.Thread(target=self.settings_sidebar_widgets.apply_settings_to_widgets,
+                             args=(list_box.get_selected_row().encoding_task,)).start()
 
     def on_inputs_list_drop_target_drop(self, drop_target, files_list, x_pos, y_pos):
         threading.Thread(target=self._add_drop_inputs, args=(files_list.get_files(),)).start()

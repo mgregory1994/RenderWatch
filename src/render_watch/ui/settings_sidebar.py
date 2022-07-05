@@ -16,7 +16,10 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from render_watch.ui import Gtk, Adw
+import copy
+import threading
+
+from render_watch.ui import Gtk, GLib, Adw
 from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9, h264_nvenc, hevc_nvenc
 from render_watch import app_preferences
 
@@ -53,7 +56,7 @@ class SettingsSidebarWidgets:
         self._setup_subtitle_settings_page()
 
     def _setup_general_settings_page(self):
-        self.general_settings_page = self.GeneralSettingsPage()
+        self.general_settings_page = self.GeneralSettingsPage(self.inputs_page)
 
     def _setup_video_codec_settings_page(self):
         self.video_codec_settings_page = self.VideoCodecSettingsPage(self.inputs_page)
@@ -103,6 +106,9 @@ class SettingsSidebarWidgets:
         self.preview_buttons_horizontal_box.set_margin_top(10)
         self.preview_buttons_horizontal_box.set_margin_bottom(10)
 
+    def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        self.general_settings_page.apply_settings_to_widgets(encoding_task)
+
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
             super().__init__()
@@ -135,8 +141,11 @@ class SettingsSidebarWidgets:
                 child.update_title()
 
     class GeneralSettingsPage(Gtk.ScrolledWindow):
-        def __init__(self):
+        def __init__(self, inputs_page):
             super().__init__()
+
+            self.inputs_page = inputs_page
+            self.is_widgets_setting_up = False
 
             self._setup_preset_settings()
             self._setup_output_file_settings()
@@ -159,66 +168,137 @@ class SettingsSidebarWidgets:
             self.preset_settings_group.set_title('Preset')
 
         def _setup_output_file_settings(self):
-            self._setup_extension_setting()
-            self._setup_fast_start_setting()
+            self._setup_extension_row()
+            self._setup_fast_start_row()
 
             self.output_settings_group = Adw.PreferencesGroup()
             self.output_settings_group.set_title('Output File')
             self.output_settings_group.add(self.extension_row)
             self.output_settings_group.add(self.fast_start_row)
 
-        def _setup_extension_setting(self):
-            extension_combobox = Gtk.ComboBoxText()
-            extension_combobox.set_vexpand(False)
-            extension_combobox.set_valign(Gtk.Align.CENTER)
-
-            for extension in encoding.output.CONTAINERS:
-                extension_combobox.append_text(extension)
-
-            extension_combobox.set_active(0)
+        def _setup_extension_row(self):
+            self._setup_extension_combobox()
 
             self.extension_row = Adw.ActionRow()
             self.extension_row.set_title('Extension')
             self.extension_row.set_subtitle('Output file extension type')
-            self.extension_row.add_suffix(extension_combobox)
+            self.extension_row.add_suffix(self.extension_combobox)
 
-        def _setup_fast_start_setting(self):
-            fast_start_switch = Gtk.Switch()
-            fast_start_switch.set_vexpand(False)
-            fast_start_switch.set_valign(Gtk.Align.CENTER)
+        def _setup_extension_combobox(self):
+            self.extension_combobox = Gtk.ComboBoxText()
+            self.extension_combobox.set_vexpand(False)
+            self.extension_combobox.set_valign(Gtk.Align.CENTER)
+
+            for extension in encoding.output.CONTAINERS:
+                self.extension_combobox.append_text(extension)
+
+            self.extension_combobox.set_active(0)
+            self.extension_combobox.connect('changed', self.on_extension_combobox_changed)
+
+        def _setup_fast_start_row(self):
+            self._setup_fast_start_switch()
 
             self.fast_start_row = Adw.ActionRow()
             self.fast_start_row.set_title('Fast Start')
             self.fast_start_row.set_subtitle('Move MOV atom to the beginning of the file')
-            self.fast_start_row.add_suffix(fast_start_switch)
+            self.fast_start_row.add_suffix(self.fast_start_switch)
+
+        def _setup_fast_start_switch(self):
+            self.fast_start_switch = Gtk.Switch()
+            self.fast_start_switch.set_vexpand(False)
+            self.fast_start_switch.set_valign(Gtk.Align.CENTER)
+            self.fast_start_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
         def _setup_frame_rate_settings(self):
-            self._setup_custom_frame_rate_setting()
+            self._setup_custom_frame_rate_row()
 
-            auto_frame_rate_switch = Gtk.Switch()
-            auto_frame_rate_switch.set_vexpand(False)
-            auto_frame_rate_switch.set_valign(Gtk.Align.CENTER)
+            self.custom_frame_rate_switch = Gtk.Switch()
+            self.custom_frame_rate_switch.set_vexpand(False)
+            self.custom_frame_rate_switch.set_valign(Gtk.Align.CENTER)
+            self.custom_frame_rate_switch.connect('state-set', self.on_custom_frame_rate_switch_state_set)
 
             self.frame_rate_settings_group = Adw.PreferencesGroup()
             self.frame_rate_settings_group.set_title('Frame Rate')
-            self.frame_rate_settings_group.set_header_suffix(auto_frame_rate_switch)
+            self.frame_rate_settings_group.set_header_suffix(self.custom_frame_rate_switch)
             self.frame_rate_settings_group.add(self.custom_frame_rate_row)
 
-        def _setup_custom_frame_rate_setting(self):
-            custom_frame_rate_combobox = Gtk.ComboBoxText()
-            custom_frame_rate_combobox.set_vexpand(False)
-            custom_frame_rate_combobox.set_valign(Gtk.Align.CENTER)
-
-            for frame_rate in general_settings.GeneralSettings.FRAME_RATE:
-                custom_frame_rate_combobox.append_text(frame_rate)
-
-            custom_frame_rate_combobox.set_active(0)
+        def _setup_custom_frame_rate_row(self):
+            self._setup_custom_frame_rate_combobox()
 
             self.custom_frame_rate_row = Adw.ActionRow()
             self.custom_frame_rate_row.set_title('Frames Per Second')
             self.custom_frame_rate_row.set_subtitle('Output\'s frame rate')
-            self.custom_frame_rate_row.add_suffix(custom_frame_rate_combobox)
+            self.custom_frame_rate_row.add_suffix(self.custom_frame_rate_combobox)
             self.custom_frame_rate_row.set_sensitive(False)
+
+        def _setup_custom_frame_rate_combobox(self):
+            self.custom_frame_rate_combobox = Gtk.ComboBoxText()
+            self.custom_frame_rate_combobox.set_vexpand(False)
+            self.custom_frame_rate_combobox.set_valign(Gtk.Align.CENTER)
+
+            for frame_rate in general_settings.GeneralSettings.FRAME_RATE:
+                self.custom_frame_rate_combobox.append_text(frame_rate)
+
+            self.custom_frame_rate_combobox.set_active(0)
+            self.custom_frame_rate_combobox.connect('changed', self.on_widget_changed_clicked_set)
+
+        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            self.is_widgets_setting_up = True
+            self._apply_extension_setting_to_widgets(encoding_task)
+            self._apply_fast_start_setting_to_widgets(encoding_task)
+            self._apply_frame_rate_setting_to_widgets(encoding_task)
+            self.is_widgets_setting_up = False
+
+        def _apply_extension_setting_to_widgets(self, encoding_task: encoding.Task):
+            extension_index = encoding.output.CONTAINERS.index(encoding_task.output_file.extension)
+            GLib.idle_add(self.extension_combobox.set_active, extension_index)
+
+        def _apply_fast_start_setting_to_widgets(self, encoding_task: encoding.Task):
+            GLib.idle_add(self.fast_start_switch.set_active, encoding_task.general_settings.fast_start)
+
+        def _apply_frame_rate_setting_to_widgets(self, encoding_task: encoding.Task):
+            frame_rate_index = encoding_task.general_settings.frame_rate
+
+            if frame_rate_index is not None:
+                GLib.idle_add(self.custom_frame_rate_switch.set_active, True)
+                GLib.idle_add(self.custom_frame_rate_combobox.set_active, frame_rate_index)
+            else:
+                GLib.idle_add(self.custom_frame_rate_switch.set_active, False)
+                GLib.idle_add(self.custom_frame_rate_combobox.set_active, 0)
+
+        def apply_settings_from_widgets(self):
+            task_general_settings = general_settings.GeneralSettings()
+
+            if self.custom_frame_rate_switch.get_active():
+                task_general_settings.frame_rate = self.custom_frame_rate_combobox.get_active()
+
+            if self.fast_start_row.get_sensitive():
+                task_general_settings.fast_start = self.fast_start_switch.get_active()
+
+            for input_row in self.inputs_page.get_selected_rows():
+                encoding_task = input_row.encoding_task
+                encoding_task.output_file.extension = self.extension_combobox.get_active_text()
+                encoding_task.general_settings = copy.deepcopy(task_general_settings)
+
+        def on_widget_changed_clicked_set(self, *args, **kwargs):
+            if self.is_widgets_setting_up:
+                return
+
+            threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
+
+        def on_extension_combobox_changed(self, combobox):
+            if self.is_widgets_setting_up:
+                return
+
+            self.fast_start_row.set_sensitive(combobox.get_active_text() == '.mp4')
+            self.on_widget_changed_clicked_set()
+
+        def on_custom_frame_rate_switch_state_set(self, switch, user_data):
+            if self.is_widgets_setting_up:
+                return
+
+            self.custom_frame_rate_row.set_sensitive(switch.get_active())
+            self.on_widget_changed_clicked_set()
 
     class VideoCodecSettingsPage(Gtk.ScrolledWindow):
         def __init__(self, inputs_page):
@@ -291,6 +371,9 @@ class SettingsSidebarWidgets:
             self.video_codec_settings_stack.set_visible_child_name('codec_settings_no_avail_page')
             self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
             self.video_codec_settings_stack.set_vhomogeneous(False)
+
+        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            pass
 
         class X264StackPage(Gtk.Box):
             def __init__(self):

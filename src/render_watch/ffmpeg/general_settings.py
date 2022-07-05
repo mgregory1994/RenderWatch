@@ -27,7 +27,7 @@ class GeneralSettings:
         self.ffmpeg_args = {}
 
     @property
-    def frame_rate(self) -> int:
+    def frame_rate(self) -> int | None:
         """
         Returns the frame rate option's index.
 
@@ -38,7 +38,7 @@ class GeneralSettings:
             frame_rate_arg = self.ffmpeg_args['-r']
 
             return GeneralSettings.FRAME_RATE.index(frame_rate_arg)
-        return 0
+        return None
 
     @frame_rate.setter
     def frame_rate(self, frame_rate_index: int | None):
@@ -51,7 +51,7 @@ class GeneralSettings:
         Returns:
             None
         """
-        if frame_rate_index and 0 < frame_rate_index < GeneralSettings.FRAME_RATE_LENGTH:
+        if frame_rate_index is not None and 0 <= frame_rate_index < GeneralSettings.FRAME_RATE_LENGTH:
             self.ffmpeg_args['-r'] = GeneralSettings.FRAME_RATE[frame_rate_index]
         else:
             self.ffmpeg_args.pop('-r', 0)

@@ -24,7 +24,7 @@ import copy
 from render_watch.ffmpeg import input, output
 from render_watch.ffmpeg import trim
 from render_watch.ffmpeg import filters
-from render_watch.ffmpeg import h264_nvenc, hevc_nvenc, x264, x265, vp9, aac
+from render_watch.ffmpeg import general_settings, h264_nvenc, hevc_nvenc, x264, x265, vp9, aac
 from render_watch.helpers import ffmpeg_helper, nvidia_helper
 from render_watch import app_preferences
 
@@ -56,7 +56,7 @@ class Task:
         self.output_file = output.OutputFile(self.input_file, self.app_settings)
         self.temp_output_file = output.TempOutputFile(self.input_file, self.app_settings.temp_directory)
         self.is_using_temp_output_file = False
-        self.general_settings = None
+        self.general_settings = general_settings.GeneralSettings()
         self.video_stream = None
         self.video_codec = x264.X264()
         self.audio_streams = {}
@@ -1278,7 +1278,7 @@ class FFmpegArgs:
     @staticmethod
     def _add_general_settings_args(encoding_task: Task, ffmpeg_args: list):
         # Uses the given encoding task to add the general settings args to the list of ffmpeg args.
-        if encoding_task.general_settings and encoding_task.video_codec:
+        if encoding_task.video_codec:
             ffmpeg_args.extend(FFmpegArgs.get_args_from_dict(encoding_task.general_settings.ffmpeg_args))
 
     @staticmethod
