@@ -108,11 +108,26 @@ class X264:
     def __init__(self):
         """Initializes the X264 class with all necessary variables for the codec's options."""
         self.is_advanced_enabled = False
+        self._is_crf_enabled = True
+        self._is_qp_enabled = False
+        self._is_bitrate_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libx264',
             '-crf': '20.0'
         }
         self._ffmpeg_advanced_args = {}
+
+    @property
+    def is_crf_enabled(self) -> bool:
+        return self._is_crf_enabled
+
+    @property
+    def is_qp_enabled(self) -> bool:
+        return self._is_qp_enabled
+
+    @property
+    def is_bitrate_enabled(self) -> bool:
+        return self._is_bitrate_enabled
 
     @property
     def codec_name(self) -> str:
@@ -153,6 +168,9 @@ class X264:
             self.ffmpeg_args['-crf'] = str(crf_value)
             self.qp = None
             self.bitrate = None
+            self._is_crf_enabled = True
+            self._is_qp_enabled = False
+            self._is_bitrate_enabled = False
 
     @property
     def qp(self) -> float:
@@ -183,6 +201,9 @@ class X264:
             self.ffmpeg_args['-qp'] = str(qp_value)
             self.crf = None
             self.bitrate = None
+            self._is_crf_enabled = False
+            self._is_qp_enabled = True
+            self._is_bitrate_enabled = False
 
     @property
     def bitrate(self) -> int:
@@ -215,6 +236,9 @@ class X264:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
             self.crf = None
             self.qp = None
+            self._is_crf_enabled = False
+            self._is_qp_enabled = False
+            self._is_bitrate_enabled = True
 
     @property
     def profile(self) -> int:
@@ -650,7 +674,7 @@ class X264:
         Returns:
             None
         """
-        if vbv_maxrate_value is None:
+        if vbv_maxrate_value is None or not self.is_vbv_valid():
             self._ffmpeg_advanced_args.pop('vbv-maxrate=', 0)
         else:
             self._ffmpeg_advanced_args['vbv-maxrate='] = str(vbv_maxrate_value)
@@ -678,10 +702,21 @@ class X264:
         Returns:
             None
         """
-        if vbv_bufsize_value is None:
+        if vbv_bufsize_value is None or not self.is_vbv_valid():
             self._ffmpeg_advanced_args.pop('vbv-bufsize=', 0)
         else:
             self._ffmpeg_advanced_args['vbv-bufsize='] = str(vbv_bufsize_value)
+
+    def is_vbv_valid(self) -> bool:
+        """
+        Returns whether VBV is able to be used and is enabled.
+
+        Returns:
+            Boolean that represents whether VBV is valid and enabled.
+        """
+        if self.is_advanced_enabled:
+            return self.is_bitrate_enabled and not self.constant_bitrate
+        return False
 
     @property
     def aq_mode(self) -> int:
@@ -1272,3 +1307,59 @@ class X264:
                 x264_advanced_args += ''.join([setting, arg, ':'])
 
         return x264_advanced_args
+
+    def get_info(self) -> str:
+        codec_info = ''.join(['---Codec: ', self.codec_name, '---\n'])
+        codec_info = ''.join([codec_info, 'Preset: ', self.PRESET[self.preset], '\n'])
+        codec_info = ''.join([codec_info, 'Profile: ', self.PROFILE[self.profile], '\n'])
+        codec_info = ''.join([codec_info, 'Level: ', self.LEVEL[self.level], '\n'])
+        codec_info = ''.join([codec_info, 'Tune: ', self.TUNE[self.tune], '\n'])
+        codec_info = ''.join([codec_info, 'Is CRF Enabled: ', str(self.is_crf_enabled), '\n'])
+        codec_info = ''.join([codec_info, 'Is QP Enabled: ', str(self.is_qp_enabled), '\n'])
+        codec_info = ''.join([codec_info, 'Is Bitrate Enabled: ', str(self.is_bitrate_enabled), '\n'])
+        codec_info = ''.join([codec_info, 'CRF: ', str(self.crf), '\n'])
+        codec_info = ''.join([codec_info, 'QP: ', str(self.qp), '\n'])
+        codec_info = ''.join([codec_info, 'Bitrate: ', str(self.bitrate), '\n'])
+        codec_info = ''.join([codec_info, 'Average Bitrate Enabled: ',
+                              str(not self.constant_bitrate and not self.encode_pass),
+                              '\n'])
+        codec_info = ''.join([codec_info, 'Constant Bitrate Enabled: ', str(self.constant_bitrate), '\n'])
+        codec_info = ''.join([codec_info, '2-Pass Encode Enabled: ', str(self.encode_pass != 1), '\n'])
+        codec_info = ''.join([codec_info, 'Is Advanced Settings Enabled: ', str(self.is_advanced_enabled), '\n'])
+        codec_info = ''.join([codec_info, 'Keyint: ', str(self.keyint), '\n'])
+        codec_info = ''.join([codec_info, 'Min. Keyint: ', str(self.min_keyint), '\n'])
+        codec_info = ''.join([codec_info, 'Scenecut: ', str(self.scenecut), '\n'])
+        codec_info = ''.join([codec_info, 'B-frames: ', str(self.bframes), '\n'])
+        codec_info = ''.join([codec_info, 'B-Adapt: ', str(self.b_adapt), '\n'])
+        codec_info = ''.join([codec_info, 'B-Pyramid: ', str(self.b_pyramid), '\n'])
+        codec_info = ''.join([codec_info, 'No CABAC: ', str(self.no_cabac), '\n'])
+        codec_info = ''.join([codec_info, 'Refs: ', str(self.ref), '\n'])
+        codec_info = ''.join([codec_info, 'No Deblock: ', str(self.no_deblock), '\n'])
+        codec_info = ''.join([codec_info,
+                              'Deblock: Alpha - ',
+                              str(self.deblock[0]),
+                              ' Beta: ',
+                              str(self.deblock[1]),
+                              '\n'])
+        codec_info = ''.join([codec_info, 'VBV Maxrate: ', str(self.vbv_maxrate), '\n'])
+        codec_info = ''.join([codec_info, 'VBV Bufsize: ', str(self.vbv_bufsize), '\n'])
+        codec_info = ''.join([codec_info, 'AQ Mode: ', self.AQ_MODE_UI[self.aq_mode], '\n'])
+        codec_info = ''.join([codec_info, 'AQ Strength: ', str(self.aq_strength), '\n'])
+        codec_info = ''.join([codec_info, 'Encode Pass: ', str(self.encode_pass), '\n'])
+        codec_info = ''.join([codec_info, 'Stats: ', self.stats, '\n'])
+        codec_info = ''.join([codec_info, 'Partitions: ', str(self.partitions), '\n'])
+        codec_info = ''.join([codec_info, 'Direct: ', self.DIRECT_UI[self.direct], '\n'])
+        codec_info = ''.join([codec_info, 'Weight B: ', str(self.weightb), '\n'])
+        codec_info = ''.join([codec_info, 'ME: ', self.ME[self.me], '\n'])
+        codec_info = ''.join([codec_info, 'ME Range: ', str(self.me_range), '\n'])
+        codec_info = ''.join([codec_info, 'Sub-ME: ', self.SUB_ME_UI[self.subme], '\n'])
+        codec_info = ''.join([codec_info, 'PsyRD: ', str(self.psy_rd[0]), '\n'])
+        codec_info = ''.join([codec_info, 'PsyRD Trellis: ', str(self.psy_rd[1]), '\n'])
+        codec_info = ''.join([codec_info, 'Mixed Refs: ', str(self.mixed_refs), '\n'])
+        codec_info = ''.join([codec_info, 'dct8x8: ', str(self.dct8x8), '\n'])
+        codec_info = ''.join([codec_info, 'Trellis: ', self.TRELLIS_UI[self.trellis], '\n'])
+        codec_info = ''.join([codec_info, 'No Fast P-Skip: ', str(self.no_fast_pskip), '\n'])
+        codec_info = ''.join([codec_info, 'No DCT Decimate: ', str(self.no_dct_decimate), '\n'])
+        codec_info = ''.join([codec_info, 'Weight P: ', str(self.weightp), '\n'])
+
+        return codec_info

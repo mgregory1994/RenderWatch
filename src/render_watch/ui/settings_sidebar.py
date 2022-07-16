@@ -17,6 +17,8 @@
 
 
 import copy
+import os.path
+import queue
 import threading
 
 from render_watch.ui import Gtk, GLib, Adw
@@ -107,7 +109,9 @@ class SettingsSidebarWidgets:
         self.preview_buttons_horizontal_box.set_margin_bottom(10)
 
     def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        print('UPDATE')
         self.general_settings_page.apply_settings_to_widgets(encoding_task)
+        self.video_codec_settings_page.apply_settings_to_widgets(encoding_task)
 
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
@@ -242,12 +246,15 @@ class SettingsSidebarWidgets:
             self.custom_frame_rate_combobox.set_active(0)
             self.custom_frame_rate_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
+        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+            self.is_widgets_setting_up = is_widgets_setting_up
+
         def apply_settings_to_widgets(self, encoding_task: encoding.Task):
-            self.is_widgets_setting_up = True
+            GLib.idle_add(self.set_widgets_setting_up, True)
             self._apply_extension_setting_to_widgets(encoding_task)
             self._apply_fast_start_setting_to_widgets(encoding_task)
             self._apply_frame_rate_setting_to_widgets(encoding_task)
-            self.is_widgets_setting_up = False
+            GLib.idle_add(self.set_widgets_setting_up, False)
 
         def _apply_extension_setting_to_widgets(self, encoding_task: encoding.Task):
             extension_index = encoding.output.CONTAINERS.index(encoding_task.output_file.extension)
@@ -305,6 +312,7 @@ class SettingsSidebarWidgets:
             super().__init__()
 
             self.inputs_page = inputs_page
+            self.is_widgets_setting_up = False
 
             self._setup_video_stream_settings()
             self._setup_video_codec_settings_pages()
@@ -341,6 +349,7 @@ class SettingsSidebarWidgets:
             self.video_stream_combobox = Gtk.ComboBoxText()
             self.video_stream_combobox.set_vexpand(False)
             self.video_stream_combobox.set_valign(Gtk.Align.CENTER)
+            self.video_stream_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
         def _setup_video_codec_row(self):
             self._setup_video_codec_combobox()
@@ -354,30 +363,128 @@ class SettingsSidebarWidgets:
             self.video_codec_combobox = Gtk.ComboBoxText()
             self.video_codec_combobox.set_vexpand(False)
             self.video_codec_combobox.set_valign(Gtk.Align.CENTER)
+            self.video_codec_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
         def _setup_video_codec_settings_pages(self):
-            x264_page = self.X264StackPage()
-            x265_page = self.X265StackPage()
-            vp9_page = self.Vp9StackPage()
-            nvenc_page = self.NvencStackPage()
+            self.x264_page = self.X264StackPage(self.inputs_page)
+            self.x265_page = self.X265StackPage()
+            self.vp9_page = self.Vp9StackPage()
+            self.nvenc_page = self.NvencStackPage()
             codec_settings_no_avail_page = self.CodecSettingsNoAvailPage()
 
             self.video_codec_settings_stack = Gtk.Stack()
-            self.video_codec_settings_stack.add_named(x264_page, 'x264_page')
-            self.video_codec_settings_stack.add_named(x265_page, 'x265_page')
-            self.video_codec_settings_stack.add_named(vp9_page, 'vp9_page')
-            self.video_codec_settings_stack.add_named(nvenc_page, 'nvenc_page')
-            self.video_codec_settings_stack.add_named(codec_settings_no_avail_page, 'codec_settings_no_avail_page')
-            self.video_codec_settings_stack.set_visible_child_name('codec_settings_no_avail_page')
-            self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+            self.video_codec_settings_stack.add_named(self.x264_page, 'x264_page')
+            self.video_codec_settings_stack.add_named(self.x265_page, 'x265_page')
+            self.video_codec_settings_stack.add_named(self.vp9_page, 'vp9_page')
+            self.video_codec_settings_stack.add_named(self.nvenc_page, 'nvenc_page')
+            self.video_codec_settings_stack.add_named(codec_settings_no_avail_page, 'unavailable_page')
+            self.video_codec_settings_stack.set_visible_child_name('unavailable_page')
+            self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
             self.video_codec_settings_stack.set_vhomogeneous(False)
 
+        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+            self.is_widgets_setting_up = is_widgets_setting_up
+
         def apply_settings_to_widgets(self, encoding_task: encoding.Task):
-            pass
+            GLib.idle_add(self.set_widgets_setting_up, True)
+            self._apply_video_stream_setting_to_widgets(encoding_task)
+            self._apply_video_codec_settings_to_widgets(encoding_task)
+            GLib.idle_add(self.set_widgets_setting_up, False)
+
+        def _apply_video_stream_setting_to_widgets(self, encoding_task: encoding.Task):
+            GLib.idle_add(self.video_stream_combobox.remove_all)
+
+            for video_stream in encoding_task.input_file.video_streams:
+                GLib.idle_add(self.video_stream_combobox.append_text, video_stream.get_info())
+
+            video_stream_index = encoding_task.input_file.video_streams.index(encoding_task.video_stream)
+            GLib.idle_add(self.video_stream_combobox.set_active, video_stream_index)
+
+        def _apply_video_codec_settings_to_widgets(self, encoding_task: encoding.Task):
+            if encoding_task.output_file.extension == '.mp4':
+                video_codecs_list = encoding.Task.VIDEO_CODECS_MP4_UI
+            elif encoding_task.output_file.extension == '.mkv':
+                video_codecs_list = encoding.Task.VIDEO_CODECS_MKV_UI
+            elif encoding_task.output_file.extension == '.ts':
+                video_codecs_list = encoding.Task.VIDEO_CODECS_TS_UI
+            else:
+                video_codecs_list = encoding.Task.VIDEO_CODECS_WEBM_UI
+
+            self._repopulate_video_codec_combobox(video_codecs_list)
+            self._set_video_codec_combobox(encoding_task, video_codecs_list)
+
+        def _repopulate_video_codec_combobox(self, video_codecs_list: list):
+            GLib.idle_add(self.video_codec_combobox.remove_all)
+
+            for video_codec in video_codecs_list:
+                GLib.idle_add(self.video_codec_combobox.append_text, video_codec)
+
+        def _set_video_codec_combobox(self, encoding_task: encoding.Task, video_codecs_list: list):
+            if encoding_task.is_video_x264():
+                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('H264'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x264_page')
+                self.x264_page.apply_settings_to_widgets(encoding_task)
+            elif encoding_task.is_video_x265():
+                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('H265'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x265_page')
+            elif encoding_task.is_video_h264_nvenc():
+                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('NVENC H264'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+            elif encoding_task.is_video_hevc_nvenc():
+                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('NVENC H265'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+            elif encoding_task.is_video_vp9():
+                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('VP9'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
+            else:
+                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('copy'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'unavailable_page')
+
+        def apply_settings_from_widgets(self):
+            input_row = self.inputs_page.get_selected_rows()[-1]
+            encoding_task = input_row.encoding_task
+
+            self._apply_video_stream_setting_from_widgets(encoding_task)
+            self._apply_video_codec_settings_from_widgets(encoding_task)
+
+        def _apply_video_stream_setting_from_widgets(self, encoding_task: encoding.Task):
+            selected_video_stream = encoding_task.input_file.video_streams[self.video_stream_combobox.get_active()]
+            encoding_task.video_stream = selected_video_stream
+
+        def _apply_video_codec_settings_from_widgets(self, encoding_task: encoding.Task):
+            if self.video_codec_combobox.get_active_text() == 'H264':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x264_page')
+                encoding_task.video_codec = x264.X264()
+                self.x264_page.apply_settings_to_widgets(encoding_task)
+            elif self.video_codec_combobox.get_active_text() == 'H265':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x265_page')
+                encoding_task.video_codec = x265.X265()
+            elif self.video_codec_combobox.get_active_text() == 'H264 NVENC':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+                encoding_task.video_codec = h264_nvenc.H264Nvenc()
+            elif self.video_codec_combobox.get_active_text() == 'H265 NVENC':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+                encoding_task.video_codec = hevc_nvenc.HevcNvenc()
+            elif self.video_codec_combobox.get_active_text() == 'VP9':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
+                encoding_task.video_codec = vp9.VP9()
+            else:
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'unavailable_page')
+                encoding_task.video_codec = None
+
+        def on_widget_changed_clicked_set(self, *args, **kwargs):
+            if self.is_widgets_setting_up:
+                return
+
+            threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
 
         class X264StackPage(Gtk.Box):
-            def __init__(self):
+            def __init__(self, inputs_page):
                 super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+                self.inputs_page = inputs_page
+                self.is_widgets_setting_up = False
+                self._crf_scale_callback_queue = queue.Queue()
 
                 self._setup_codec_settings()
                 self._setup_codec_advanced_settings()
@@ -419,6 +526,7 @@ class SettingsSidebarWidgets:
                     self.preset_combobox.append_text(preset_setting)
 
                 self.preset_combobox.set_active(0)
+                self.preset_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_profile_row(self):
                 self._setup_profile_combobox()
@@ -437,6 +545,7 @@ class SettingsSidebarWidgets:
                     self.profile_combobox.append_text(profile_setting)
 
                 self.profile_combobox.set_active(0)
+                self.profile_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_level_row(self):
                 self._setup_level_combobox()
@@ -455,6 +564,7 @@ class SettingsSidebarWidgets:
                     self.level_combobox.append_text(level_setting)
 
                 self.level_combobox.set_active(0)
+                self.level_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_tune_row(self):
                 self._setup_tune_combobox()
@@ -473,6 +583,7 @@ class SettingsSidebarWidgets:
                     self.tune_combobox.append_text(tune_setting)
 
                 self.tune_combobox.set_active(0)
+                self.tune_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_rate_type_row(self):
                 self._setup_rate_type_radio_buttons()
@@ -483,21 +594,21 @@ class SettingsSidebarWidgets:
                 self.rate_type_row.add_suffix(self.rate_type_horizontal_box)
 
             def _setup_rate_type_radio_buttons(self):
-                crf_check_button = Gtk.CheckButton(label='CRF')
-                crf_check_button.set_active(True)
-                crf_check_button.connect('toggled', self.on_crf_check_button_toggled)
+                self.crf_check_button = Gtk.CheckButton(label='CRF')
+                self.crf_check_button.set_active(True)
+                self.crf_check_button.connect('toggled', self.on_crf_check_button_toggled)
 
-                qp_check_button = Gtk.CheckButton(label='QP')
-                qp_check_button.set_group(crf_check_button)
-                qp_check_button.connect('toggled', self.on_qp_check_button_toggled)
+                self.qp_check_button = Gtk.CheckButton(label='QP')
+                self.qp_check_button.set_group(self.crf_check_button)
+                self.qp_check_button.connect('toggled', self.on_qp_check_button_toggled)
 
                 self.bitrate_check_button = Gtk.CheckButton(label='Bitrate')
-                self.bitrate_check_button.set_group(crf_check_button)
+                self.bitrate_check_button.set_group(self.crf_check_button)
                 self.bitrate_check_button.connect('toggled', self.on_bitrate_check_button_toggled)
 
                 self.rate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-                self.rate_type_horizontal_box.append(crf_check_button)
-                self.rate_type_horizontal_box.append(qp_check_button)
+                self.rate_type_horizontal_box.append(self.crf_check_button)
+                self.rate_type_horizontal_box.append(self.qp_check_button)
                 self.rate_type_horizontal_box.append(self.bitrate_check_button)
 
             def _setup_rate_type_settings_row(self):
@@ -524,11 +635,12 @@ class SettingsSidebarWidgets:
                                                           min=x264.X264.CRF_MIN,
                                                           max=x264.X264.CRF_MAX,
                                                           step=1.0)
-                self.crf_scale.set_value(20.0)
-                self.crf_scale.set_digits(1)
+                self.crf_scale.set_value(20)
+                self.crf_scale.set_digits(0)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
+                self.crf_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_qp_page(self):
                 self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
@@ -540,6 +652,7 @@ class SettingsSidebarWidgets:
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
+                self.qp_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_bitrate_page(self):
                 self._setup_bitrate_spin_button()
@@ -566,16 +679,20 @@ class SettingsSidebarWidgets:
                 self.bitrate_spin_button.set_valign(Gtk.Align.END)
                 self.bitrate_spin_button.set_hexpand(True)
                 self.bitrate_spin_button.set_halign(Gtk.Align.CENTER)
+                self.bitrate_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_bitrate_type_widgets(self):
                 self.average_check_button = Gtk.CheckButton(label='Average')
                 self.average_check_button.set_active(True)
+                self.average_check_button.connect('toggled', self.on_bitrate_type_check_button_toggled)
 
                 self.constant_check_button = Gtk.CheckButton(label='Constant')
                 self.constant_check_button.set_group(self.average_check_button)
+                self.constant_check_button.connect('toggled', self.on_bitrate_type_check_button_toggled)
 
                 self.dual_pass_check_button = Gtk.CheckButton(label='2-Pass')
                 self.dual_pass_check_button.set_group(self.average_check_button)
+                self.dual_pass_check_button.connect('toggled', self.on_bitrate_type_check_button_toggled)
 
                 self.bitrate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
                 self.bitrate_type_horizontal_box.append(self.average_check_button)
@@ -612,14 +729,14 @@ class SettingsSidebarWidgets:
                 self._setup_no_dct_decimate_row()
                 self._setup_weight_p_row()
 
-                advanced_settings_switch = Gtk.Switch()
-                advanced_settings_switch.set_vexpand(False)
-                advanced_settings_switch.set_valign(Gtk.Align.CENTER)
-                advanced_settings_switch.connect('state-set', self._on_advanced_settings_switch_state_set)
+                self.advanced_settings_switch = Gtk.Switch()
+                self.advanced_settings_switch.set_vexpand(False)
+                self.advanced_settings_switch.set_valign(Gtk.Align.CENTER)
+                self.advanced_settings_switch.connect('state-set', self.on_advanced_settings_switch_state_set)
 
                 self.advanced_codec_settings_group = Adw.PreferencesGroup()
                 self.advanced_codec_settings_group.set_title('Advanced Settings')
-                self.advanced_codec_settings_group.set_header_suffix(advanced_settings_switch)
+                self.advanced_codec_settings_group.set_header_suffix(self.advanced_settings_switch)
                 self.advanced_codec_settings_group.add(self.vbv_maxrate_row)
                 self.advanced_codec_settings_group.add(self.vbv_bufsize_row)
                 self.advanced_codec_settings_group.add(self.keyint_row)
@@ -666,6 +783,7 @@ class SettingsSidebarWidgets:
                 self.keyint_spin_button.set_value(250)
                 self.keyint_spin_button.set_vexpand(False)
                 self.keyint_spin_button.set_valign(Gtk.Align.CENTER)
+                self.keyint_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_min_keyint_row(self):
                 self._setup_min_keyint_spin_button()
@@ -686,6 +804,7 @@ class SettingsSidebarWidgets:
                 self.min_keyint_spin_button.set_value(25)
                 self.min_keyint_spin_button.set_vexpand(False)
                 self.min_keyint_spin_button.set_valign(Gtk.Align.CENTER)
+                self.min_keyint_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_scenecut_row(self):
                 self._setup_scenecut_spin_button()
@@ -706,6 +825,7 @@ class SettingsSidebarWidgets:
                 self.scenecut_spin_button.set_value(40)
                 self.scenecut_spin_button.set_vexpand(False)
                 self.scenecut_spin_button.set_valign(Gtk.Align.CENTER)
+                self.scenecut_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_frames_row(self):
                 self._setup_b_frames_spin_button()
@@ -726,6 +846,7 @@ class SettingsSidebarWidgets:
                 self.b_frames_spin_button.set_value(3)
                 self.b_frames_spin_button.set_vexpand(False)
                 self.b_frames_spin_button.set_valign(Gtk.Align.CENTER)
+                self.b_frames_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_adapt_row(self):
                 self._setup_b_adapt_combobox()
@@ -741,10 +862,11 @@ class SettingsSidebarWidgets:
                 self.b_adapt_combobox.set_vexpand(False)
                 self.b_adapt_combobox.set_valign(Gtk.Align.CENTER)
 
-                for b_adapt_setting in x264.X264.B_ADAPT:
+                for b_adapt_setting in x264.X264.B_ADAPT_UI:
                     self.b_adapt_combobox.append_text(b_adapt_setting)
 
                 self.b_adapt_combobox.set_active(0)
+                self.b_adapt_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_pyramid_row(self):
                 self._setup_b_pyramid_combobox()
@@ -764,6 +886,7 @@ class SettingsSidebarWidgets:
                     self.b_pyramid_combobox.append_text(b_pyramid_setting)
 
                 self.b_pyramid_combobox.set_active(0)
+                self.b_pyramid_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_no_cabac_row(self):
                 self._setup_no_cabac_switch()
@@ -778,6 +901,7 @@ class SettingsSidebarWidgets:
                 self.no_cabac_switch = Gtk.Switch()
                 self.no_cabac_switch.set_vexpand(False)
                 self.no_cabac_switch.set_valign(Gtk.Align.CENTER)
+                self.no_cabac_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_ref_row(self):
                 self._setup_ref_spin_button()
@@ -798,6 +922,7 @@ class SettingsSidebarWidgets:
                 self.ref_spin_button.set_value(3)
                 self.ref_spin_button.set_vexpand(False)
                 self.ref_spin_button.set_valign(Gtk.Align.CENTER)
+                self.ref_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_deblock_row(self):
                 self._setup_no_deblock_check_button()
@@ -822,42 +947,45 @@ class SettingsSidebarWidgets:
 
             def _setup_no_deblock_check_button(self):
                 self.no_deblock_check_button = Gtk.CheckButton(label='No Deblock')
+                self.no_deblock_check_button.connect('toggled', self.on_no_deblock_check_button_toggled)
 
             def _setup_deblock_alpha_spin_button(self):
                 deblock_alpha_label = Gtk.Label(label='Alpha')
 
-                deblock_alpha_spin_button = Gtk.SpinButton()
-                deblock_alpha_spin_button.set_range(x264.X264.DEBLOCK_MIN, x264.X264.DEBLOCK_MAX)
-                deblock_alpha_spin_button.set_digits(0)
-                deblock_alpha_spin_button.set_increments(1, 5)
-                deblock_alpha_spin_button.set_numeric(True)
-                deblock_alpha_spin_button.set_snap_to_ticks(True)
-                deblock_alpha_spin_button.set_value(0)
-                deblock_alpha_spin_button.set_vexpand(False)
-                deblock_alpha_spin_button.set_valign(Gtk.Align.CENTER)
+                self.deblock_alpha_spin_button = Gtk.SpinButton()
+                self.deblock_alpha_spin_button.set_range(x264.X264.DEBLOCK_MIN, x264.X264.DEBLOCK_MAX)
+                self.deblock_alpha_spin_button.set_digits(0)
+                self.deblock_alpha_spin_button.set_increments(1, 5)
+                self.deblock_alpha_spin_button.set_numeric(True)
+                self.deblock_alpha_spin_button.set_snap_to_ticks(True)
+                self.deblock_alpha_spin_button.set_value(0)
+                self.deblock_alpha_spin_button.set_vexpand(False)
+                self.deblock_alpha_spin_button.set_valign(Gtk.Align.CENTER)
+                self.deblock_alpha_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
                 self.deblock_alpha_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
                 self.deblock_alpha_horizontal_box.append(deblock_alpha_label)
-                self.deblock_alpha_horizontal_box.append(deblock_alpha_spin_button)
+                self.deblock_alpha_horizontal_box.append(self.deblock_alpha_spin_button)
                 self.deblock_alpha_horizontal_box.set_hexpand(False)
                 self.deblock_alpha_horizontal_box.set_halign(Gtk.Align.END)
 
             def _setup_deblock_beta_spin_button(self):
                 deblock_beta_label = Gtk.Label(label='Beta')
 
-                deblock_beta_spin_button = Gtk.SpinButton()
-                deblock_beta_spin_button.set_range(x264.X264.DEBLOCK_MIN, x264.X264.DEBLOCK_MAX)
-                deblock_beta_spin_button.set_digits(0)
-                deblock_beta_spin_button.set_increments(1, 5)
-                deblock_beta_spin_button.set_numeric(True)
-                deblock_beta_spin_button.set_snap_to_ticks(True)
-                deblock_beta_spin_button.set_value(0)
-                deblock_beta_spin_button.set_vexpand(False)
-                deblock_beta_spin_button.set_valign(Gtk.Align.CENTER)
+                self.deblock_beta_spin_button = Gtk.SpinButton()
+                self.deblock_beta_spin_button.set_range(x264.X264.DEBLOCK_MIN, x264.X264.DEBLOCK_MAX)
+                self.deblock_beta_spin_button.set_digits(0)
+                self.deblock_beta_spin_button.set_increments(1, 5)
+                self.deblock_beta_spin_button.set_numeric(True)
+                self.deblock_beta_spin_button.set_snap_to_ticks(True)
+                self.deblock_beta_spin_button.set_value(0)
+                self.deblock_beta_spin_button.set_vexpand(False)
+                self.deblock_beta_spin_button.set_valign(Gtk.Align.CENTER)
+                self.deblock_beta_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
                 self.deblock_beta_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
                 self.deblock_beta_horizontal_box.append(deblock_beta_label)
-                self.deblock_beta_horizontal_box.append(deblock_beta_spin_button)
+                self.deblock_beta_horizontal_box.append(self.deblock_beta_spin_button)
                 self.deblock_beta_horizontal_box.set_hexpand(False)
                 self.deblock_beta_horizontal_box.set_halign(Gtk.Align.END)
 
@@ -881,6 +1009,7 @@ class SettingsSidebarWidgets:
                 self.vbv_maxrate_spin_button.set_size_request(125, -1)
                 self.vbv_maxrate_spin_button.set_vexpand(False)
                 self.vbv_maxrate_spin_button.set_valign(Gtk.Align.CENTER)
+                self.vbv_maxrate_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_vbv_bufsize_row(self):
                 self._setup_vbv_bufsize_spin_button()
@@ -902,6 +1031,7 @@ class SettingsSidebarWidgets:
                 self.vbv_bufsize_spin_button.set_size_request(125, -1)
                 self.vbv_bufsize_spin_button.set_vexpand(False)
                 self.vbv_bufsize_spin_button.set_valign(Gtk.Align.CENTER)
+                self.vbv_bufsize_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_aq_mode_row(self):
                 self._setup_aq_mode_combobox()
@@ -921,6 +1051,7 @@ class SettingsSidebarWidgets:
                     self.aq_mode_combobox.append_text(aq_mode_setting)
 
                 self.aq_mode_combobox.set_active(0)
+                self.aq_mode_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_aq_strength_row(self):
                 self._setup_aq_strength_spin_button()
@@ -941,6 +1072,7 @@ class SettingsSidebarWidgets:
                 self.aq_strength_spin_button.set_value(1.0)
                 self.aq_strength_spin_button.set_vexpand(False)
                 self.aq_strength_spin_button.set_valign(Gtk.Align.CENTER)
+                self.aq_strength_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_partitions_row(self):
                 self._setup_partitions_enabled_radio_buttons()
@@ -959,45 +1091,51 @@ class SettingsSidebarWidgets:
                 self.partitions_row.set_sensitive(False)
 
             def _setup_partitions_enabled_radio_buttons(self):
-                auto_radio_button = Gtk.CheckButton(label='Auto')
-                auto_radio_button.set_active(True)
+                self.partitions_auto_radio_button = Gtk.CheckButton(label='Auto')
+                self.partitions_auto_radio_button.set_active(True)
 
-                custom_radio_button = Gtk.CheckButton(label='Custom')
-                custom_radio_button.set_group(auto_radio_button)
+                self.partitions_custom_radio_button = Gtk.CheckButton(label='Custom')
+                self.partitions_custom_radio_button.set_group(self.partitions_auto_radio_button)
+                self.partitions_custom_radio_button.connect('toggled', self.on_partitions_custom_check_button_toggled)
 
                 self.partitions_enabled_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-                self.partitions_enabled_horizontal_box.append(auto_radio_button)
-                self.partitions_enabled_horizontal_box.append(custom_radio_button)
+                self.partitions_enabled_horizontal_box.append(self.partitions_auto_radio_button)
+                self.partitions_enabled_horizontal_box.append(self.partitions_custom_radio_button)
 
             def _setup_partitions_check_buttons(self):
-                i4x4_check_button = Gtk.CheckButton(label='i4x4')
-                i4x4_check_button.set_hexpand(False)
-                i4x4_check_button.set_halign(Gtk.Align.START)
-                i8x8_check_button = Gtk.CheckButton(label='i8x8')
-                i8x8_check_button.set_hexpand(False)
-                i8x8_check_button.set_halign(Gtk.Align.START)
-                p4x4_check_button = Gtk.CheckButton(label='p4x4')
-                p4x4_check_button.set_hexpand(False)
-                p4x4_check_button.set_halign(Gtk.Align.START)
-                p8x8_check_button = Gtk.CheckButton(label='p8x8')
-                p8x8_check_button.set_hexpand(False)
-                p8x8_check_button.set_halign(Gtk.Align.START)
-                b8x8_check_button = Gtk.CheckButton(label='b8x8')
-                b8x8_check_button.set_hexpand(False)
-                b8x8_check_button.set_halign(Gtk.Align.START)
+                self.i4x4_check_button = Gtk.CheckButton(label='i4x4')
+                self.i4x4_check_button.set_hexpand(False)
+                self.i4x4_check_button.set_halign(Gtk.Align.START)
+                self.i4x4_check_button.connect('toggled', self.on_widget_changed_clicked_set)
+                self.i8x8_check_button = Gtk.CheckButton(label='i8x8')
+                self.i8x8_check_button.set_hexpand(False)
+                self.i8x8_check_button.set_halign(Gtk.Align.START)
+                self.i8x8_check_button.connect('toggled', self.on_widget_changed_clicked_set)
+                self.p4x4_check_button = Gtk.CheckButton(label='p4x4')
+                self.p4x4_check_button.set_hexpand(False)
+                self.p4x4_check_button.set_halign(Gtk.Align.START)
+                self.p4x4_check_button.connect('toggled', self.on_widget_changed_clicked_set)
+                self.p8x8_check_button = Gtk.CheckButton(label='p8x8')
+                self.p8x8_check_button.set_hexpand(False)
+                self.p8x8_check_button.set_halign(Gtk.Align.START)
+                self.p8x8_check_button.connect('toggled', self.on_widget_changed_clicked_set)
+                self.b8x8_check_button = Gtk.CheckButton(label='b8x8')
+                self.b8x8_check_button.set_hexpand(False)
+                self.b8x8_check_button.set_halign(Gtk.Align.START)
+                self.b8x8_check_button.connect('toggled', self.on_widget_changed_clicked_set)
 
                 i_partitions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-                i_partitions_box.append(i4x4_check_button)
-                i_partitions_box.append(i8x8_check_button)
+                i_partitions_box.append(self.i4x4_check_button)
+                i_partitions_box.append(self.i8x8_check_button)
 
                 p_partitions_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-                p_partitions_box.append(p4x4_check_button)
-                p_partitions_box.append(p8x8_check_button)
+                p_partitions_box.append(self.p4x4_check_button)
+                p_partitions_box.append(self.p8x8_check_button)
 
                 self.partitions_options_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
                 self.partitions_options_vertical_box.append(i_partitions_box)
                 self.partitions_options_vertical_box.append(p_partitions_box)
-                self.partitions_options_vertical_box.append(b8x8_check_button)
+                self.partitions_options_vertical_box.append(self.b8x8_check_button)
 
             def _setup_direct_row(self):
                 self._setup_direct_combobox()
@@ -1017,6 +1155,7 @@ class SettingsSidebarWidgets:
                     self.direct_combobox.append_text(direct_setting)
 
                 self.direct_combobox.set_active(0)
+                self.direct_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_weight_b_row(self):
                 self._setup_weight_b_switch()
@@ -1031,6 +1170,7 @@ class SettingsSidebarWidgets:
                 self.weight_b_switch = Gtk.Switch()
                 self.weight_b_switch.set_vexpand(False)
                 self.weight_b_switch.set_valign(Gtk.Align.CENTER)
+                self.weight_b_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_me_row(self):
                 self._setup_me_combobox()
@@ -1050,6 +1190,7 @@ class SettingsSidebarWidgets:
                     self.me_combobox.append_text(me_setting)
 
                 self.me_combobox.set_active(0)
+                self.me_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_me_range_row(self):
                 self._setup_me_range_spin_button()
@@ -1070,6 +1211,7 @@ class SettingsSidebarWidgets:
                 self.me_range_spin_button.set_value(16)
                 self.me_range_spin_button.set_vexpand(False)
                 self.me_range_spin_button.set_valign(Gtk.Align.CENTER)
+                self.me_range_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_subme_row(self):
                 self._setup_subme_combobox()
@@ -1089,6 +1231,7 @@ class SettingsSidebarWidgets:
                     self.subme_combobox.append_text(subme_setting)
 
                 self.subme_combobox.set_active(0)
+                self.subme_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_psy_rd_row(self):
                 self._setup_psyrd_spin_button()
@@ -1116,6 +1259,7 @@ class SettingsSidebarWidgets:
                 self.psyrd_spin_button.set_value(1.0)
                 self.psyrd_spin_button.set_vexpand(False)
                 self.psyrd_spin_button.set_valign(Gtk.Align.CENTER)
+                self.psyrd_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_psyrd_trellis_spin_button(self):
                 self.psyrd_trellis_spin_button = Gtk.SpinButton()
@@ -1127,6 +1271,7 @@ class SettingsSidebarWidgets:
                 self.psyrd_trellis_spin_button.set_value(0.0)
                 self.psyrd_trellis_spin_button.set_vexpand(False)
                 self.psyrd_trellis_spin_button.set_valign(Gtk.Align.CENTER)
+                self.psyrd_trellis_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_mixed_refs_row(self):
                 self._setup_mixed_refs_switch()
@@ -1141,6 +1286,7 @@ class SettingsSidebarWidgets:
                 self.mixed_refs_switch = Gtk.Switch()
                 self.mixed_refs_switch.set_vexpand(False)
                 self.mixed_refs_switch.set_valign(Gtk.Align.CENTER)
+                self.mixed_refs_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_dct8x8_row(self):
                 self._setup_dct8x8_switch()
@@ -1155,6 +1301,7 @@ class SettingsSidebarWidgets:
                 self.dct8x8_switch = Gtk.Switch()
                 self.dct8x8_switch.set_vexpand(False)
                 self.dct8x8_switch.set_valign(Gtk.Align.CENTER)
+                self.dct8x8_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_trellis_row(self):
                 self._setup_trellis_combobox()
@@ -1174,6 +1321,7 @@ class SettingsSidebarWidgets:
                     self.trellis_combobox.append_text(trellis_setting)
 
                 self.trellis_combobox.set_active(0)
+                self.trellis_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_no_fast_pskip_row(self):
                 self._setup_no_fast_pskip_switch()
@@ -1188,6 +1336,7 @@ class SettingsSidebarWidgets:
                 self.no_fast_pskip_switch = Gtk.Switch()
                 self.no_fast_pskip_switch.set_vexpand(False)
                 self.no_fast_pskip_switch.set_valign(Gtk.Align.CENTER)
+                self.no_fast_pskip_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_no_dct_decimate_row(self):
                 self._setup_no_dct_decimate_switch()
@@ -1202,6 +1351,7 @@ class SettingsSidebarWidgets:
                 self.no_dct_decimate_switch = Gtk.Switch()
                 self.no_dct_decimate_switch.set_vexpand(False)
                 self.no_dct_decimate_switch.set_valign(Gtk.Align.CENTER)
+                self.no_dct_decimate_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_weight_p_row(self):
                 self._setup_weight_p_switch()
@@ -1216,6 +1366,333 @@ class SettingsSidebarWidgets:
                 self.weight_p_switch = Gtk.Switch()
                 self.weight_p_switch.set_vexpand(False)
                 self.weight_p_switch.set_valign(Gtk.Align.CENTER)
+                self.weight_p_switch.connect('state-set', self.on_widget_changed_clicked_set)
+
+            def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+                self.is_widgets_setting_up = is_widgets_setting_up
+
+            def set_vbv_state(self, is_vbv_state_enabled: bool):
+                if self.advanced_settings_switch.get_active():
+                    is_sensitive = is_vbv_state_enabled and not self.constant_check_button.get_active()
+                    self.vbv_maxrate_row.set_sensitive(is_sensitive)
+                    self.vbv_bufsize_row.set_sensitive(is_sensitive)
+                else:
+                    self.vbv_maxrate_row.set_sensitive(False)
+                    self.vbv_bufsize_row.set_sensitive(False)
+
+            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.set_widgets_setting_up, True)
+                self._apply_preset_setting_to_widgets(encoding_task)
+                self._apply_profile_setting_to_widgets(encoding_task)
+                self._apply_level_setting_to_widgets(encoding_task)
+                self._apply_tune_setting_to_widgets(encoding_task)
+                self._apply_rate_type_settings_to_widgets(encoding_task)
+                self._apply_crf_setting_to_widgets(encoding_task)
+                self._apply_qp_setting_to_widgets(encoding_task)
+                self._apply_bitrate_setting_to_widgets(encoding_task)
+                self._apply_bitrate_type_settings_to_widgets(encoding_task)
+                self._apply_advanced_settings_to_widgets(encoding_task)
+                GLib.idle_add(self.set_widgets_setting_up, False)
+
+            def _apply_preset_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.preset_combobox.set_active, encoding_task.video_codec.preset)
+
+            def _apply_profile_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.profile_combobox.set_active, encoding_task.video_codec.profile)
+
+            def _apply_level_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.level_combobox.set_active, encoding_task.video_codec.level)
+
+            def _apply_tune_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.tune_combobox.set_active, encoding_task.video_codec.tune)
+
+            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.is_crf_enabled:
+                    GLib.idle_add(self.crf_check_button.set_active, True)
+                elif encoding_task.video_codec.is_qp_enabled:
+                    GLib.idle_add(self.qp_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.bitrate_check_button.set_active, True)
+
+            def _apply_crf_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.crf_scale.set_value, encoding_task.video_codec.crf)
+
+            def _apply_qp_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.qp_scale.set_value, encoding_task.video_codec.qp)
+
+            def _apply_bitrate_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+
+            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.constant_bitrate:
+                    GLib.idle_add(self.constant_check_button.set_active, True)
+                elif encoding_task.video_codec.encode_pass:
+                    GLib.idle_add(self.dual_pass_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.average_check_button.set_active, True)
+
+            def _apply_advanced_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.advanced_settings_switch.set_active, encoding_task.video_codec.is_advanced_enabled)
+                self._apply_keyint_setting_to_widgets(encoding_task)
+                self._apply_min_keyint_setting_to_widgets(encoding_task)
+                self._apply_scenecut_setting_to_widgets(encoding_task)
+                self._apply_b_frames_setting_to_widgets(encoding_task)
+                self._apply_b_adapt_setting_to_widgets(encoding_task)
+                self._apply_b_pyramid_setting_to_widgets(encoding_task)
+                self._apply_no_cabac_setting_to_widgets(encoding_task)
+                self._apply_ref_setting_to_widgets(encoding_task)
+                self._apply_deblock_settings_to_widgets(encoding_task)
+                self._apply_vbv_maxrate_setting_to_widgets(encoding_task)
+                self._apply_vbv_bufsize_setting_to_widgets(encoding_task)
+                self._apply_aq_mode_setting_to_widgets(encoding_task)
+                self._apply_aq_strength_setting_to_widgets(encoding_task)
+                self._apply_partitions_setting_to_widgets(encoding_task)
+                self._apply_direct_setting_to_widgets(encoding_task)
+                self._apply_weight_b_setting_to_widgets(encoding_task)
+                self._apply_me_setting_to_widgets(encoding_task)
+                self._apply_me_range_setting_to_widgets(encoding_task)
+                self._apply_subme_setting_to_widgets(encoding_task)
+                self._apply_psy_rd_setting_to_widgets(encoding_task)
+                self._apply_mixed_refs_to_widgets(encoding_task)
+                self._apply_dct8x8_setting_to_widgets(encoding_task)
+                self._apply_trellis_setting_to_widgets(encoding_task)
+                self._apply_no_fast_p_skip_setting_to_widgets(encoding_task)
+                self._apply_no_dct_decimate_setting_to_widgets(encoding_task)
+                self._apply_weight_p_setting_to_widgets(encoding_task)
+
+            def _apply_keyint_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.keyint_spin_button.set_value, encoding_task.video_codec.keyint)
+
+            def _apply_min_keyint_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.min_keyint_spin_button.set_value, encoding_task.video_codec.min_keyint)
+
+            def _apply_scenecut_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.scenecut_spin_button.set_value, encoding_task.video_codec.scenecut)
+
+            def _apply_b_frames_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.b_frames_spin_button.set_value, encoding_task.video_codec.bframes)
+
+            def _apply_b_adapt_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.b_adapt_combobox.set_active, encoding_task.video_codec.b_adapt)
+
+            def _apply_b_pyramid_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.b_pyramid_combobox.set_active, encoding_task.video_codec.b_pyramid)
+
+            def _apply_no_cabac_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.no_cabac_switch.set_active, encoding_task.video_codec.no_cabac)
+
+            def _apply_ref_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.ref_spin_button.set_value, encoding_task.video_codec.ref)
+
+            def _apply_deblock_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.no_deblock_check_button.set_active, encoding_task.video_codec.no_deblock)
+
+                deblock_alpha, deblock_beta = encoding_task.video_codec.deblock
+                GLib.idle_add(self.deblock_alpha_spin_button.set_value, deblock_alpha)
+                GLib.idle_add(self.deblock_beta_spin_button.set_value, deblock_beta)
+
+            def _apply_vbv_maxrate_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.vbv_maxrate_spin_button.set_value, encoding_task.video_codec.vbv_maxrate)
+
+            def _apply_vbv_bufsize_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.vbv_bufsize_spin_button.set_value, encoding_task.video_codec.vbv_bufsize)
+
+            def _apply_aq_mode_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.aq_mode_combobox.set_active, encoding_task.video_codec.aq_mode)
+
+            def _apply_aq_strength_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.aq_strength_spin_button.set_value, encoding_task.video_codec.aq_strength)
+
+            def _apply_partitions_setting_to_widgets(self, encoding_task: encoding.Task):
+                partitions_tuple = encoding_task.video_codec.partitions
+
+                if partitions_tuple == 'all':
+                    GLib.idle_add(self.partitions_custom_radio_button.set_active, True)
+                    GLib.idle_add(self.i4x4_check_button.set_active, True)
+                    GLib.idle_add(self.i8x8_check_button.set_active, True)
+                    GLib.idle_add(self.p4x4_check_button.set_active, True)
+                    GLib.idle_add(self.p8x8_check_button.set_active, True)
+                    GLib.idle_add(self.b8x8_check_button.set_active, True)
+                elif partitions_tuple == 'none':
+                    GLib.idle_add(self.partitions_custom_radio_button.set_active, True)
+                    GLib.idle_add(self.i4x4_check_button.set_active, False)
+                    GLib.idle_add(self.i8x8_check_button.set_active, False)
+                    GLib.idle_add(self.p4x4_check_button.set_active, False)
+                    GLib.idle_add(self.p8x8_check_button.set_active, False)
+                    GLib.idle_add(self.b8x8_check_button.set_active, False)
+                elif partitions_tuple:
+                    GLib.idle_add(self.partitions_custom_radio_button.set_active, True)
+                    GLib.idle_add(self.i4x4_check_button.set_active, 'i4x4' in partitions_tuple)
+                    GLib.idle_add(self.i8x8_check_button.set_active, 'i8x8' in partitions_tuple)
+                    GLib.idle_add(self.p4x4_check_button.set_active, 'p4x4' in partitions_tuple)
+                    GLib.idle_add(self.p8x8_check_button.set_active, 'p8x8' in partitions_tuple)
+                    GLib.idle_add(self.b8x8_check_button.set_active, 'b8x8' in partitions_tuple)
+                else:
+                    GLib.idle_add(self.partitions_auto_radio_button.set_active, True)
+                    GLib.idle_add(self.i4x4_check_button.set_active, False)
+                    GLib.idle_add(self.i8x8_check_button.set_active, False)
+                    GLib.idle_add(self.p4x4_check_button.set_active, False)
+                    GLib.idle_add(self.p8x8_check_button.set_active, False)
+                    GLib.idle_add(self.b8x8_check_button.set_active, False)
+
+            def _apply_direct_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.direct_combobox.set_active, encoding_task.video_codec.direct)
+
+            def _apply_weight_b_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.weight_b_switch.set_active, encoding_task.video_codec.weightb)
+
+            def _apply_me_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.me_combobox.set_active, encoding_task.video_codec.me)
+
+            def _apply_me_range_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.me_range_spin_button.set_value, encoding_task.video_codec.me_range)
+
+            def _apply_subme_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.subme_combobox.set_active, encoding_task.video_codec.subme)
+
+            def _apply_psy_rd_setting_to_widgets(self, encoding_task: encoding.Task):
+                psyrd, psyrd_trellis = encoding_task.video_codec.psy_rd
+                GLib.idle_add(self.psyrd_spin_button.set_value, psyrd)
+                GLib.idle_add(self.psyrd_trellis_spin_button.set_value, psyrd_trellis)
+
+            def _apply_mixed_refs_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.mixed_refs_switch.set_active, encoding_task.video_codec.mixed_refs)
+
+            def _apply_dct8x8_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.dct8x8_switch.set_active, encoding_task.video_codec.dct8x8)
+
+            def _apply_trellis_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.trellis_combobox.set_active, encoding_task.video_codec.trellis)
+
+            def _apply_no_fast_p_skip_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.no_fast_pskip_switch.set_active, encoding_task.video_codec.no_fast_pskip)
+
+            def _apply_no_dct_decimate_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.no_dct_decimate_switch.set_active, encoding_task.video_codec.no_dct_decimate)
+
+            def _apply_weight_p_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.weight_p_switch.set_active, encoding_task.video_codec.weightp)
+
+            def apply_settings_from_widgets(self):
+                x264_settings = x264.X264()
+                x264_settings.preset = self.preset_combobox.get_active()
+                x264_settings.profile = self.profile_combobox.get_active()
+                x264_settings.level = self.level_combobox.get_active()
+                x264_settings.tune = self.tune_combobox.get_active()
+                x264_settings.is_advanced_enabled = self.advanced_settings_switch.get_active()
+
+                self._apply_rate_type_settings_from_widgets(x264_settings)
+
+                if self.advanced_settings_switch.get_active():
+                    x264_settings.keyint = self.keyint_spin_button.get_value_as_int()
+                    x264_settings.min_keyint = self.min_keyint_spin_button.get_value_as_int()
+                    x264_settings.scenecut = self.scenecut_spin_button.get_value_as_int()
+                    x264_settings.bframes = self.b_frames_spin_button.get_value_as_int()
+                    x264_settings.b_adapt = self.b_adapt_combobox.get_active()
+                    x264_settings.b_pyramid = self.b_pyramid_combobox.get_active()
+                    x264_settings.no_cabac = self.no_cabac_switch.get_active()
+                    x264_settings.ref = self.ref_spin_button.get_value_as_int()
+                    x264_settings.aq_mode = self.aq_mode_combobox.get_active()
+                    x264_settings.aq_strength = self.aq_strength_spin_button.get_value()
+                    x264_settings.direct = self.direct_combobox.get_active()
+                    x264_settings.weightb = self.weight_b_switch.get_active()
+                    x264_settings.me = self.me_combobox.get_active()
+                    x264_settings.me_range = self.me_range_spin_button.get_value_as_int()
+                    x264_settings.subme = self.subme_combobox.get_active()
+                    x264_settings.psy_rd = (self.psyrd_spin_button.get_value(),
+                                            self.psyrd_trellis_spin_button.get_value())
+                    x264_settings.mixed_refs = self.mixed_refs_switch.get_active()
+                    x264_settings.dct8x8 = self.dct8x8_switch.get_active()
+                    x264_settings.trellis = self.trellis_combobox.get_active()
+                    x264_settings.no_fast_pskip = self.no_fast_pskip_switch.get_active()
+                    x264_settings.no_dct_decimate = self.no_dct_decimate_switch.get_active()
+                    x264_settings.weightp = self.weight_p_switch.get_active()
+
+                    self._apply_vbv_settings_from_widgets(x264_settings)
+                    self._apply_deblock_settings_from_widgets(x264_settings)
+                    self._apply_partitions_setting_from_widgets(x264_settings)
+
+                for input_row in self.inputs_page.get_selected_rows():
+                    encoding_task = input_row.encoding_task
+                    encoding_task.video_codec = copy.deepcopy(x264_settings)
+
+                    if encoding_task.is_video_2_pass():
+                        stats_file_path = os.path.join(encoding_task.temp_output_file.dir,
+                                                       encoding_task.temp_output_file.name + '.log')
+                        encoding_task.video_codec.stats = stats_file_path
+
+            def _apply_rate_type_settings_from_widgets(self, x264_settings: x264.X264):
+                if self.crf_check_button.get_active():
+                    x264_settings.crf = self.crf_scale.get_value()
+                elif self.qp_check_button.get_active():
+                    x264_settings.qp = self.qp_scale.get_value()
+                else:
+                    x264_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
+
+                    if self.constant_check_button.get_active():
+                        x264_settings.constant_bitrate = True
+                    elif self.dual_pass_check_button.get_active():
+                        x264_settings.encode_pass = 1
+
+            def _apply_deblock_settings_from_widgets(self, x264_settings: x264.X264):
+                x264_settings.no_deblock = self.no_deblock_check_button.get_active()
+
+                if self.no_deblock_check_button.get_active():
+                    x264_settings.deblock = None
+                else:
+                    x264_settings.deblock = (self.deblock_alpha_spin_button.get_value_as_int(),
+                                             self.deblock_beta_spin_button.get_value_as_int())
+
+            def _apply_vbv_settings_from_widgets(self, x264_settings: x264.X264):
+                x264_settings.vbv_maxrate = self.vbv_maxrate_spin_button.get_value_as_int()
+                x264_settings.vbv_bufsize = self.vbv_bufsize_spin_button.get_value_as_int()
+
+            def _apply_partitions_setting_from_widgets(self, x264_settings: x264.X264):
+                if self.partitions_auto_radio_button.get_active():
+                    x264_settings.partitions = None
+
+                    return
+
+                is_all_partitions = self.i4x4_check_button.get_active() \
+                                    and self.i8x8_check_button.get_active() \
+                                    and self.p4x4_check_button.get_active() \
+                                    and self.p8x8_check_button.get_active() \
+                                    and self.b8x8_check_button.get_active()
+                is_any_partitions = self.i4x4_check_button.get_active() \
+                                    or self.i8x8_check_button.get_active() \
+                                    or self.p4x4_check_button.get_active() \
+                                    or self.p8x8_check_button.get_active() \
+                                    or self.b8x8_check_button.get_active()
+
+                if is_all_partitions:
+                    x264_settings.partitions = 'all'
+                elif is_any_partitions:
+                    partitions_list = []
+
+                    if self.i4x4_check_button.get_active():
+                        partitions_list.append('i4x4')
+
+                    if self.i8x8_check_button.get_active():
+                        partitions_list.append('i8x8')
+
+                    if self.p4x4_check_button.get_active():
+                        partitions_list.append('p4x4')
+
+                    if self.p8x8_check_button.get_active():
+                        partitions_list.append('p8x8')
+
+                    if self.b8x8_check_button.get_active():
+                        partitions_list.append('b8x8')
+
+                    x264_settings.partitions = tuple(partitions_list)
+                else:
+                    x264_settings.partitions = 'none'
+
+            def on_widget_changed_clicked_set(self, *args, **kwargs):
+                if self.is_widgets_setting_up:
+                    return
+
+                threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
 
             def on_crf_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -1223,22 +1700,36 @@ class SettingsSidebarWidgets:
                     self.rate_type_settings_row.set_title('CRF')
                     self.rate_type_settings_row.set_subtitle('Constant Ratefactor')
 
+                    self.on_widget_changed_clicked_set(check_button)
+
             def on_qp_check_button_toggled(self, check_button):
                 if check_button.get_active():
                     self.rate_type_stack.set_visible_child_name('qp_page')
                     self.rate_type_settings_row.set_title('QP')
                     self.rate_type_settings_row.set_subtitle('Constant Quantizer: P-frames')
 
+                    self.on_widget_changed_clicked_set(check_button)
+
             def on_bitrate_check_button_toggled(self, check_button):
+                self.set_vbv_state(check_button.get_active())
+
                 if check_button.get_active():
                     self.rate_type_stack.set_visible_child_name('bitrate_page')
                     self.rate_type_settings_row.set_title('Bitrate')
                     self.rate_type_settings_row.set_subtitle('Target video bitrate in kbps')
 
-            def _on_advanced_settings_switch_state_set(self, switch, user_data):
+                    self.on_widget_changed_clicked_set(check_button)
+
+            def on_scale_adjust_bounds(self, scale, value):
+                if self.is_widgets_setting_up:
+                    return
+
+                if int(value) != int(scale.get_value()):
+                    self.on_widget_changed_clicked_set(scale)
+
+            def on_advanced_settings_switch_state_set(self, switch, user_data):
                 is_state_enabled = switch.get_active()
-                self._set_vbv_maxrate_row_enabled(is_state_enabled)
-                self._set_vbv_bufsize_row_enabled(is_state_enabled)
+                self._set_vbv_rows_enabled(is_state_enabled)
                 self.keyint_row.set_sensitive(is_state_enabled)
                 self.min_keyint_row.set_sensitive(is_state_enabled)
                 self.scenecut_row.set_sensitive(is_state_enabled)
@@ -1264,21 +1755,34 @@ class SettingsSidebarWidgets:
                 self.trellis_row.set_sensitive(is_state_enabled)
                 self.no_dct_decimate_row.set_sensitive(is_state_enabled)
 
-            def _set_vbv_maxrate_row_enabled(self, is_enabled: bool):
-                if self.bitrate_check_button.get_active() \
-                        and (self.average_check_button.get_active() or self.dual_pass_check_button.get_active()):
-                    self.vbv_maxrate_row.set_sensitive(is_enabled)
-                self.vbv_maxrate_row.set_sensitive(False)
+                self.on_widget_changed_clicked_set(switch)
 
-            def _set_vbv_bufsize_row_enabled(self, is_enabled: bool):
-                if self.bitrate_check_button.get_active() \
-                        and (self.average_check_button.get_active() or self.dual_pass_check_button.get_active()):
-                    self.vbv_bufsize_row.set_sensitive(is_enabled)
-                self.vbv_bufsize_row.set_sensitive(False)
+            def _set_vbv_rows_enabled(self, is_enabled: bool):
+                self.set_vbv_state(is_enabled and self.bitrate_check_button.get_active())
 
             def _set_deblock_row_enabled(self, is_enabled: bool):
                 self.deblock_row.set_sensitive(is_enabled)
                 self.deblock_values_vertical_box.set_sensitive(not self.no_deblock_check_button.get_active())
+
+            def on_partitions_custom_check_button_toggled(self, check_button):
+                self.i4x4_check_button.set_sensitive(check_button.get_active())
+                self.i8x8_check_button.set_sensitive(check_button.get_active())
+                self.p4x4_check_button.set_sensitive(check_button.get_active())
+                self.p8x8_check_button.set_sensitive(check_button.get_active())
+                self.b8x8_check_button.set_sensitive(check_button.get_active())
+
+                self.on_widget_changed_clicked_set(check_button)
+
+            def on_no_deblock_check_button_toggled(self, check_button):
+                self.deblock_values_vertical_box.set_sensitive(not check_button.get_active())
+
+                self.on_widget_changed_clicked_set(check_button)
+
+            def on_bitrate_type_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.set_vbv_state(True)
+
+                    self.on_widget_changed_clicked_set(check_button)
 
         class X265StackPage(Gtk.Box):
             def __init__(self):

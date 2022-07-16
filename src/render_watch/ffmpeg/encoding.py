@@ -831,7 +831,7 @@ class Task:
             Boolean that represents whether the task's video codec has the encode pass setting set.
         """
         if self.video_codec:
-            return self.video_codec.encode_pass is not None
+            return self.video_codec.encode_pass == 1 or self.video_codec.encode_pass == 2
         return False
 
     def is_nvenc_codec_settings_valid(self) -> bool:
@@ -887,6 +887,11 @@ class Task:
             logging.exception('---FAILED TO CREATE TASK COPY---')
         finally:
             return task_copy
+
+    def get_info(self) -> list:
+        task_info = ''.join([self.video_codec.get_info(), '\n'])
+
+        return FFmpegArgs.get_args(self, cli_args=True)
 
 
 class Parallel:
@@ -1188,6 +1193,7 @@ class FFmpegArgs:
         FFmpegArgs._add_trim_duration_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_vsync_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_output_file_args(encoding_task, ffmpeg_args, cli_args)
+
         return FFmpegArgs._add_2_pass_args(encoding_task, ffmpeg_args)
 
     @staticmethod
@@ -1310,7 +1316,7 @@ class FFmpegArgs:
     @staticmethod
     def _add_2_pass_args(encoding_task: Task, ffmpeg_args: list):
         # Uses the given encoding task to add the necessary settings for a 2-pass encode to the list of ffmpeg args.
-        if encoding_task.is_video_2_pass():
+        if encoding_task.is_video_2_pass() and encoding_task.video_codec.encode_pass == 1:
             encoding_task_copy = encoding_task.get_copy()
             encoding_task_copy.video_codec.encode_pass = 2
 
