@@ -21,8 +21,10 @@ import os.path
 import queue
 import threading
 
+from collections import OrderedDict
+
 from render_watch.ui import Gtk, GLib, Adw
-from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9, h264_nvenc, hevc_nvenc
+from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9, h264_nvenc, hevc_nvenc, aac, opus
 from render_watch import app_preferences
 
 
@@ -112,6 +114,7 @@ class SettingsSidebarWidgets:
         print('UPDATE')
         self.general_settings_page.apply_settings_to_widgets(encoding_task)
         self.video_codec_settings_page.apply_settings_to_widgets(encoding_task)
+        self.audio_codec_settings_page.apply_settings_to_widgets(encoding_task)
 
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
@@ -138,6 +141,9 @@ class SettingsSidebarWidgets:
         def remove_children(self):
             for child in self.children:
                 super().remove(child)
+
+            self.children = []
+            self.number_of_children = 0
 
         def update_children(self):
             for index, child in enumerate(self.children):
@@ -3783,6 +3789,7 @@ class SettingsSidebarWidgets:
             super().__init__()
 
             self.inputs_page = inputs_page
+            self.is_widgets_setting_up = False
 
             self._setup_audio_stream_settings()
 
@@ -3809,24 +3816,59 @@ class SettingsSidebarWidgets:
             self.audio_stream_settings_group.set_title('Audio Streams')
             self.audio_stream_settings_group.set_header_suffix(add_audio_stream_button)
 
+        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+            self.is_widgets_setting_up = is_widgets_setting_up
+
+        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            GLib.idle_add(self.set_widgets_setting_up, True)
+            GLib.idle_add(self.audio_stream_settings_group.remove_children)
+            self._apply_audio_streams_to_widgets(encoding_task)
+            GLib.idle_add(self.set_widgets_setting_up, False)
+
+        def _apply_audio_streams_to_widgets(self, encoding_task: encoding.Task):
+            for audio_stream, audio_stream_codec in encoding_task.audio_streams.items():
+                GLib.idle_add(self._create_audio_stream_row_from_task, encoding_task, audio_stream, audio_stream_codec)
+
+        def _create_audio_stream_row_from_task(self,
+                                               encoding_task: encoding.Task,
+                                               audio_stream: encoding.input.AudioStream,
+                                               audio_stream_codec):
+            audio_stream_row = self.AudioStreamRow(self,
+                                                   encoding_task,
+                                                   audio_stream,
+                                                   audio_stream_codec,
+                                                   self.audio_stream_settings_group.number_of_children + 1)
+            self.audio_stream_settings_group.add(audio_stream_row)
+
         def on_add_audio_stream_button_clicked(self, button):
             if self.audio_stream_settings_group.number_of_children < 4:
                 encoding_task = self.inputs_page.inputs_list_box.get_selected_row().encoding_task
+                new_audio_stream = copy.deepcopy(encoding_task.input_file.audio_streams[0])
+                encoding_task.add_audio_stream(new_audio_stream)
+                new_audio_stream_codec = aac.Aac(encoding_task.get_audio_stream_index(new_audio_stream))
+                encoding_task.set_audio_stream_codec(new_audio_stream, new_audio_stream_codec)
                 audio_stream_row = self.AudioStreamRow(self,
                                                        encoding_task,
-                                                       encoding_task.input_file.audio_streams[0],
+                                                       new_audio_stream,
+                                                       new_audio_stream_codec,
                                                        self.audio_stream_settings_group.number_of_children + 1)
                 self.audio_stream_settings_group.add(audio_stream_row)
 
         class AudioStreamRow(Adw.ExpanderRow):
-            def __init__(self, audio_codec_settings_page, encoding_task: encoding.Task, audio_stream, row_count: int):
+            def __init__(self,
+                         audio_codec_settings_page,
+                         encoding_task: encoding.Task,
+                         audio_stream: encoding.input.AudioStream,
+                         audio_stream_codec,
+                         row_count: int):
                 super().__init__()
 
                 self.audio_codec_settings_page = audio_codec_settings_page
                 self.encoding_task = encoding_task
                 self.audio_stream = audio_stream
                 self.row_count = row_count
-                self.audio_stream_codec = self.encoding_task.get_audio_stream_codec(self.audio_stream)
+                self.audio_stream_codec = audio_stream_codec
+                self.is_widgets_setting_up = False
 
                 self._setup_audio_stream_row()
 
@@ -3862,10 +3904,16 @@ class SettingsSidebarWidgets:
                 self.stream_combobox.set_vexpand(False)
                 self.stream_combobox.set_valign(Gtk.Align.CENTER)
 
+                stream_combobox_index = 0
+
                 for stream in self.encoding_task.input_file.audio_streams:
                     self.stream_combobox.append_text(stream.get_info())
 
-                self.stream_combobox.set_active(0)
+                    if stream.index == self.audio_stream.index:
+                        stream_combobox_index = self.encoding_task.input_file.audio_streams.index(stream)
+
+                self.stream_combobox.set_active(stream_combobox_index)
+                self.stream_combobox.connect('changed', self.on_stream_combobox_changed)
 
             def _setup_codec_row(self):
                 self._setup_audio_codecs_combobox()
@@ -3880,7 +3928,10 @@ class SettingsSidebarWidgets:
                 self.audio_codecs_combobox.set_vexpand(False)
                 self.audio_codecs_combobox.set_valign(Gtk.Align.CENTER)
 
-                audio_codec_name = self.audio_stream_codec.codec_name
+                if self.audio_stream_codec:
+                    audio_codec_name = self.audio_stream_codec.codec_name
+                else:
+                    audio_codec_name = 'copy'
 
                 if self.encoding_task.output_file.extension == '.mp4':
                     audio_codecs = self.encoding_task.AUDIO_CODECS_MP4_UI
@@ -3912,10 +3963,15 @@ class SettingsSidebarWidgets:
             def _setup_channels_combobox(self):
                 self.channels_combobox = Gtk.ComboBoxText()
 
-                for channel_setting in self.audio_stream_codec.CHANNELS_UI:
-                    self.channels_combobox.append_text(channel_setting)
+                if self.audio_stream_codec:
+                    for channel_setting in self.audio_stream_codec.CHANNELS_UI:
+                        self.channels_combobox.append_text(channel_setting)
 
-                self.channels_combobox.set_active(self.audio_stream_codec.channels)
+                    self.channels_combobox.set_active(self.audio_stream_codec.channels)
+                else:
+                    self.channels_combobox.append_text('auto')
+                    self.channels_combobox.set_active(0)
+
                 self.channels_combobox.set_vexpand(False)
                 self.channels_combobox.set_valign(Gtk.Align.CENTER)
                 self.channels_combobox.connect('changed', self.on_channels_combobox_changed)
@@ -3943,6 +3999,7 @@ class SettingsSidebarWidgets:
 
                 self.bitrate_spin_button.set_vexpand(False)
                 self.bitrate_spin_button.set_valign(Gtk.Align.CENTER)
+                self.bitrate_spin_button.connect('value-changed', self.on_bitrate_spin_button_value_changed)
 
             def _setup_remove_button(self):
                 self.remove_button = Gtk.Button.new_from_icon_name('list-remove-symbolic')
@@ -3963,21 +4020,75 @@ class SettingsSidebarWidgets:
 
                 self.set_subtitle(','.join([codec_name, channels]))
 
+            def _update_channels_combobox(self):
+                self.is_widgets_setting_up = True
+                self.channels_combobox.remove_all()
+                self.is_widgets_setting_up = False
+
+                if self.audio_stream_codec:
+                    for channel_setting in self.audio_stream_codec.CHANNELS_UI:
+                        self.channels_combobox.append_text(channel_setting)
+
+                    self.channels_combobox.set_active(self.audio_stream_codec.channels)
+                else:
+                    self.channels_combobox.append_text('auto')
+                    self.channels_combobox.set_active(0)
+
             def set_codec_copy_state(self):
                 self.channels_setting_row.set_sensitive(False)
                 self.bitrate_setting_row.set_sensitive(False)
 
+            def apply_settings_from_widgets(self):
+                self._apply_stream_setting_from_widgets()
+
+                if self.audio_codecs_combobox.get_active_text() == 'aac':
+                    audio_stream_codec = aac.Aac(self.encoding_task.get_audio_stream_index(self.audio_stream))
+                elif self.audio_codecs_combobox.get_active_text() == 'opus':
+                    audio_stream_codec = opus.Opus(self.encoding_task.get_audio_stream_index(self.audio_stream))
+                else:
+                    self.encoding_task.set_audio_stream_codec(self.audio_stream, None)
+
+                    return
+
+                audio_stream_codec.channels = self.channels_combobox.get_active()
+                audio_stream_codec.bitrate = self.bitrate_spin_button.get_value_as_int()
+
+                self.encoding_task.set_audio_stream_codec(self.audio_stream, audio_stream_codec)
+
+            def _apply_stream_setting_from_widgets(self):
+                new_audio_stream = copy.deepcopy(
+                    self.encoding_task.input_file.audio_streams[self.stream_combobox.get_active()])
+                self.encoding_task.audio_streams = OrderedDict(
+                    (new_audio_stream if audio_stream is self.audio_stream else audio_stream, audio_codec) for
+                    audio_stream, audio_codec in self.encoding_task.audio_streams.items())
+                self.audio_stream = new_audio_stream
+
             def on_remove_button_clicked(self, button):
+                self.encoding_task.remove_audio_stream(self.audio_stream)
                 self.audio_codec_settings_page.audio_stream_settings_group.remove(self)
 
+            def on_stream_combobox_changed(self, combobox):
+                self.apply_settings_from_widgets()
+
+            def on_bitrate_spin_button_value_changed(self, spin_button):
+                self.apply_settings_from_widgets()
+
             def on_channels_combobox_changed(self, combobox):
+                if self.is_widgets_setting_up:
+                    return
+
                 self.update_subtitle()
+
+                self.apply_settings_from_widgets()
 
             def on_audio_codec_combobox_changed(self, combobox):
                 is_codec_settings_editable = bool(combobox.get_active())
                 self.channels_setting_row.set_sensitive(is_codec_settings_editable)
                 self.bitrate_setting_row.set_sensitive(is_codec_settings_editable)
 
+                self.apply_settings_from_widgets()
+
+                self._update_channels_combobox()
                 self.update_subtitle()
 
     class FilterSettingsPage(Gtk.ScrolledWindow):

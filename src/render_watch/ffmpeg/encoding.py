@@ -24,7 +24,7 @@ import copy
 from render_watch.ffmpeg import input, output
 from render_watch.ffmpeg import trim
 from render_watch.ffmpeg import filters
-from render_watch.ffmpeg import general_settings, h264_nvenc, hevc_nvenc, x264, x265, vp9, aac
+from render_watch.ffmpeg import general_settings, h264_nvenc, hevc_nvenc, x264, x265, vp9, aac, opus
 from render_watch.helpers import ffmpeg_helper, nvidia_helper
 from render_watch import app_preferences
 
@@ -833,6 +833,33 @@ class Task:
         if self.video_codec:
             return self.video_codec.encode_pass == 1 or self.video_codec.encode_pass == 2
         return False
+
+    def is_audio_stream_codec_copy(self, audio_stream: input.AudioStream):
+        """
+        Returns whether the audio stream's codec is set to be the copy codec.
+
+        Returns:
+            Boolean that represents whether the audio stream's codec is set to be the copy codec.
+        """
+        return self.get_audio_stream_codec(audio_stream) is None
+
+    def is_audio_stream_codec_aac(self, audio_stream: input.AudioStream):
+        """
+        Returns whether the audio stream's codec is the AAC codec.
+
+        Returns:
+            Boolean that represents whether the audio stream's codec is the AAC codec.
+        """
+        return isinstance(self.get_audio_stream_codec(audio_stream), aac.Aac)
+
+    def is_audio_stream_codec_opus(self, audio_stream: input.AudioStream):
+        """
+        Returns whether the audios stream's codec is the Opus codec.
+
+        Returns:
+            Boolean that represents whether the audio stream's codec is the Opus codec.
+        """
+        return isinstance(self.get_audio_stream_codec(audio_stream), opus.Opus)
 
     def is_nvenc_codec_settings_valid(self) -> bool:
         """

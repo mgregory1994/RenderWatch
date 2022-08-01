@@ -87,7 +87,7 @@ class Aac:
         Returns:
             Channels as an index using the CHANNELS variable.
         """
-        if '-ac' in self.ffmpeg_args:
+        if self.channels_arg in self.ffmpeg_args:
             channels_arg = self.ffmpeg_args[self.channels_arg]
 
             return self.CHANNELS.index(channels_arg)
