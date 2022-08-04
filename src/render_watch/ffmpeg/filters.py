@@ -383,6 +383,12 @@ class Deinterlace:
         else:
             self._method = None
 
+    @property
+    def ffmpeg_args(self):
+        if self.method is None:
+            return ''
+        return self.DEINT_FILTERS[self.method]
+
 
 class Filter:
     """Class that configures all necessary filter options for Render Watch."""
@@ -555,7 +561,7 @@ class Filter:
     def _get_deinterlace_arg(self) -> tuple:
         # Returns a tuple of strings for the ffmpeg arguments for the deinterlace settings.
         if self.is_deinterlace_enabled():
-            return self.deinterlace.method, self.DEINT_TAG
+            return self.deinterlace.ffmpeg_args, self.DEINT_TAG
         return '', ''
 
     def _get_crop_arg(self, next_tag) -> tuple:

@@ -332,8 +332,8 @@ class MainWindowWidgets:
             output_directory_title_label.set_hexpand(True)
             output_directory_title_label.set_halign(Gtk.Align.START)
 
-            output_directory_label = Gtk.Label(label=self.app_settings.output_directory)
-            output_directory_label.set_sensitive(False)
+            self.output_directory_label = Gtk.Label(label=self.app_settings.output_directory)
+            self.output_directory_label.set_sensitive(False)
 
             output_directory_file_chooser_button = Gtk.Button(icon_name='document-open-symbolic')
             output_directory_file_chooser_button.connect('clicked',
@@ -341,7 +341,7 @@ class MainWindowWidgets:
 
             output_directory_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             output_directory_horizontal_box.append(output_directory_title_label)
-            output_directory_horizontal_box.append(output_directory_label)
+            output_directory_horizontal_box.append(self.output_directory_label)
             output_directory_horizontal_box.append(output_directory_file_chooser_button)
             output_directory_horizontal_box.set_margin_top(10)
             output_directory_horizontal_box.set_margin_bottom(10)
@@ -357,15 +357,15 @@ class MainWindowWidgets:
             temp_directory_title_label.set_hexpand(True)
             temp_directory_title_label.set_halign(Gtk.Align.START)
 
-            temp_directory_label = Gtk.Label(label=self.app_settings.get_new_temp_directory())
-            temp_directory_label.set_sensitive(False)
+            self.temp_directory_label = Gtk.Label(label=self.app_settings.get_new_temp_directory())
+            self.temp_directory_label.set_sensitive(False)
 
             temp_directory_file_chooser_button = Gtk.Button(icon_name='document-open-symbolic')
             temp_directory_file_chooser_button.connect('clicked', self.on_temp_directory_file_chooser_button_clicked)
 
             temp_directory_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             temp_directory_horizontal_box.append(temp_directory_title_label)
-            temp_directory_horizontal_box.append(temp_directory_label)
+            temp_directory_horizontal_box.append(self.temp_directory_label)
             temp_directory_horizontal_box.append(temp_directory_file_chooser_button)
             temp_directory_horizontal_box.set_margin_top(10)
             temp_directory_horizontal_box.set_margin_bottom(10)

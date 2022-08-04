@@ -69,7 +69,7 @@ class SettingsSidebarWidgets:
         self.audio_codec_settings_page = self.AudioCodecSettingsPage(self.inputs_page)
 
     def _setup_filter_settings_page(self):
-        self.filter_settings_page = self.FilterSettingsPage()
+        self.filter_settings_page = self.FilterSettingsPage(self.inputs_page)
 
     def _setup_subtitle_settings_page(self):
         self.subtitle_settings_page = self.SubtitleSettingsPage(self.inputs_page)
@@ -115,6 +115,7 @@ class SettingsSidebarWidgets:
         self.general_settings_page.apply_settings_to_widgets(encoding_task)
         self.video_codec_settings_page.apply_settings_to_widgets(encoding_task)
         self.audio_codec_settings_page.apply_settings_to_widgets(encoding_task)
+        self.filter_settings_page.apply_settings_to_widgets(encoding_task)
 
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
@@ -4092,8 +4093,11 @@ class SettingsSidebarWidgets:
                 self.update_subtitle()
 
     class FilterSettingsPage(Gtk.ScrolledWindow):
-        def __init__(self):
+        def __init__(self, inputs_page):
             super().__init__()
+
+            self.inputs_page = inputs_page
+            self.is_widgets_setting_up = False
 
             self._setup_deinterlace_settings()
 
@@ -4110,30 +4114,73 @@ class SettingsSidebarWidgets:
         def _setup_deinterlace_settings(self):
             self._setup_deinterlace_method_setting()
 
-            deinterlace_enabled_switch = Gtk.Switch()
-            deinterlace_enabled_switch.set_vexpand(False)
-            deinterlace_enabled_switch.set_valign(Gtk.Align.CENTER)
+            self.deinterlace_enabled_switch = Gtk.Switch()
+            self.deinterlace_enabled_switch.set_vexpand(False)
+            self.deinterlace_enabled_switch.set_valign(Gtk.Align.CENTER)
+            self.deinterlace_enabled_switch.connect('state-set', self.on_deinterlace_enabled_switch_state_set)
 
             self.deinterlace_settings_group = Adw.PreferencesGroup()
             self.deinterlace_settings_group.set_title('Deinterlace')
-            self.deinterlace_settings_group.set_header_suffix(deinterlace_enabled_switch)
+            self.deinterlace_settings_group.set_header_suffix(self.deinterlace_enabled_switch)
             self.deinterlace_settings_group.add(self.deinterlace_method_row)
 
         def _setup_deinterlace_method_setting(self):
-            deinterlace_method_combobox = Gtk.ComboBoxText()
-            deinterlace_method_combobox.set_vexpand(False)
-            deinterlace_method_combobox.set_valign(Gtk.Align.CENTER)
+            self.deinterlace_method_combobox = Gtk.ComboBoxText()
+            self.deinterlace_method_combobox.set_vexpand(False)
+            self.deinterlace_method_combobox.set_valign(Gtk.Align.CENTER)
 
             for deinterlace_method in filters.Deinterlace.DEINT_FILTERS:
-                deinterlace_method_combobox.append_text(deinterlace_method)
+                self.deinterlace_method_combobox.append_text(deinterlace_method)
 
-            deinterlace_method_combobox.set_active(0)
+            self.deinterlace_method_combobox.set_active(0)
+            self.deinterlace_method_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             self.deinterlace_method_row = Adw.ActionRow()
             self.deinterlace_method_row.set_title('Method')
             self.deinterlace_method_row.set_subtitle('Deinterlacing method')
-            self.deinterlace_method_row.add_suffix(deinterlace_method_combobox)
+            self.deinterlace_method_row.add_suffix(self.deinterlace_method_combobox)
             self.deinterlace_method_row.set_sensitive(False)
+
+        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+            self.is_widgets_setting_up = is_widgets_setting_up
+
+        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            GLib.idle_add(self.set_widgets_setting_up, True)
+            self._apply_deinterlace_settings_to_widgets(encoding_task)
+            GLib.idle_add(self.set_widgets_setting_up, False)
+
+        def _apply_deinterlace_settings_to_widgets(self, encoding_task: encoding.Task):
+            is_deinterlace_settings_enabled = encoding_task.filter.deinterlace is not None
+            GLib.idle_add(self.deinterlace_enabled_switch.set_active, is_deinterlace_settings_enabled)
+
+            if is_deinterlace_settings_enabled:
+                GLib.idle_add(self.deinterlace_method_combobox.set_active, encoding_task.filter.deinterlace.method)
+            else:
+                GLib.idle_add(self.deinterlace_method_combobox.set_active, 0)
+
+        def apply_settings_from_widgets(self):
+            self._apply_deinterlace_settings_from_widgets()
+
+        def _apply_deinterlace_settings_from_widgets(self):
+            if self.deinterlace_enabled_switch.get_active():
+                deinterlace_settings = filters.Deinterlace()
+                deinterlace_settings.method = self.deinterlace_method_combobox.get_active()
+            else:
+                deinterlace_settings = None
+
+            for input_row in self.inputs_page.get_selected_rows():
+                input_row.encoding_task.filter.deinterlace = deinterlace_settings
+
+        def on_deinterlace_enabled_switch_state_set(self, switch, user_data):
+            self.deinterlace_method_row.set_sensitive(switch.get_active())
+
+            self.on_widget_changed_clicked_set()
+
+        def on_widget_changed_clicked_set(self, *args, **kwargs):
+            if self.is_widgets_setting_up:
+                return
+
+            threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
 
     class SubtitleSettingsPage(Gtk.ScrolledWindow):
         def __init__(self, inputs_page):
