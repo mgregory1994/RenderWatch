@@ -292,6 +292,9 @@ class Subtitles:
         self.streams_in_use.remove(subtitle_stream)
         self.streams_available.append(subtitle_stream)
 
+        if self.burn_in_stream_index == subtitle_stream.index:
+            self.burn_in_stream_index = None
+
     def set_stream_method_burn_in(self, subtitle_stream: input.SubtitleStream):
         """
         Sets the burn in subtitle stream index as the subtitle stream's index.
@@ -300,6 +303,15 @@ class Subtitles:
             None
         """
         self.burn_in_stream_index = subtitle_stream.index
+
+    def get_stream_burn_in_index_tag(self) -> str:
+        """
+        Returns the filter tag that represents the burn-in stream's index.
+
+        Returns:
+            String that represents the filter tag for the burn-in stream's index.
+        """
+        return ''.join(['[0:', str(self.burn_in_stream_index), ']'])
 
     @property
     def ffmpeg_args(self) -> dict:
@@ -405,7 +417,8 @@ class Filter:
         self._subtitles = Subtitles(input_file)
         self._deinterlace = None
         self.ffmpeg_args = {
-            '-filter_complex': None
+            '-filter_complex': None,
+            '-map': {}
         }
 
     @property
@@ -543,6 +556,8 @@ class Filter:
 
         if filter_args:
             self.ffmpeg_args['-filter_complex'] = filter_args
+        else:
+            self.ffmpeg_args['-filter_complex'] = None
 
         subtitle_args = self.subtitles.ffmpeg_args
         self.ffmpeg_args['-map'] = subtitle_args['-map']
@@ -553,8 +568,8 @@ class Filter:
         deint_arg, next_tag = self._get_deinterlace_arg()
         crop_arg, next_tag = self._get_crop_arg(next_tag)
         scale_arg, next_tag = self._get_scale_arg(next_tag)
-        subtitle_arg = self._get_subtitle_arg()
-        overlay_arg = self._get_overlay_arg(subtitle_arg, next_tag)
+        subtitle_arg, subtitle_tag = self._get_subtitle_arg(next_tag)
+        overlay_arg = self._get_overlay_arg(next_tag, subtitle_tag, subtitle_arg)
 
         return ''.join(filter(None, [deint_arg, crop_arg, scale_arg, subtitle_arg, overlay_arg]))
 
@@ -564,7 +579,7 @@ class Filter:
             return self.deinterlace.ffmpeg_args, self.DEINT_TAG
         return '', ''
 
-    def _get_crop_arg(self, next_tag) -> tuple:
+    def _get_crop_arg(self, next_tag: str) -> tuple:
         # Returns a tuple of strings for the ffmpeg arguments for the crop settings.
         if self.is_crop_enabled():
             if next_tag:
@@ -574,7 +589,7 @@ class Filter:
             return crop_arg, self.CROP_TAG
         return '', next_tag
 
-    def _get_scale_arg(self, next_tag) -> tuple:
+    def _get_scale_arg(self, next_tag: str) -> tuple:
         # Returns a tuple of strings for the ffmpeg arguments for the scale settings.
         if self.is_scale_enabled():
             if next_tag:
@@ -584,25 +599,41 @@ class Filter:
             return scale_arg, self.SCALE_TAG
         return '', next_tag
 
-    def _get_subtitle_arg(self) -> str:
+    def _get_subtitle_arg(self, next_tag: str) -> tuple:
         # Returns a string for the ffmpeg argument for the subtitle settings.
-        if self.subtitles.burn_in_stream_index is not None:
-            burn_in_index = self.subtitles.burn_in_stream_index
-            subtitle_arg = ''.join(['[0:', str(burn_in_index), ']'])
+        if self.subtitles.burn_in_stream_index is None:
+            return '', ''
 
-            if self.is_scale_enabled():
-                return ''.join([subtitle_arg, self.scale.ffmpeg_args, self.SUBTITLE_TAG])
-            elif self.is_crop_enabled():
-                width, height, x, y = self.crop.dimensions
+        if self.is_scale_enabled():
+            subtitle_arg = ''.join([next_tag,
+                                    ';',
+                                    self.subtitles.get_stream_burn_in_index_tag(),
+                                    self.scale.ffmpeg_args])
+            subtitle_tag = self.SUBTITLE_TAG
+        elif self.is_crop_enabled():
+            width, height, x, y = self.crop.dimensions
+            subtitle_arg = ''.join([next_tag,
+                                    ';',
+                                    self.subtitles.get_stream_burn_in_index_tag(),
+                                    'scale=',
+                                    str(width),
+                                    ':',
+                                    str(height)])
+            subtitle_tag = self.SUBTITLE_TAG
+        else:
+            subtitle_arg = ''
+            subtitle_tag = self.subtitles.get_stream_burn_in_index_tag()
 
-                return ''.join([subtitle_arg, 'scale=', str(width), ':', str(height), self.SUBTITLE_TAG])
-        return ''
+        return subtitle_arg, subtitle_tag
 
-    def _get_overlay_arg(self, subtitle_arg, next_tag) -> str:
+    @staticmethod
+    def _get_overlay_arg(next_tag: str, subtitle_tag: str, subtitle_arg: str) -> str:
         # Returns a string for the ffmpeg argument for the filter overlay setting.
-        if subtitle_arg:
-            if next_tag:
-                return ''.join([next_tag, self.SUBTITLE_TAG, 'overlay'])
+        if subtitle_tag:
+            if subtitle_arg:
+                return ''.join([subtitle_tag, ';', next_tag, subtitle_tag, 'overlay'])
+            elif next_tag:
+                return ''.join([next_tag, ';', next_tag, subtitle_tag, 'overlay'])
             else:
-                return ''.join([subtitle_arg, 'overlay'])
+                return ''.join([subtitle_tag, 'overlay'])
         return ''

@@ -33,7 +33,7 @@ class RenderWatch(Adw.Application):
     def do_startup(self):
         Adw.Application.do_startup(self)
 
-        self.get_style_manager().set_color_scheme(Adw.ColorScheme.PREFER_DARK)
+        self.get_style_manager().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
 
     def do_activate(self):
         main_window_widgets = main_window.MainWindowWidgets(self, None, self.preview_generator, self.app_settings)

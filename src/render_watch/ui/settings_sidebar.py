@@ -116,6 +116,7 @@ class SettingsSidebarWidgets:
         self.video_codec_settings_page.apply_settings_to_widgets(encoding_task)
         self.audio_codec_settings_page.apply_settings_to_widgets(encoding_task)
         self.filter_settings_page.apply_settings_to_widgets(encoding_task)
+        self.subtitle_settings_page.apply_settings_to_widgets(encoding_task)
 
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
@@ -4187,6 +4188,7 @@ class SettingsSidebarWidgets:
             super().__init__()
 
             self.inputs_page = inputs_page
+            self.is_widgets_setting_up = False
 
             self._setup_subtitle_settings()
 
@@ -4213,6 +4215,33 @@ class SettingsSidebarWidgets:
             self.subtitle_stream_settings_group.set_title('Subtitle Streams')
             self.subtitle_stream_settings_group.set_header_suffix(add_subtitle_stream_button)
 
+        def update_subtitle_stream_rows(self):
+            for subtitle_stream_row in self.subtitle_stream_settings_group.children:
+                subtitle_stream_row.update_available_streams()
+                subtitle_stream_row.update_method()
+
+        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+            self.is_widgets_setting_up = is_widgets_setting_up
+
+        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            GLib.idle_add(self.set_widgets_setting_up, True)
+            GLib.idle_add(self.subtitle_stream_settings_group.remove_children)
+            self._apply_subtitle_streams_to_widgets(encoding_task)
+            GLib.idle_add(self.set_widgets_setting_up, False)
+
+        def _apply_subtitle_streams_to_widgets(self, encoding_task: encoding.Task):
+            for subtitle_stream in encoding_task.filter.subtitles.streams_in_use:
+                GLib.idle_add(self._create_subtitle_stream_row_from_task, encoding_task, subtitle_stream)
+
+        def _create_subtitle_stream_row_from_task(self,
+                                                  encoding_task: encoding.Task,
+                                                  subtitle_stream: encoding.input.SubtitleStream):
+            subtitle_stream_row = self.SubtitleStreamRow(self,
+                                                         encoding_task,
+                                                         subtitle_stream,
+                                                         self.subtitle_stream_settings_group.number_of_children + 1)
+            self.subtitle_stream_settings_group.add(subtitle_stream_row)
+
         def on_add_subtitle_stream_button_clicked(self, button):
             encoding_task = self.inputs_page.inputs_list_box.get_selected_row().encoding_task
 
@@ -4225,6 +4254,7 @@ class SettingsSidebarWidgets:
                                                              subtitle_stream,
                                                              self.subtitle_stream_settings_group.number_of_children + 1)
                 self.subtitle_stream_settings_group.add(subtitle_stream_row)
+                self.update_subtitle_stream_rows()
 
         class SubtitleStreamRow(Adw.ExpanderRow):
             def __init__(self, subtitle_settings_page, encoding_task: encoding.Task, subtitle_stream, row_count: int):
@@ -4234,6 +4264,7 @@ class SettingsSidebarWidgets:
                 self.encoding_task = encoding_task
                 self.subtitle_stream = subtitle_stream
                 self.row_count = row_count
+                self.is_widgets_setting_up = False
 
                 self._setup_subtitle_stream_row()
 
@@ -4265,6 +4296,7 @@ class SettingsSidebarWidgets:
                     self.stream_combobox.append_text(stream.get_info())
 
                 self.stream_combobox.set_active(0)
+                self.stream_combobox.connect('changed', self.on_stream_combobox_changed)
 
             def _setup_method_row(self):
                 self._setup_method_combobox()
@@ -4278,9 +4310,15 @@ class SettingsSidebarWidgets:
                 self.method_combobox = Gtk.ComboBoxText()
                 self.method_combobox.append_text('Copy')
                 self.method_combobox.append_text('Burn-In')
-                self.method_combobox.set_active(0)
+
+                if self.encoding_task.filter.subtitles.burn_in_stream_index == self.subtitle_stream.index:
+                    self.method_combobox.set_active(1)
+                else:
+                    self.method_combobox.set_active(0)
+
                 self.method_combobox.set_vexpand(False)
                 self.method_combobox.set_valign(Gtk.Align.CENTER)
+                self.method_combobox.connect('changed', self.on_method_combobox_changed)
 
             def _setup_remove_button(self):
                 self.remove_button = Gtk.Button.new_from_icon_name('list-remove-symbolic')
@@ -4291,5 +4329,59 @@ class SettingsSidebarWidgets:
             def update_title(self):
                 self.set_title(''.join(['Subtitle Stream ', str(self.row_count)]))
 
+            def update_available_streams(self):
+                self.is_widgets_setting_up = True
+
+                self.stream_combobox.remove_all()
+                self.stream_combobox.append_text(self.subtitle_stream.get_info())
+
+                for subtitle_stream in self.encoding_task.filter.subtitles.streams_available:
+                    self.stream_combobox.append_text(subtitle_stream.get_info())
+
+                self.stream_combobox.set_active(0)
+
+                self.is_widgets_setting_up = False
+
+            def update_method(self):
+                self.is_widgets_setting_up = True
+
+                if self.encoding_task.filter.subtitles.burn_in_stream_index == self.subtitle_stream.index:
+                    self.method_combobox.set_active(1)
+                else:
+                    self.method_combobox.set_active(0)
+
+                self.is_widgets_setting_up = False
+
+            def on_stream_combobox_changed(self, combobox):
+                if self.is_widgets_setting_up:
+                    return
+
+                self.encoding_task.filter.subtitles.remove_stream(self.subtitle_stream)
+
+                new_subtitle_stream = self.stream_combobox.get_active() - 1
+                self.subtitle_stream = self.encoding_task.filter.subtitles.streams_available[new_subtitle_stream]
+                self.encoding_task.filter.subtitles.use_stream(self.subtitle_stream)
+                self.encoding_task.filter.update_args()
+
+                self.set_subtitle(self.subtitle_stream.get_info())
+                self.subtitle_settings_page.update_subtitle_stream_rows()
+
+            def on_method_combobox_changed(self, combobox):
+                if self.is_widgets_setting_up:
+                    return
+
+                if combobox.get_active():
+                    self.encoding_task.filter.subtitles.set_stream_method_burn_in(self.subtitle_stream)
+                else:
+                    self.encoding_task.filter.subtitles.burn_in_stream_index = None
+
+                self.encoding_task.filter.update_args()
+
+                self.subtitle_settings_page.update_subtitle_stream_rows()
+
             def on_remove_button_clicked(self, button):
+                self.encoding_task.filter.subtitles.remove_stream(self.subtitle_stream)
+                self.encoding_task.filter.update_args()
+
                 self.subtitle_settings_page.subtitle_stream_settings_group.remove(self)
+                self.subtitle_settings_page.update_subtitle_stream_rows()

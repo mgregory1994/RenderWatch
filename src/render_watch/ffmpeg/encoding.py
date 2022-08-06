@@ -1252,6 +1252,7 @@ class FFmpegArgs:
         # Uses the given encoding task to add the stream mapping args to the list of ffmpeg args.
         FFmpegArgs._add_video_stream_args(encoding_task, ffmpeg_args)
         FFmpegArgs._add_audio_stream_args(encoding_task, ffmpeg_args)
+        FFmpegArgs._add_subtitle_stream_args(encoding_task, ffmpeg_args)
 
     @staticmethod
     def _add_video_stream_args(encoding_task: Task, ffmpeg_args: list):
