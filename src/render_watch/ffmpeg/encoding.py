@@ -58,7 +58,7 @@ class Task:
         self.is_using_temp_output_file = False
         self.general_settings = general_settings.GeneralSettings()
         self.video_stream = None
-        self.video_codec = x264.X264()
+        self.video_codec = x265.X265()
         self.audio_streams = {}
         self.trim = None
         self.filter = filters.Filter(self.input_file)
@@ -916,8 +916,6 @@ class Task:
             return task_copy
 
     def get_info(self) -> list:
-        task_info = ''.join([self.video_codec.get_info(), '\n'])
-
         return FFmpegArgs.get_args(self, cli_args=True)
 
 

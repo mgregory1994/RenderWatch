@@ -97,11 +97,26 @@ class X265:
     def __init__(self):
         """Initializes the X265 class with all necessary variables for the codec's settings."""
         self.is_advanced_enabled = False
+        self._is_crf_enabled = True
+        self._is_qp_enabled = False
+        self._is_bitrate_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libx265',
             '-crf': '20.0'
         }
         self._ffmpeg_advanced_args = {}
+
+    @property
+    def is_crf_enabled(self) -> bool:
+        return self._is_crf_enabled
+
+    @property
+    def is_qp_enabled(self) -> bool:
+        return self._is_qp_enabled
+
+    @property
+    def is_bitrate_enabled(self) -> bool:
+        return self._is_bitrate_enabled
 
     @property
     def codec_name(self) -> str:
@@ -142,6 +157,9 @@ class X265:
             self.ffmpeg_args['-crf'] = str(crf_value)
             self.qp = None
             self.bitrate = None
+            self._is_crf_enabled = True
+            self._is_qp_enabled = False
+            self._is_bitrate_enabled = False
 
     @property
     def qp(self) -> float:
@@ -172,6 +190,9 @@ class X265:
             self.ffmpeg_args['-qp'] = str(qp_value)
             self.crf = None
             self.bitrate = None
+            self._is_crf_enabled = False
+            self._is_qp_enabled = True
+            self._is_bitrate_enabled = False
 
     @property
     def bitrate(self) -> int:
@@ -204,6 +225,9 @@ class X265:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
             self.crf = None
             self.qp = None
+            self._is_crf_enabled = False
+            self._is_qp_enabled = False
+            self._is_bitrate_enabled = True
 
     @property
     def profile(self) -> int:
@@ -348,7 +372,7 @@ class X265:
         Returns:
             None
         """
-        if vbv_maxrate_value is None:
+        if vbv_maxrate_value is None or not self.is_vbv_valid():
             self._ffmpeg_advanced_args.pop('vbv-maxrate=', 0)
         else:
             self._ffmpeg_advanced_args['vbv-maxrate='] = str(vbv_maxrate_value)
@@ -376,10 +400,19 @@ class X265:
         Returns:
             None
         """
-        if vbv_bufsize_value is None:
+        if vbv_bufsize_value is None or not self.is_vbv_valid():
             self._ffmpeg_advanced_args.pop('vbv-bufsize=', 0)
         else:
             self._ffmpeg_advanced_args['vbv-bufsize='] = str(vbv_bufsize_value)
+
+    def is_vbv_valid(self) -> bool:
+        """
+        Returns whether VBV is able to be used and is enabled.
+
+        Returns:
+            Boolean that represents whether VBV is valid and enabled.
+        """
+        return self.is_advanced_enabled and self.is_bitrate_enabled
 
     @property
     def aq_mode(self) -> int:
@@ -437,7 +470,7 @@ class X265:
         if aq_strength_value is None:
             self._ffmpeg_advanced_args.pop('aq-strength=', 0)
         else:
-            self._ffmpeg_advanced_args['aq-strength='] = str(aq_strength_value)
+            self._ffmpeg_advanced_args['aq-strength='] = str(round(aq_strength_value, 1))
 
     @property
     def hevc_aq(self) -> bool:
@@ -637,9 +670,9 @@ class X265:
             None
         """
         if is_no_b_pyramid_enabled:
-            self._ffmpeg_advanced_args.pop('no-b-pyramid=', 0)
-        else:
             self._ffmpeg_advanced_args['no-b-pyramid='] = '1'
+        else:
+            self._ffmpeg_advanced_args.pop('no-b-pyramid=', 0)
 
     @property
     def b_intra(self) -> bool:
@@ -815,7 +848,7 @@ class X265:
         if psy_rd_value is None:
             self._ffmpeg_advanced_args.pop('psy-rd=', 0)
         else:
-            self._ffmpeg_advanced_args['psy-rd='] = str(psy_rd_value)
+            self._ffmpeg_advanced_args['psy-rd='] = str(round(psy_rd_value, 1))
 
     @property
     def psy_rdoq(self) -> float:
@@ -843,7 +876,7 @@ class X265:
         if psy_rdoq_value is None:
             self._ffmpeg_advanced_args.pop('psy-rdoq=', 0)
         else:
-            self._ffmpeg_advanced_args['psy-rdoq='] = str(psy_rdoq_value)
+            self._ffmpeg_advanced_args['psy-rdoq='] = str(round(psy_rdoq_value, 1))
 
     @property
     def me(self) -> int:

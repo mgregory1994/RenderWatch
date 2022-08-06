@@ -774,7 +774,7 @@ class X264:
         if aq_strength_value is None:
             self._ffmpeg_advanced_args.pop('aq-strength=', 0)
         else:
-            self._ffmpeg_advanced_args['aq-strength='] = str(aq_strength_value)
+            self._ffmpeg_advanced_args['aq-strength='] = str(round(aq_strength_value, 1))
 
     @property
     def encode_pass(self) -> int | None:
@@ -1055,7 +1055,7 @@ class X264:
             self._ffmpeg_advanced_args.pop('psy-rd=', 0)
         else:
             psy_rd, psy_rd_trellis = psy_rd_tuple
-            self._ffmpeg_advanced_args['psy-rd='] = str(psy_rd) + ',' + str(psy_rd_trellis)
+            self._ffmpeg_advanced_args['psy-rd='] = str(round(psy_rd, 1)) + ',' + str(round(psy_rd_trellis, 2))
 
     @property
     def mixed_refs(self) -> bool:
