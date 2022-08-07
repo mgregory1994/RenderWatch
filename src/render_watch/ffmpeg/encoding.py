@@ -45,9 +45,13 @@ class Task:
     VIDEO_CODECS_WEBM_UI = ('copy', 'VP9')
 
     AUDIO_CODECS_MP4_UI = ('copy', 'aac')
+    AUDIO_CODECS_MP4 = ('copy', 'aac')
     AUDIO_CODECS_MKV_UI = ('copy', 'aac', 'opus')
+    AUDIO_CODECS_MKV = ('copy', 'aac', 'libopus')
     AUDIO_CODECS_TS_UI = ('copy', 'aac')
+    AUDIO_CODECS_TS = ('copy', 'aac')
     AUDIO_CODECS_WEBM_UI = ('copy', 'opus')
+    AUDIO_CODECS_WEBM = ('copy', 'libopus')
 
     def __init__(self, input_file_path: str, app_settings: app_preferences.Settings, video_chunk=False):
         """Initializes the Task class with all necessary variables for storing its setting and encode status."""
@@ -58,7 +62,7 @@ class Task:
         self.is_using_temp_output_file = False
         self.general_settings = general_settings.GeneralSettings()
         self.video_stream = None
-        self.video_codec = x265.X265()
+        self.video_codec = x264.X264()
         self.audio_streams = {}
         self.trim = None
         self.filter = filters.Filter(self.input_file)

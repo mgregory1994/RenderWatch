@@ -33,10 +33,160 @@ class VP9:
 
     def __init__(self):
         """Initializes the VP9 class with all necessary variables for the codec's options."""
+        self._is_crf_enabled = True
+        self._is_bitrate_enabled = False
+        self._is_constrained_enabled = False
+        self._is_average_bitrate_enabled = True
+        self._is_vbr_bitrate_enabled = False
+        self._is_constant_bitrate_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libvpx-vp9',
-            '-b:v': '2500k'
+            '-b:v': '0k'
         }
+
+    @property
+    def is_crf_enabled(self) -> bool:
+        """
+        Returns whether CRF is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether CRF is enabled for the rate type settings.
+        """
+        return self._is_crf_enabled
+
+    @is_crf_enabled.setter
+    def is_crf_enabled(self, is_enabled: bool):
+        """
+        Sets whether CRF is enabled for the rate type settings.
+
+        Returns:
+            None
+        """
+        self._is_crf_enabled = is_enabled
+
+        if is_enabled:
+            self.is_bitrate_enabled = False
+            self.is_constrained_enabled = False
+
+    @property
+    def is_bitrate_enabled(self) -> bool:
+        """
+        Returns whether bitrate is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether bitrate is enabled for the rate type settings.
+        """
+        return self._is_bitrate_enabled
+
+    @is_bitrate_enabled.setter
+    def is_bitrate_enabled(self, is_enabled: bool):
+        """
+        Sets whether bitrate is enabled for the rate type settings.
+
+        Returns:
+            None
+        """
+        self._is_bitrate_enabled = is_enabled
+
+        if is_enabled:
+            self.is_crf_enabled = False
+            self.is_constrained_enabled = False
+
+    @property
+    def is_constrained_enabled(self) -> bool:
+        """
+        Returns whether constrained is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether constrained is enabled for the rate type settings.
+        """
+        return self._is_constrained_enabled
+
+    @is_constrained_enabled.setter
+    def is_constrained_enabled(self, is_enabled: bool):
+        """
+        Sets whether constrained is enabled for the rate type settings.
+
+        Returns:
+            None
+        """
+        self._is_constrained_enabled = is_enabled
+
+        if is_enabled:
+            self.is_crf_enabled = False
+            self.is_bitrate_enabled = False
+
+    @property
+    def is_average_bitrate_enabled(self) -> bool:
+        """
+        Returns whether average bitrate is enabled for the bitrate type settings.
+
+        Returns:
+            Boolean that represents whether average bitrate is enabled for the bitrate type settings.
+        """
+        return self._is_average_bitrate_enabled
+
+    @is_average_bitrate_enabled.setter
+    def is_average_bitrate_enabled(self, is_enabled: bool):
+        """
+        Sets whether average bitrate is enabled for the bitrate type settings.
+
+        Returns:
+            None
+        """
+        self._is_average_bitrate_enabled = is_enabled
+
+        if is_enabled:
+            self._is_vbr_bitrate_enabled = False
+            self._is_constant_bitrate_enabled = False
+
+    @property
+    def is_vbr_bitrate_enabled(self) -> bool:
+        """
+        Returns whether vbr bitrate is enabled for the bitrate type settings.
+
+        Returns:
+            Boolean that represents whether vbr bitrate is enabled for the bitrate type settings.
+        """
+        return self._is_vbr_bitrate_enabled
+
+    @is_vbr_bitrate_enabled.setter
+    def is_vbr_bitrate_enabled(self, is_enabled: bool):
+        """
+        Sets whether vbr bitrate is enabled for the bitrate type settings.
+
+        Returns:
+            None
+        """
+        self._is_vbr_bitrate_enabled = is_enabled
+
+        if is_enabled:
+            self._is_average_bitrate_enabled = False
+            self._is_constant_bitrate_enabled = False
+
+    @property
+    def is_constant_bitrate_enabled(self) -> bool:
+        """
+        Returns whether constant bitrate is enabled for the bitrate type settings.
+
+        Returns:
+            Boolean that represents whether constant bitrate is enabled for the bitrate type settings.
+        """
+        return self._is_constant_bitrate_enabled
+
+    @is_constant_bitrate_enabled.setter
+    def is_constant_bitrate_enabled(self, is_enabled: bool):
+        """
+        Sets whether constant bitrate is enabled for the bitrate type settings.
+
+        Returns:
+            None
+        """
+        self._is_constant_bitrate_enabled = is_enabled
+
+        if is_enabled:
+            self.is_average_bitrate_enabled = False
+            self.is_vbr_bitrate_enabled = False
 
     @property
     def codec_name(self) -> str:

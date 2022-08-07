@@ -36,6 +36,7 @@ class SettingsSidebarWidgets:
         self.inputs_page = inputs_page
         self.app_settings = app_settings
         self.main_widget = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.is_widgets_setting_up = False
 
         self._setup_settings_sidebar_widgets()
 
@@ -61,6 +62,8 @@ class SettingsSidebarWidgets:
 
     def _setup_general_settings_page(self):
         self.general_settings_page = self.GeneralSettingsPage(self.inputs_page)
+        self.general_settings_page.extension_combobox.connect('changed',
+                                                              self.on_general_page_extension_combobox_changed)
 
     def _setup_video_codec_settings_page(self):
         self.video_codec_settings_page = self.VideoCodecSettingsPage(self.inputs_page)
@@ -110,13 +113,26 @@ class SettingsSidebarWidgets:
         self.preview_buttons_horizontal_box.set_margin_top(10)
         self.preview_buttons_horizontal_box.set_margin_bottom(10)
 
+    def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+        self.is_widgets_setting_up = is_widgets_setting_up
+
     def apply_settings_to_widgets(self, encoding_task: encoding.Task):
         print('UPDATE')
+        GLib.idle_add(self.set_widgets_setting_up, True)
         self.general_settings_page.apply_settings_to_widgets(encoding_task)
         self.video_codec_settings_page.apply_settings_to_widgets(encoding_task)
         self.audio_codec_settings_page.apply_settings_to_widgets(encoding_task)
         self.filter_settings_page.apply_settings_to_widgets(encoding_task)
         self.subtitle_settings_page.apply_settings_to_widgets(encoding_task)
+        GLib.idle_add(self.set_widgets_setting_up, False)
+
+    def on_general_page_extension_combobox_changed(self, combobox):
+        if self.is_widgets_setting_up:
+            return
+
+        self.general_settings_page.on_extension_combobox_changed(combobox)
+        self.video_codec_settings_page.update_video_codec_settings_from_extension(self.general_settings_page)
+        self.audio_codec_settings_page.update_audio_streams_from_extension(self.general_settings_page)
 
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
@@ -205,7 +221,7 @@ class SettingsSidebarWidgets:
                 self.extension_combobox.append_text(extension)
 
             self.extension_combobox.set_active(0)
-            self.extension_combobox.connect('changed', self.on_extension_combobox_changed)
+            # self.extension_combobox.connect('changed', self.on_extension_combobox_changed)
 
         def _setup_fast_start_row(self):
             self._setup_fast_start_switch()
@@ -253,6 +269,30 @@ class SettingsSidebarWidgets:
 
             self.custom_frame_rate_combobox.set_active(0)
             self.custom_frame_rate_combobox.connect('changed', self.on_widget_changed_clicked_set)
+
+        def get_video_codecs_list(self) -> list:
+            if self.extension_combobox.get_active_text() == '.mp4':
+                video_codecs_list = encoding.Task.VIDEO_CODECS_MP4_UI
+            elif self.extension_combobox.get_active_text() == '.mkv':
+                video_codecs_list = encoding.Task.VIDEO_CODECS_MKV_UI
+            elif self.extension_combobox.get_active_text() == '.ts':
+                video_codecs_list = encoding.Task.VIDEO_CODECS_TS_UI
+            else:
+                video_codecs_list = encoding.Task.VIDEO_CODECS_WEBM_UI
+
+            return video_codecs_list
+
+        def get_audio_codecs_list(self) -> list:
+            if self.extension_combobox.get_active_text() == '.mp4':
+                audio_codecs_list = encoding.Task.AUDIO_CODECS_MP4_UI
+            elif self.extension_combobox.get_active_text() == '.mkv':
+                audio_codecs_list = encoding.Task.AUDIO_CODECS_MKV_UI
+            elif self.extension_combobox.get_active_text() == '.ts':
+                audio_codecs_list = encoding.Task.AUDIO_CODECS_TS_UI
+            else:
+                audio_codecs_list = encoding.Task.AUDIO_CODECS_WEBM_UI
+
+            return audio_codecs_list
 
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
@@ -376,7 +416,7 @@ class SettingsSidebarWidgets:
         def _setup_video_codec_settings_pages(self):
             self.x264_page = self.X264StackPage(self.inputs_page)
             self.x265_page = self.X265StackPage(self.inputs_page)
-            self.vp9_page = self.Vp9StackPage()
+            self.vp9_page = self.Vp9StackPage(self.inputs_page)
             self.nvenc_page = self.NvencStackPage()
             codec_settings_no_avail_page = self.CodecSettingsNoAvailPage()
 
@@ -389,6 +429,22 @@ class SettingsSidebarWidgets:
             self.video_codec_settings_stack.set_visible_child_name('unavailable_page')
             self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
             self.video_codec_settings_stack.set_vhomogeneous(False)
+
+        def update_video_codec_settings_from_extension(self, general_settings_page):
+            selected_video_codec = self.video_codec_combobox.get_active_text()
+            video_codecs_list = general_settings_page.get_video_codecs_list()
+
+            self.is_widgets_setting_up = True
+            self._repopulate_video_codec_combobox(video_codecs_list)
+
+            if selected_video_codec in video_codecs_list:
+                self.video_codec_combobox.set_active(video_codecs_list.index(selected_video_codec))
+            else:
+                self.video_codec_combobox.set_active(1)
+
+            self.is_widgets_setting_up = False
+
+            self.on_widget_changed_clicked_set()
 
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
@@ -418,14 +474,14 @@ class SettingsSidebarWidgets:
             else:
                 video_codecs_list = encoding.Task.VIDEO_CODECS_WEBM_UI
 
-            self._repopulate_video_codec_combobox(video_codecs_list)
+            GLib.idle_add(self._repopulate_video_codec_combobox, video_codecs_list)
             self._set_video_codec_combobox(encoding_task, video_codecs_list)
 
         def _repopulate_video_codec_combobox(self, video_codecs_list: list):
-            GLib.idle_add(self.video_codec_combobox.remove_all)
+            self.video_codec_combobox.remove_all()
 
             for video_codec in video_codecs_list:
-                GLib.idle_add(self.video_codec_combobox.append_text, video_codec)
+                self.video_codec_combobox.append_text(video_codec)
 
         def _set_video_codec_combobox(self, encoding_task: encoding.Task, video_codecs_list: list):
             if encoding_task.is_video_x264():
@@ -445,6 +501,7 @@ class SettingsSidebarWidgets:
             elif encoding_task.is_video_vp9():
                 GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('VP9'))
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
+                self.vp9_page.apply_settings_to_widgets(encoding_task)
             else:
                 GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('copy'))
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'unavailable_page')
@@ -463,21 +520,32 @@ class SettingsSidebarWidgets:
         def _apply_video_codec_settings_from_widgets(self, encoding_task: encoding.Task):
             if self.video_codec_combobox.get_active_text() == 'H264':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x264_page')
-                encoding_task.video_codec = x264.X264()
-                self.x264_page.apply_settings_to_widgets(encoding_task)
+
+                if not encoding_task.is_video_x264():
+                    encoding_task.video_codec = x264.X264()
+                    self.x264_page.apply_settings_to_widgets(encoding_task)
             elif self.video_codec_combobox.get_active_text() == 'H265':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x265_page')
-                encoding_task.video_codec = x265.X265()
-                self.x265_page.apply_settings_to_widgets(encoding_task)
+
+                if not encoding_task.is_video_x265():
+                    encoding_task.video_codec = x265.X265()
+                    self.x265_page.apply_settings_to_widgets(encoding_task)
             elif self.video_codec_combobox.get_active_text() == 'H264 NVENC':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
-                encoding_task.video_codec = h264_nvenc.H264Nvenc()
+
+                if not encoding_task.is_video_h264_nvenc():
+                    encoding_task.video_codec = h264_nvenc.H264Nvenc()
             elif self.video_codec_combobox.get_active_text() == 'H265 NVENC':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
-                encoding_task.video_codec = hevc_nvenc.HevcNvenc()
+
+                if not encoding_task.is_video_hevc_nvenc():
+                    encoding_task.video_codec = hevc_nvenc.HevcNvenc()
             elif self.video_codec_combobox.get_active_text() == 'VP9':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
-                encoding_task.video_codec = vp9.VP9()
+
+                if not encoding_task.is_video_vp9():
+                    encoding_task.video_codec = vp9.VP9()
+                    self.vp9_page.apply_settings_to_widgets(encoding_task)
             else:
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'unavailable_page')
                 encoding_task.video_codec = None
@@ -3239,8 +3307,11 @@ class SettingsSidebarWidgets:
                     self.selective_sao_row.set_sensitive(False)
 
         class Vp9StackPage(Gtk.Box):
-            def __init__(self):
+            def __init__(self, inputs_page):
                 super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+                self.inputs_page = inputs_page
+                self.is_widgets_setting_up = False
 
                 self._setup_codec_settings()
 
@@ -3256,7 +3327,7 @@ class SettingsSidebarWidgets:
                 self._setup_bitrate_row()
                 self._setup_max_bitrate_row()
                 self._setup_min_bitrate_row()
-                self._setup_bitrate_tyoe_row()
+                self._setup_bitrate_type_row()
 
                 self.codec_settings_group = Adw.PreferencesGroup()
                 self.codec_settings_group.set_title('VP9 Settings')
@@ -3288,6 +3359,7 @@ class SettingsSidebarWidgets:
                     self.quality_combobox.append_text(quality_setting)
 
                 self.quality_combobox.set_active(0)
+                self.quality_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_speed_row(self):
                 self._setup_speed_combobox()
@@ -3306,6 +3378,7 @@ class SettingsSidebarWidgets:
                     self.speed_combobox.append_text(speed_setting)
 
                 self.speed_combobox.set_active(0)
+                self.speed_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_row_multithreading_row(self):
                 self._setup_row_multithreading_switch()
@@ -3319,6 +3392,7 @@ class SettingsSidebarWidgets:
                 self.row_multithreading_switch = Gtk.Switch()
                 self.row_multithreading_switch.set_vexpand(False)
                 self.row_multithreading_switch.set_valign(Gtk.Align.CENTER)
+                self.row_multithreading_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_rate_tyoe_row(self):
                 self._setup_rate_type_radio_buttons()
@@ -3358,6 +3432,7 @@ class SettingsSidebarWidgets:
                 self.two_pass_switch = Gtk.Switch()
                 self.two_pass_switch.set_vexpand(False)
                 self.two_pass_switch.set_valign(Gtk.Align.CENTER)
+                self.two_pass_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_crf_row(self):
                 self._setup_crf_scale()
@@ -3377,6 +3452,7 @@ class SettingsSidebarWidgets:
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
+                self.crf_scale.connect('adjust_bounds', self.on_scale_adjust_bounds)
 
             def _setup_bitrate_row(self):
                 self._setup_bitrate_spin_button()
@@ -3444,7 +3520,7 @@ class SettingsSidebarWidgets:
                 self.min_bitrate_spin_button.set_valign(Gtk.Align.CENTER)
                 self.min_bitrate_spin_button.connect('value-changed', self.on_min_bitrate_spin_button_value_changed)
 
-            def _setup_bitrate_tyoe_row(self):
+            def _setup_bitrate_type_row(self):
                 self._setup_bitrate_type_radio_buttons()
 
                 self.bitrate_type_row = Adw.ActionRow()
@@ -3464,12 +3540,184 @@ class SettingsSidebarWidgets:
 
                 self.constant_bitrate_check_button = Gtk.CheckButton(label='Constant')
                 self.constant_bitrate_check_button.set_group(self.average_bitrate_check_button)
-                self.constant_bitrate_check_button.connect('toggled', self.on_average_bitrate_check_button_toggled)
+                self.constant_bitrate_check_button.connect('toggled', self.on_constant_bitrate_check_button_toggled)
 
                 self.bitrate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
                 self.bitrate_type_horizontal_box.append(self.average_bitrate_check_button)
                 self.bitrate_type_horizontal_box.append(self.vbr_bitrate_check_button)
                 self.bitrate_type_horizontal_box.append(self.constant_bitrate_check_button)
+
+            def update_vbr_widgets_from_bitrate(self):
+                bitrate_value = self.bitrate_spin_button.get_value()
+                max_bitrate_value = self.max_bitrate_spin_button.get_value()
+                min_bitrate_value = self.min_bitrate_spin_button.get_value()
+                self.is_widgets_setting_up = True
+
+                if self.constant_bitrate_check_button.get_active():
+                    self.min_bitrate_spin_button.set_value(bitrate_value)
+                    self.max_bitrate_spin_button.set_value(bitrate_value)
+                else:
+                    if bitrate_value > max_bitrate_value:
+                        self.max_bitrate_spin_button.set_value(bitrate_value)
+
+                    if bitrate_value < min_bitrate_value:
+                        self.min_bitrate_spin_button.set_value(bitrate_value)
+
+                self.is_widgets_setting_up = False
+
+            def update_vbr_widgets_from_max_bitrate(self):
+                bitrate_value = self.bitrate_spin_button.get_value()
+                max_bitrate_value = self.max_bitrate_spin_button.get_value()
+                min_bitrate_value = self.min_bitrate_spin_button.get_value()
+                self.is_widgets_setting_up = True
+
+                if max_bitrate_value < bitrate_value:
+                    self.bitrate_spin_button.set_value(max_bitrate_value)
+
+                    if min_bitrate_value > self.bitrate_spin_button.get_value():
+                        self.min_bitrate_spin_button.set_value(max_bitrate_value)
+
+                self.is_widgets_setting_up = False
+
+            def update_vbr_widgets_from_min_bitrate(self):
+                bitrate_value = self.bitrate_spin_button.get_value()
+                max_bitrate_value = self.max_bitrate_spin_button.get_value()
+                min_bitrate_value = self.min_bitrate_spin_button.get_value()
+                self.is_widgets_setting_up = True
+
+                if min_bitrate_value > bitrate_value:
+                    self.bitrate_spin_button.set_value(min_bitrate_value)
+
+                    if max_bitrate_value < self.bitrate_spin_button.get_value():
+                        self.max_bitrate_spin_button.set_value(min_bitrate_value)
+
+                self.is_widgets_setting_up = False
+
+            def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+                self.is_widgets_setting_up = is_widgets_setting_up
+
+            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.set_widgets_setting_up, True)
+                self._apply_quality_setting_to_widgets(encoding_task)
+                self._apply_speed_setting_to_widgets(encoding_task)
+                self._apply_rate_type_settings_to_widgets(encoding_task)
+                self._apply_crf_setting_to_widgets(encoding_task)
+                self._apply_bitrate_setting_to_widgets(encoding_task)
+                self._apply_maxrate_setting_to_widgets(encoding_task)
+                self._apply_minrate_setting_to_widgets(encoding_task)
+                self._apply_bitrate_type_settings_to_widgets(encoding_task)
+                self._apply_row_multithreading_setting_to_widgets(encoding_task)
+                self._apply_encode_pass_setting_to_widgets(encoding_task)
+                GLib.idle_add(self.set_widgets_setting_up, False)
+
+            def _apply_quality_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.quality_combobox.set_active, encoding_task.video_codec.quality)
+
+            def _apply_speed_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.speed_combobox.set_active, encoding_task.video_codec.speed)
+
+            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.is_crf_enabled:
+                    GLib.idle_add(self.crf_check_button.set_active, True)
+                elif encoding_task.video_codec.is_bitrate_enabled:
+                    GLib.idle_add(self.bitrate_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.constrained_check_button.set_active, True)
+
+            def _apply_crf_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.crf_scale.set_value, encoding_task.video_codec.crf)
+
+            def _apply_bitrate_setting_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.is_crf_enabled:
+                    GLib.idle_add(self.bitrate_spin_button.set_value, 2500)
+                else:
+                    GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+
+            def _apply_maxrate_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.max_bitrate_spin_button.set_value, encoding_task.video_codec.maxrate)
+
+            def _apply_minrate_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.min_bitrate_spin_button.set_value, encoding_task.video_codec.minrate)
+
+            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.is_average_bitrate_enabled:
+                    GLib.idle_add(self.average_bitrate_check_button.set_active, True)
+                elif encoding_task.video_codec.is_vbr_bitrate_enabled:
+                    GLib.idle_add(self.vbr_bitrate_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.constant_bitrate_check_button.set_active, True)
+
+            def _apply_row_multithreading_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.row_multithreading_switch.set_active, encoding_task.video_codec.row_multithreading)
+
+            def _apply_encode_pass_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.two_pass_switch.set_active, encoding_task.video_codec.encode_pass == 1)
+
+            def apply_settings_from_widgets(self):
+                vp9_settings = vp9.VP9()
+                vp9_settings.quality = self.quality_combobox.get_active()
+                vp9_settings.speed = self.speed_combobox.get_active()
+                vp9_settings.row_multithreading = self.row_multithreading_switch.get_active()
+
+                self._apply_rate_type_settings_from_widgets(vp9_settings)
+                self._apply_bitrate_type_settings_from_widgets(vp9_settings)
+                self._apply_encode_pass_setting_from_widgets(vp9_settings)
+
+                for input_row in self.inputs_page.get_selected_rows():
+                    encoding_task = input_row.encoding_task
+                    encoding_task.video_codec = copy.deepcopy(vp9_settings)
+
+                    if encoding_task.is_video_2_pass():
+                        stats_file_path = os.path.join(encoding_task.temp_output_file.dir,
+                                                       encoding_task.temp_output_file.name + '.log')
+                        encoding_task.video_codec.stats = stats_file_path
+
+                    print(encoding_task.get_info())
+
+            def _apply_rate_type_settings_from_widgets(self, vp9_settings: vp9.VP9):
+                if self.crf_check_button.get_active():
+                    vp9_settings.is_crf_enabled = True
+                    vp9_settings.crf = self.crf_scale.get_value()
+                elif self.bitrate_check_button.get_active():
+                    vp9_settings.is_bitrate_enabled = True
+                    vp9_settings.crf = None
+                    vp9_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
+                else:
+                    vp9_settings.is_constrained_enabled = True
+                    vp9_settings.crf = self.crf_scale.get_value()
+                    vp9_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
+
+            def _apply_bitrate_type_settings_from_widgets(self, vp9_settings: vp9.VP9):
+                if self.crf_check_button.get_active():
+                    return
+
+                if self.average_bitrate_check_button.get_active() or self.constrained_check_button.get_active():
+                    vp9_settings.is_average_bitrate_enabled = True
+                elif self.constant_bitrate_check_button.get_active():
+                    vp9_settings.is_constant_bitrate_enabled = True
+                    vp9_settings.maxrate = self.bitrate_spin_button.get_value_as_int()
+                    vp9_settings.minrate = self.bitrate_spin_button.get_value_as_int()
+                else:
+                    vp9_settings.is_vbr_bitrate_enabled = True
+                    vp9_settings.maxrate = self.max_bitrate_spin_button.get_value_as_int()
+                    vp9_settings.minrate = self.min_bitrate_spin_button.get_value_as_int()
+
+            def _apply_encode_pass_setting_from_widgets(self, vp9_settings: vp9.VP9):
+                if self.two_pass_switch.get_active():
+                    vp9_settings.encode_pass = 1
+
+            def on_widget_changed_clicked_set(self, *args, **kwargs):
+                if self.is_widgets_setting_up:
+                    return
+
+                threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
+
+            def on_scale_adjust_bounds(self, scale, value):
+                if self.is_widgets_setting_up:
+                    return
+
+                if int(value) != int(scale.get_value()):
+                    self.on_widget_changed_clicked_set(scale)
 
             def on_crf_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -3478,6 +3726,8 @@ class SettingsSidebarWidgets:
                     self.bitrate_row.set_sensitive(False)
                     self.min_bitrate_row.set_sensitive(False)
                     self.bitrate_type_row.set_sensitive(False)
+
+                    self.on_widget_changed_clicked_set(check_button)
 
             def on_bitrate_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -3489,6 +3739,8 @@ class SettingsSidebarWidgets:
                         self.max_bitrate_row.set_sensitive(True)
                         self.min_bitrate_row.set_sensitive(True)
 
+                    self.on_widget_changed_clicked_set(check_button)
+
             def on_constrained_check_button_toggled(self, check_button):
                 if check_button.get_active():
                     self.crf_row.set_sensitive(True)
@@ -3497,40 +3749,53 @@ class SettingsSidebarWidgets:
                     self.min_bitrate_row.set_sensitive(False)
                     self.bitrate_type_row.set_sensitive(False)
 
+                    self.on_widget_changed_clicked_set(check_button)
+
             def on_bitrate_spin_button_value_changed(self, spin_button):
-                bitrate_value = spin_button.get_value()
-                max_bitrate_value = self.max_bitrate_spin_button.get_value()
-                min_bitrate_value = self.min_bitrate_spin_button.get_value()
+                if self.is_widgets_setting_up:
+                    return
 
-                if bitrate_value > max_bitrate_value:
-                    self.max_bitrate_spin_button.set_value(bitrate_value)
+                self.update_vbr_widgets_from_bitrate()
 
-                if bitrate_value < min_bitrate_value:
-                    self.min_bitrate_spin_button.set_value(bitrate_value)
+                self.on_widget_changed_clicked_set(spin_button)
 
             def on_max_bitrate_spin_button_value_changed(self, spin_button):
-                bitrate_value = self.bitrate_spin_button.get_value()
-                max_bitrate_value = spin_button.get_value()
+                if self.is_widgets_setting_up:
+                    return
 
-                if max_bitrate_value < bitrate_value:
-                    self.bitrate_spin_button.set_value(max_bitrate_value)
+                self.update_vbr_widgets_from_max_bitrate()
+
+                self.on_widget_changed_clicked_set(spin_button)
 
             def on_min_bitrate_spin_button_value_changed(self, spin_button):
-                bitrate_value = self.bitrate_spin_button.get_value()
-                min_bitrate_value = spin_button.get_value()
+                if self.is_widgets_setting_up:
+                    return
 
-                if min_bitrate_value > bitrate_value:
-                    self.bitrate_spin_button.set_value(min_bitrate_value)
+                self.update_vbr_widgets_from_min_bitrate()
+
+                self.on_widget_changed_clicked_set(spin_button)
 
             def on_average_bitrate_check_button_toggled(self, check_button):
                 if check_button.get_active():
                     self.max_bitrate_row.set_sensitive(False)
                     self.min_bitrate_row.set_sensitive(False)
 
+                    self.on_widget_changed_clicked_set(check_button)
+
             def on_vbr_bitrate_check_button_toggled(self, check_button):
                 if check_button.get_active():
                     self.max_bitrate_row.set_sensitive(True)
                     self.min_bitrate_row.set_sensitive(True)
+
+                    self.on_widget_changed_clicked_set(check_button)
+
+            def on_constant_bitrate_check_button_toggled(self, check_button):
+                if check_button.get_active():
+                    self.update_vbr_widgets_from_bitrate()
+                    self.max_bitrate_row.set_sensitive(False)
+                    self.min_bitrate_row.set_sensitive(False)
+
+                    self.on_widget_changed_clicked_set(check_button)
 
         class NvencStackPage(Gtk.Box):
             def __init__(self):
@@ -4202,6 +4467,25 @@ class SettingsSidebarWidgets:
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
 
+        def update_audio_streams_from_extension(self, general_settings_page):
+            audio_codecs_list = general_settings_page.get_audio_codecs_list()
+
+            for audio_stream_row in self.audio_stream_settings_group.children:
+                audio_stream_row.is_widgets_setting_up = True
+                selected_audio_codec = audio_stream_row.audio_codecs_combobox.get_active_text()
+
+                audio_stream_row.repopulate_audio_codecs_combobox(audio_codecs_list)
+
+                if selected_audio_codec in audio_codecs_list:
+                    audio_stream_row.audio_codecs_combobox.set_active(audio_codecs_list.index(selected_audio_codec))
+                else:
+                    audio_stream_row.audio_codecs_combobox.set_active(1)
+
+                audio_stream_row.is_widgets_setting_up = False
+
+                audio_stream_row.update_subtitle()
+                audio_stream_row.apply_settings_from_widgets()
+
         def apply_settings_to_widgets(self, encoding_task: encoding.Task):
             GLib.idle_add(self.set_widgets_setting_up, True)
             GLib.idle_add(self.audio_stream_settings_group.remove_children)
@@ -4318,16 +4602,16 @@ class SettingsSidebarWidgets:
 
                 if self.encoding_task.output_file.extension == '.mp4':
                     audio_codecs = self.encoding_task.AUDIO_CODECS_MP4_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_MP4_UI.index(audio_codec_name)
+                    audio_codec_index = self.encoding_task.AUDIO_CODECS_MP4.index(audio_codec_name)
                 elif self.encoding_task.output_file.extension == '.mkv':
                     audio_codecs = self.encoding_task.AUDIO_CODECS_MKV_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_MKV_UI.index(audio_codec_name)
+                    audio_codec_index = self.encoding_task.AUDIO_CODECS_MKV.index(audio_codec_name)
                 elif self.encoding_task.output_file.extension == '.ts':
                     audio_codecs = self.encoding_task.AUDIO_CODECS_TS_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_TS_UI.index(audio_codec_name)
+                    audio_codec_index = self.encoding_task.AUDIO_CODECS_TS.index(audio_codec_name)
                 else:
                     audio_codecs = self.encoding_task.AUDIO_CODECS_WEBM_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_WEBM_UI.index(audio_codec_name)
+                    audio_codec_index = self.encoding_task.AUDIO_CODECS_WEBM.index(audio_codec_name)
 
                 for audio_codec in audio_codecs:
                     self.audio_codecs_combobox.append_text(audio_codec)
@@ -4406,7 +4690,6 @@ class SettingsSidebarWidgets:
             def _update_channels_combobox(self):
                 self.is_widgets_setting_up = True
                 self.channels_combobox.remove_all()
-                self.is_widgets_setting_up = False
 
                 if self.audio_stream_codec:
                     for channel_setting in self.audio_stream_codec.CHANNELS_UI:
@@ -4417,9 +4700,17 @@ class SettingsSidebarWidgets:
                     self.channels_combobox.append_text('auto')
                     self.channels_combobox.set_active(0)
 
+                self.is_widgets_setting_up = False
+
             def set_codec_copy_state(self):
                 self.channels_setting_row.set_sensitive(False)
                 self.bitrate_setting_row.set_sensitive(False)
+
+            def repopulate_audio_codecs_combobox(self, audio_codecs_list: list):
+                self.audio_codecs_combobox.remove_all()
+
+                for audio_codec in audio_codecs_list:
+                    self.audio_codecs_combobox.append_text(audio_codec)
 
             def apply_settings_from_widgets(self):
                 self._apply_stream_setting_from_widgets()
@@ -4451,9 +4742,15 @@ class SettingsSidebarWidgets:
                 self.audio_codec_settings_page.audio_stream_settings_group.remove(self)
 
             def on_stream_combobox_changed(self, combobox):
+                if self.is_widgets_setting_up:
+                    return
+
                 self.apply_settings_from_widgets()
 
             def on_bitrate_spin_button_value_changed(self, spin_button):
+                if self.is_widgets_setting_up:
+                    return
+
                 self.apply_settings_from_widgets()
 
             def on_channels_combobox_changed(self, combobox):
@@ -4461,18 +4758,19 @@ class SettingsSidebarWidgets:
                     return
 
                 self.update_subtitle()
-
                 self.apply_settings_from_widgets()
 
             def on_audio_codec_combobox_changed(self, combobox):
+                if self.is_widgets_setting_up:
+                    return
+
                 is_codec_settings_editable = bool(combobox.get_active())
                 self.channels_setting_row.set_sensitive(is_codec_settings_editable)
                 self.bitrate_setting_row.set_sensitive(is_codec_settings_editable)
 
-                self.apply_settings_from_widgets()
-
                 self._update_channels_combobox()
                 self.update_subtitle()
+                self.apply_settings_from_widgets()
 
     class FilterSettingsPage(Gtk.ScrolledWindow):
         def __init__(self, inputs_page):
