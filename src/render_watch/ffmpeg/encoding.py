@@ -36,12 +36,9 @@ class Task:
     about the task's encoding status.
     """
 
-    VIDEO_CODECS_MP4_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265')
-    VIDEO_CODECS_MP4_UI = ('copy', 'H264', 'H265')
-    VIDEO_CODECS_MKV_NVENC_UI = ('copy', 'H264', 'H265', 'NVENC H264', 'NVENC H265', 'VP9')
-    VIDEO_CODECS_MKV_UI = ('copy', 'H264', 'H265', 'VP9')
-    VIDEO_CODECS_TS_NVENC_UI = ('copy', 'H264', 'NVENC H264')
-    VIDEO_CODECS_TS_UI = ('copy', 'H264')
+    VIDEO_CODECS_MP4_UI = ['copy', 'H264', 'H265']
+    VIDEO_CODECS_MKV_UI = ['copy', 'H264', 'H265', 'VP9']
+    VIDEO_CODECS_TS_UI = ['copy', 'H264']
     VIDEO_CODECS_WEBM_UI = ('copy', 'VP9')
 
     AUDIO_CODECS_MP4_UI = ('copy', 'aac')
@@ -114,6 +111,7 @@ class Task:
         self._set_default_streams()
 
     def _set_default_streams(self):
+        # Set up the initial default streams for video and audio streams.
         if self.input_file.is_folder:
             return
 

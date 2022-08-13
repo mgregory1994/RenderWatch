@@ -24,6 +24,7 @@ from itertools import repeat
 from concurrent.futures import ThreadPoolExecutor
 
 from render_watch import app_preferences
+from render_watch.ffmpeg import encoding
 from render_watch.helpers import ffmpeg_helper
 
 
@@ -42,6 +43,11 @@ class Compatibility:
     def is_nvenc_supported() -> bool:
         if Compatibility._nvenc_supported is None:
             Compatibility._nvenc_supported = Compatibility.run_test_process(Compatibility.get_nvenc_test_args())
+
+            if Compatibility._nvenc_supported:
+                encoding.Task.VIDEO_CODECS_MP4_UI.extend(['NVENC H264', 'NVENC H265'])
+                encoding.Task.VIDEO_CODECS_MKV_UI.extend(['NVENC H264', 'NVENC H265'])
+                encoding.Task.VIDEO_CODECS_TS_UI.extend(['NVENC H264', 'NVENC H265'])
 
         return Compatibility._nvenc_supported
 
@@ -66,6 +72,28 @@ class Compatibility:
         nvenc_test_args.append('-')
 
         return nvenc_test_args
+
+    @staticmethod
+    def is_encoding_task_compatible(encoding_task) -> bool:
+        nvenc_test_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
+        nvenc_test_args.append('-f')
+        nvenc_test_args.append('lavfi')
+        nvenc_test_args.append('-i')
+        nvenc_test_args.append('nullsrc=s=256x256:d=5')
+
+        for setting, arg in encoding_task.video_codec.ffmpeg_args.items():
+            nvenc_test_args.append(setting)
+            nvenc_test_args.append(arg)
+
+        for setting, arg in encoding_task.video_codec.get_ffmpeg_advanced_args().items():
+            nvenc_test_args.append(setting)
+            nvenc_test_args.append(arg)
+
+        nvenc_test_args.append('-f')
+        nvenc_test_args.append('null')
+        nvenc_test_args.append('-')
+
+        return Compatibility.run_test_process(nvenc_test_args)
 
     @staticmethod
     def is_nvdec_supported() -> bool:

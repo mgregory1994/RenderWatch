@@ -20,9 +20,7 @@ class HevcNvenc:
     """Class that configures all HEVC Nvenc codec settings available for Render Watch. """
 
     PRESET = [
-        'default', 'slow', 'medium', 'fast', 'hp', 'hq', 'bd', 'll', 'llhq', 'llhp', 'lossless', 'losslesshp', 'p1',
-        'p2', 'p3', 'p4', 'p5', 'p6', 'p7'
-    ]
+        'default', 'slow', 'medium', 'fast', 'lossless', 'losslesshp', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']
     PRESET_LENGTH = len(PRESET)
 
     PROFILE = ['auto', 'main', 'main10', 'rext']
@@ -50,11 +48,34 @@ class HevcNvenc:
         self.is_advanced_enabled = False
         self.is_qp_custom_enabled = False
         self.is_dual_pass_enabled = False
+        self._is_qp_enabled = True
+        self._is_bitrate_enabled = False
         self._ffmpeg_advanced_args = {}
         self.ffmpeg_args = {
             '-c:v': 'hevc_nvenc',
             '-qp': '20.0'
         }
+
+    @property
+    def is_qp_enabled(self) -> bool:
+        """
+        Returns whether QP is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether QP is enabled for the rate type settings.
+        """
+        return self._is_qp_enabled
+
+
+    @property
+    def is_bitrate_enabled(self) -> bool:
+        """
+        Returns whether bitrate is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether bitrate is enabled for the rate type settings.
+        """
+        return self._is_bitrate_enabled
 
     @property
     def codec_name(self) -> str:
@@ -94,6 +115,8 @@ class HevcNvenc:
         else:
             self.ffmpeg_args['-qp'] = str(qp_value)
             self.bitrate = None
+            self._is_qp_enabled = True
+            self._is_bitrate_enabled = False
 
     @property
     def bitrate(self) -> int:
@@ -125,6 +148,8 @@ class HevcNvenc:
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
             self.qp = None
+            self._is_qp_enabled = False
+            self._is_bitrate_enabled = True
 
     @property
     def profile(self) -> int:
@@ -879,4 +904,4 @@ class HevcNvenc:
         """
         if self.is_advanced_enabled:
             return self._ffmpeg_advanced_args
-        return {None: None}
+        return {}

@@ -25,6 +25,7 @@ from collections import OrderedDict
 
 from render_watch.ui import Gtk, GLib, Adw
 from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9, h264_nvenc, hevc_nvenc, aac, opus
+from render_watch.helpers import nvidia_helper
 from render_watch import app_preferences
 
 
@@ -221,7 +222,6 @@ class SettingsSidebarWidgets:
                 self.extension_combobox.append_text(extension)
 
             self.extension_combobox.set_active(0)
-            # self.extension_combobox.connect('changed', self.on_extension_combobox_changed)
 
         def _setup_fast_start_row(self):
             self._setup_fast_start_switch()
@@ -417,7 +417,7 @@ class SettingsSidebarWidgets:
             self.x264_page = self.X264StackPage(self.inputs_page)
             self.x265_page = self.X265StackPage(self.inputs_page)
             self.vp9_page = self.Vp9StackPage(self.inputs_page)
-            self.nvenc_page = self.NvencStackPage()
+            self.nvenc_page = self.NvencStackPage(self.inputs_page)
             codec_settings_no_avail_page = self.CodecSettingsNoAvailPage()
 
             self.video_codec_settings_stack = Gtk.Stack()
@@ -495,9 +495,11 @@ class SettingsSidebarWidgets:
             elif encoding_task.is_video_h264_nvenc():
                 GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('NVENC H264'))
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+                self.nvenc_page.apply_settings_to_widgets(encoding_task)
             elif encoding_task.is_video_hevc_nvenc():
                 GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('NVENC H265'))
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+                self.nvenc_page.apply_settings_to_widgets(encoding_task)
             elif encoding_task.is_video_vp9():
                 GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('VP9'))
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
@@ -530,16 +532,18 @@ class SettingsSidebarWidgets:
                 if not encoding_task.is_video_x265():
                     encoding_task.video_codec = x265.X265()
                     self.x265_page.apply_settings_to_widgets(encoding_task)
-            elif self.video_codec_combobox.get_active_text() == 'H264 NVENC':
+            elif self.video_codec_combobox.get_active_text() == 'NVENC H264':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
 
                 if not encoding_task.is_video_h264_nvenc():
                     encoding_task.video_codec = h264_nvenc.H264Nvenc()
-            elif self.video_codec_combobox.get_active_text() == 'H265 NVENC':
+                    self.nvenc_page.apply_settings_to_widgets(encoding_task)
+            elif self.video_codec_combobox.get_active_text() == 'NVENC H265':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
 
                 if not encoding_task.is_video_hevc_nvenc():
                     encoding_task.video_codec = hevc_nvenc.HevcNvenc()
+                    self.nvenc_page.apply_settings_to_widgets(encoding_task)
             elif self.video_codec_combobox.get_active_text() == 'VP9':
                 GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
 
@@ -3798,8 +3802,13 @@ class SettingsSidebarWidgets:
                     self.on_widget_changed_clicked_set(check_button)
 
         class NvencStackPage(Gtk.Box):
-            def __init__(self):
+            def __init__(self, inputs_page):
                 super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+                self.inputs_page = inputs_page
+                self.is_widgets_setting_up = False
+                self._is_h264_state = True
+                self._is_h265_state = False
 
                 self._setup_codec_settings()
                 self._setup_codec_advanced_settings()
@@ -3843,6 +3852,7 @@ class SettingsSidebarWidgets:
                     self.preset_combobox.append_text(preset_setting)
 
                 self.preset_combobox.set_active(0)
+                self.preset_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_profile_row(self):
                 self._setup_profile_combobox()
@@ -3861,6 +3871,7 @@ class SettingsSidebarWidgets:
                     self.profile_combobox.append_text(profile_setting)
 
                 self.profile_combobox.set_active(0)
+                self.profile_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_level_row(self):
                 self._setup_level_combobox()
@@ -3879,6 +3890,7 @@ class SettingsSidebarWidgets:
                     self.level_combobox.append_text(level_setting)
 
                 self.level_combobox.set_active(0)
+                self.level_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_tune_row(self):
                 self._setup_tune_combobox()
@@ -3897,6 +3909,7 @@ class SettingsSidebarWidgets:
                     self.tune_combobox.append_text(tune_setting)
 
                 self.tune_combobox.set_active(0)
+                self.tune_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_rate_type_row(self):
                 self._setup_rate_type_radio_buttons()
@@ -3946,6 +3959,7 @@ class SettingsSidebarWidgets:
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
+                self.qp_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_bitrate_page(self):
                 self._setup_bitrate_spin_button()
@@ -3972,6 +3986,7 @@ class SettingsSidebarWidgets:
                 self.bitrate_spin_button.set_valign(Gtk.Align.CENTER)
                 self.bitrate_spin_button.set_hexpand(False)
                 self.bitrate_spin_button.set_halign(Gtk.Align.CENTER)
+                self.bitrate_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_bitrate_type_widgets(self):
                 self.average_bitrate_check_button = Gtk.CheckButton(label='Average')
@@ -3979,6 +3994,7 @@ class SettingsSidebarWidgets:
 
                 self.constant_bitrate_check_button = Gtk.CheckButton(label='Constant')
                 self.constant_bitrate_check_button.set_group(self.average_bitrate_check_button)
+                self.constant_bitrate_check_button.connect('toggled', self.on_widget_changed_clicked_set)
 
                 self.bitrate_type_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
                 self.bitrate_type_horizontal_box.append(self.average_bitrate_check_button)
@@ -4002,6 +4018,7 @@ class SettingsSidebarWidgets:
                     self.multi_pass_combobox.append_text(multi_pass_setting)
 
                 self.multi_pass_combobox.set_active(0)
+                self.multi_pass_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_codec_advanced_settings(self):
                 self._setup_custom_quantizer_row()
@@ -4026,8 +4043,14 @@ class SettingsSidebarWidgets:
                 self._setup_b_ref_mode_row()
                 self._setup_tier_row()
 
+                self.advanced_settings_switch = Gtk.Switch()
+                self.advanced_settings_switch.set_vexpand(False)
+                self.advanced_settings_switch.set_valign(Gtk.Align.CENTER)
+                self.advanced_settings_switch.connect('state-set', self.on_advanced_settings_switch_state_set)
+
                 self.codec_advanced_settings_group = Adw.PreferencesGroup()
                 self.codec_advanced_settings_group.set_title('Advanced Settings')
+                self.codec_advanced_settings_group.set_header_suffix(self.advanced_settings_switch)
                 self.codec_advanced_settings_group.add(self.custom_quantizer_row)
                 self.codec_advanced_settings_group.add(self.qp_i_row)
                 self.codec_advanced_settings_group.add(self.qp_p_row)
@@ -4057,6 +4080,7 @@ class SettingsSidebarWidgets:
                 self.custom_quantizer_row.set_title('Custom Quantizer')
                 self.custom_quantizer_row.set_subtitle('Quantizer value for each frame slice')
                 self.custom_quantizer_row.add_suffix(self.custom_quantizer_switch)
+                self.custom_quantizer_row.set_sensitive(False)
 
             def _setup_custom_quantizer_switch(self):
                 self.custom_quantizer_switch = Gtk.Switch()
@@ -4083,6 +4107,7 @@ class SettingsSidebarWidgets:
                 self.qp_i_scale.set_draw_value(True)
                 self.qp_i_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_i_scale.set_hexpand(True)
+                self.qp_i_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_qp_p_row(self):
                 self._setup_qp_p_scale()
@@ -4103,6 +4128,7 @@ class SettingsSidebarWidgets:
                 self.qp_p_scale.set_draw_value(True)
                 self.qp_p_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_p_scale.set_hexpand(True)
+                self.qp_p_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_qp_b_row(self):
                 self._setup_qp_b_scale()
@@ -4123,6 +4149,7 @@ class SettingsSidebarWidgets:
                 self.qp_b_scale.set_draw_value(True)
                 self.qp_b_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_b_scale.set_hexpand(True)
+                self.qp_b_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_rc_row(self):
                 self._setup_rc_combobox()
@@ -4131,6 +4158,7 @@ class SettingsSidebarWidgets:
                 self.rc_row.set_title('Rate Control')
                 self.rc_row.set_subtitle('Rate control type')
                 self.rc_row.add_suffix(self.rc_combobox)
+                self.rc_row.set_sensitive(False)
 
             def _setup_rc_combobox(self):
                 self.rc_combobox = Gtk.ComboBoxText()
@@ -4141,6 +4169,7 @@ class SettingsSidebarWidgets:
                     self.rc_combobox.append_text(rc_setting)
 
                 self.rc_combobox.set_active(0)
+                self.rc_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_rc_lookahead_row(self):
                 self._setup_rc_lookahead_spin_button()
@@ -4149,6 +4178,7 @@ class SettingsSidebarWidgets:
                 self.rc_lookahead_row.set_title('Rate Control Lookahead')
                 self.rc_lookahead_row.set_subtitle('Lookahead in frames')
                 self.rc_lookahead_row.add_suffix(self.rc_lookahead_spin_button)
+                self.rc_lookahead_row.set_sensitive(False)
 
             def _setup_rc_lookahead_spin_button(self):
                 self.rc_lookahead_spin_button = Gtk.SpinButton()
@@ -4161,6 +4191,7 @@ class SettingsSidebarWidgets:
                 self.rc_lookahead_spin_button.set_value(0)
                 self.rc_lookahead_spin_button.set_vexpand(False)
                 self.rc_lookahead_spin_button.set_valign(Gtk.Align.CENTER)
+                self.rc_lookahead_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_surfaces_row(self):
                 self._setup_surfaces_spin_button()
@@ -4169,6 +4200,7 @@ class SettingsSidebarWidgets:
                 self.surfaces_row.set_title('Surfaces')
                 self.surfaces_row.set_subtitle('Surfaces')
                 self.surfaces_row.add_suffix(self.surfaces_spin_button)
+                self.surfaces_row.set_sensitive(False)
 
             def _setup_surfaces_spin_button(self):
                 self.surfaces_spin_button = Gtk.SpinButton()
@@ -4181,6 +4213,7 @@ class SettingsSidebarWidgets:
                 self.surfaces_spin_button.set_value(0)
                 self.surfaces_spin_button.set_vexpand(False)
                 self.surfaces_spin_button.set_valign(Gtk.Align.CENTER)
+                self.surfaces_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_frames_row(self):
                 self._setup_b_frames_spin_button()
@@ -4189,6 +4222,7 @@ class SettingsSidebarWidgets:
                 self.b_frames_row.set_title('B-frames')
                 self.b_frames_row.set_subtitle('Number of consecutive B-frames in GOP')
                 self.b_frames_row.add_suffix(self.b_frames_spin_button)
+                self.b_frames_row.set_sensitive(False)
 
             def _setup_b_frames_spin_button(self):
                 self.b_frames_spin_button = Gtk.SpinButton()
@@ -4201,6 +4235,7 @@ class SettingsSidebarWidgets:
                 self.b_frames_spin_button.set_value(0)
                 self.b_frames_spin_button.set_vexpand(False)
                 self.b_frames_spin_button.set_valign(Gtk.Align.CENTER)
+                self.b_frames_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_refs_row(self):
                 self._setup_refs_spin_button()
@@ -4209,6 +4244,7 @@ class SettingsSidebarWidgets:
                 self.refs_row.set_title('Reference Frames')
                 self.refs_row.set_subtitle('Consecutive number of key-frames in GOP')
                 self.refs_row.add_suffix(self.refs_spin_button)
+                self.refs_row.set_sensitive(False)
 
             def _setup_refs_spin_button(self):
                 self.refs_spin_button = Gtk.SpinButton()
@@ -4220,6 +4256,7 @@ class SettingsSidebarWidgets:
                 self.refs_spin_button.set_value(0)
                 self.refs_spin_button.set_vexpand(False)
                 self.refs_spin_button.set_valign(Gtk.Align.CENTER)
+                self.refs_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_no_scenecut_row(self):
                 self._setup_no_scenecut_switch()
@@ -4228,11 +4265,13 @@ class SettingsSidebarWidgets:
                 self.no_scenecut_row.set_title('No Scenecut')
                 self.no_scenecut_row.set_subtitle('No Scenecut')
                 self.no_scenecut_row.add_suffix(self.no_scenecut_switch)
+                self.no_scenecut_row.set_sensitive(False)
 
             def _setup_no_scenecut_switch(self):
                 self.no_scenecut_switch = Gtk.Switch()
                 self.no_scenecut_switch.set_vexpand(False)
                 self.no_scenecut_switch.set_valign(Gtk.Align.CENTER)
+                self.no_scenecut_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_forced_idr_row(self):
                 self._setup_forced_idr_switch()
@@ -4241,11 +4280,13 @@ class SettingsSidebarWidgets:
                 self.forced_idr_row.set_title('Forced IDR')
                 self.forced_idr_row.set_subtitle('Forced IDR')
                 self.forced_idr_row.add_suffix(self.forced_idr_switch)
+                self.forced_idr_row.set_sensitive(False)
 
             def _setup_forced_idr_switch(self):
                 self.forced_idr_switch = Gtk.Switch()
                 self.forced_idr_switch.set_vexpand(False)
                 self.forced_idr_switch.set_valign(Gtk.Align.CENTER)
+                self.forced_idr_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_b_adapt_row(self):
                 self._setup_b_adapt_switch()
@@ -4254,11 +4295,13 @@ class SettingsSidebarWidgets:
                 self.b_adapt_row.set_title('B-Adapt')
                 self.b_adapt_row.set_subtitle('B-Adapt')
                 self.b_adapt_row.add_suffix(self.b_adapt_switch)
+                self.b_adapt_row.set_sensitive(False)
 
             def _setup_b_adapt_switch(self):
                 self.b_adapt_switch = Gtk.Switch()
                 self.b_adapt_switch.set_vexpand(False)
                 self.b_adapt_switch.set_valign(Gtk.Align.CENTER)
+                self.b_adapt_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_aq_mode_row(self):
                 self._setup_aq_mode_radio_buttons()
@@ -4267,6 +4310,7 @@ class SettingsSidebarWidgets:
                 self.aq_mode_row.set_title('AQ Mode')
                 self.aq_mode_row.set_subtitle('Adaptive quantizer mode')
                 self.aq_mode_row.add_suffix(self.aq_mode_horizontal_box)
+                self.aq_mode_row.set_sensitive(False)
 
             def _setup_aq_mode_radio_buttons(self):
                 self.spatial_aq_check_button = Gtk.CheckButton(label='Spatial AQ')
@@ -4287,11 +4331,13 @@ class SettingsSidebarWidgets:
                 self.non_ref_p_row.set_title('Non-Ref P-frames')
                 self.non_ref_p_row.set_subtitle('Allow for non-reference P-frames')
                 self.non_ref_p_row.add_suffix(self.non_ref_p_switch)
+                self.non_ref_p_row.set_sensitive(False)
 
             def _setup_non_ref_p_switch(self):
                 self.non_ref_p_switch = Gtk.Switch()
                 self.non_ref_p_switch.set_vexpand(False)
                 self.non_ref_p_switch.set_valign(Gtk.Align.CENTER)
+                self.non_ref_p_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_strict_gop_row(self):
                 self._setup_strict_gop_switch()
@@ -4300,11 +4346,13 @@ class SettingsSidebarWidgets:
                 self.strict_gop_row.set_title('Strict GOP')
                 self.strict_gop_row.set_subtitle('Strict GOP')
                 self.strict_gop_row.add_suffix(self.strict_gop_switch)
+                self.strict_gop_row.set_sensitive(False)
 
             def _setup_strict_gop_switch(self):
                 self.strict_gop_switch = Gtk.Switch()
                 self.strict_gop_switch.set_vexpand(False)
                 self.strict_gop_switch.set_valign(Gtk.Align.CENTER)
+                self.strict_gop_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_aq_strength_row(self):
                 self._setup_aq_strength_spin_button()
@@ -4313,6 +4361,7 @@ class SettingsSidebarWidgets:
                 self.aq_strength_row.set_title('AQ Strength')
                 self.aq_strength_row.set_subtitle('Adaptive quantizer strength')
                 self.aq_strength_row.add_suffix(self.aq_strength_spin_button)
+                self.aq_strength_row.set_sensitive(False)
 
             def _setup_aq_strength_spin_button(self):
                 self.aq_strength_spin_button = Gtk.SpinButton()
@@ -4325,6 +4374,7 @@ class SettingsSidebarWidgets:
                 self.aq_strength_spin_button.set_value(8)
                 self.aq_strength_spin_button.set_vexpand(False)
                 self.aq_strength_spin_button.set_valign(Gtk.Align.CENTER)
+                self.aq_strength_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_bluray_compat_row(self):
                 self._setup_bluray_compat_switch()
@@ -4332,11 +4382,13 @@ class SettingsSidebarWidgets:
                 self.bluray_compat_row = Adw.ActionRow()
                 self.bluray_compat_row.set_title('Blu-Ray Compatibility')
                 self.bluray_compat_row.add_suffix(self.bluray_compat_switch)
+                self.bluray_compat_row.set_sensitive(False)
 
             def _setup_bluray_compat_switch(self):
                 self.bluray_compat_switch = Gtk.Switch()
                 self.bluray_compat_switch.set_vexpand(False)
                 self.bluray_compat_switch.set_valign(Gtk.Align.CENTER)
+                self.bluray_compat_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_weighted_pred_row(self):
                 self._setup_weighted_pred_switch()
@@ -4345,11 +4397,13 @@ class SettingsSidebarWidgets:
                 self.weighted_pred_row.set_title('Weighted Predicition')
                 self.weighted_pred_row.set_subtitle('Weighted predicition')
                 self.weighted_pred_row.add_suffix(self.weighted_pred_switch)
+                self.weighted_pred_row.set_sensitive(False)
 
             def _setup_weighted_pred_switch(self):
                 self.weighted_pred_switch = Gtk.Switch()
                 self.weighted_pred_switch.set_vexpand(False)
                 self.weighted_pred_switch.set_valign(Gtk.Align.CENTER)
+                self.weighted_pred_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_coder_row(self):
                 self._setup_coder_combobox()
@@ -4358,6 +4412,7 @@ class SettingsSidebarWidgets:
                 self.coder_row.set_title('Coder')
                 self.coder_row.set_subtitle('Coder')
                 self.coder_row.add_suffix(self.coder_combobox)
+                self.coder_row.set_sensitive(False)
 
             def _setup_coder_combobox(self):
                 self.coder_combobox = Gtk.ComboBoxText()
@@ -4368,6 +4423,7 @@ class SettingsSidebarWidgets:
                     self.coder_combobox.append_text(coder_setting)
 
                 self.coder_combobox.set_active(0)
+                self.coder_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_ref_mode_row(self):
                 self._setup_b_ref_mode_combobox()
@@ -4376,6 +4432,7 @@ class SettingsSidebarWidgets:
                 self.b_ref_mode_row.set_title('B-Ref Mode')
                 self.b_ref_mode_row.set_subtitle('B-Ref Mode')
                 self.b_ref_mode_row.add_suffix(self.b_ref_mode_combobox)
+                self.b_ref_mode_row.set_sensitive(False)
 
             def _setup_b_ref_mode_combobox(self):
                 self.b_ref_mode_combobox = Gtk.ComboBoxText()
@@ -4386,6 +4443,7 @@ class SettingsSidebarWidgets:
                     self.b_ref_mode_combobox.append_text(b_ref_mode_setting)
 
                 self.b_ref_mode_combobox.set_active(0)
+                self.b_ref_mode_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
             def _setup_tier_row(self):
                 self._setup_tier_switch()
@@ -4400,13 +4458,318 @@ class SettingsSidebarWidgets:
                 self.tier_switch = Gtk.Switch()
                 self.tier_switch.set_vexpand(False)
                 self.tier_switch.set_valign(Gtk.Align.CENTER)
+                self.tier_switch.connect('state-set', self.on_widget_changed_clicked_set)
+
+            def show_settings_not_compatible_message(self, is_settings_compatible: bool):
+                if is_settings_compatible:
+                    return
+
+                message_text = 'Settings Not Compatible'
+                secondary_message_text = 'Current codec settings may not work with this computer.'
+                settings_not_compatible_message_dialog = Gtk.MessageDialog(
+                    transient_for=self.inputs_page.main_window_widgets.main_window,
+                    modal=True,
+                    destroy_with_parent=True,
+                    buttons=Gtk.ButtonsType.CLOSE,
+                    text=message_text,
+                    secondary_text=secondary_message_text
+                )
+                settings_not_compatible_message_dialog.connect('response',
+                                                               self._on_settings_not_compatible_message_dialog_response)
+                settings_not_compatible_message_dialog.show()
+
+            def _on_settings_not_compatible_message_dialog_response(self, message_dialog, response):
+                message_dialog.close()
+                message_dialog.destroy()
+
+            def set_h264_advanced_settings_state(self):
+                self._is_h264_state = True
+                self._is_h265_state = False
+
+                self.tier_row.set_sensitive(False)
+                self.b_adapt_row.set_sensitive(self.advanced_settings_switch.get_active() and True)
+                self.coder_row.set_sensitive(self.advanced_settings_switch.get_active() and True)
+                self._repopulate_combobox_text(self.preset_combobox, h264_nvenc.H264Nvenc.PRESET)
+                self._repopulate_combobox_text(self.profile_combobox, h264_nvenc.H264Nvenc.PROFILE)
+                self._repopulate_combobox_text(self.level_combobox, h264_nvenc.H264Nvenc.LEVEL)
+                self._repopulate_combobox_text(self.tune_combobox, h264_nvenc.H264Nvenc.TUNE)
+                self._repopulate_combobox_text(self.rc_combobox, h264_nvenc.H264Nvenc.RATE_CONTROL)
+                self._repopulate_combobox_text(self.multi_pass_combobox, h264_nvenc.H264Nvenc.MULTI_PASS)
+                self._repopulate_combobox_text(self.b_ref_mode_combobox, h264_nvenc.H264Nvenc.BREF_MODE)
+
+            def set_h265_advanced_settings_state(self):
+                self._is_h264_state = False
+                self._is_h265_state = True
+
+                self.tier_row.set_sensitive(self.advanced_settings_switch.get_active() and True)
+                self.b_adapt_row.set_sensitive(False)
+                self.coder_row.set_sensitive(False)
+                self._repopulate_combobox_text(self.preset_combobox, hevc_nvenc.HevcNvenc.PRESET)
+                self._repopulate_combobox_text(self.profile_combobox, hevc_nvenc.HevcNvenc.PROFILE)
+                self._repopulate_combobox_text(self.level_combobox, hevc_nvenc.HevcNvenc.LEVEL)
+                self._repopulate_combobox_text(self.tune_combobox, hevc_nvenc.HevcNvenc.TUNE)
+                self._repopulate_combobox_text(self.rc_combobox, hevc_nvenc.HevcNvenc.RATE_CONTROL)
+                self._repopulate_combobox_text(self.multi_pass_combobox, hevc_nvenc.HevcNvenc.MULTI_PASS)
+                self._repopulate_combobox_text(self.b_ref_mode_combobox, hevc_nvenc.HevcNvenc.BREF_MODE)
+
+            def _repopulate_combobox_text(self, combobox: Gtk.ComboBoxText, items_list: list):
+                self.is_widgets_setting_up = True
+
+                combobox.remove_all()
+
+                for item in items_list:
+                    combobox.append_text(item)
+
+                combobox.set_active(0)
+
+                self.is_widgets_setting_up = False
+
+            def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+                self.is_widgets_setting_up = is_widgets_setting_up
+
+            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.set_widgets_setting_up, True)
+                self._apply_preset_setting_to_widgets(encoding_task)
+                self._apply_profile_setting_to_widgets(encoding_task)
+                self._apply_level_setting_to_widgets(encoding_task)
+                self._apply_tune_setting_to_widgets(encoding_task)
+                self._apply_rate_type_settings_to_widgets(encoding_task)
+                self._apply_qp_setting_to_widgets(encoding_task)
+                self._apply_bitrate_type_settings_to_widgets(encoding_task)
+                self._apply_advanced_settings_to_widgets(encoding_task)
+                self._apply_advanced_settings_state_to_widgets(encoding_task)
+                GLib.idle_add(self.set_widgets_setting_up, False)
+
+            def _apply_preset_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.preset_combobox.set_active, encoding_task.video_codec.preset)
+
+            def _apply_profile_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.profile_combobox.set_active, encoding_task.video_codec.profile)
+
+            def _apply_level_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.level_combobox.set_active, encoding_task.video_codec.level)
+
+            def _apply_tune_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.tune_combobox.set_active, encoding_task.video_codec.tune)
+
+            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.is_qp_enabled:
+                    GLib.idle_add(self.qp_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.bitrate_check_button.set_active, True)
+
+            def _apply_qp_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.qp_scale.set_value, encoding_task.video_codec.qp)
+
+            def _apply_bitrate_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+
+            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.is_bitrate_enabled:
+                    if encoding_task.video_codec.cbr:
+                        GLib.idle_add(self.constant_bitrate_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.average_bitrate_check_button.set_active, True)
+
+                GLib.idle_add(self.multi_pass_combobox.set_active, encoding_task.video_codec.multi_pass)
+
+            def _apply_advanced_settings_state_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.is_video_h264_nvenc():
+                    GLib.idle_add(self.set_h264_advanced_settings_state)
+                else:
+                    GLib.idle_add(self.set_h265_advanced_settings_state)
+
+            def _apply_advanced_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.advanced_settings_switch.set_active, encoding_task.video_codec.is_advanced_enabled)
+                self._apply_custom_qp_settings_to_widgets(encoding_task)
+                self._apply_rc_setting_to_widgets(encoding_task)
+                self._apply_rc_lookahead_setting_to_widgets(encoding_task)
+                self._apply_surfaces_setting_to_widgets(encoding_task)
+                self._apply_tier_setting_to_widgets(encoding_task)
+                self._apply_b_frames_setting_to_widgets(encoding_task)
+                self._apply_refs_setting_to_widgets(encoding_task)
+                self._apply_no_scenecut_setting_to_widgets(encoding_task)
+                self._apply_forced_idr_setting_to_widgets(encoding_task)
+                self._apply_b_adapt_setting_to_widgets(encoding_task)
+                self._apply_aq_method_settings_to_widgets(encoding_task)
+                self._apply_non_ref_p_setting_to_widgets(encoding_task)
+                self._apply_strict_gop_setting_to_widgets(encoding_task)
+                self._apply_aq_strength_setting_to_widgets(encoding_task)
+                self._apply_bluray_compat_setting_to_widgets(encoding_task)
+                self._apply_weighted_pred_setting_to_widgets(encoding_task)
+                self._apply_coder_setting_to_widgets(encoding_task)
+                self._apply_b_ref_mode_setting_to_widgets(encoding_task)
+
+            def _apply_custom_qp_settings_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.custom_quantizer_switch.set_active, encoding_task.video_codec.is_qp_custom_enabled)
+                GLib.idle_add(self.qp_i_scale.set_value, encoding_task.video_codec.qp_i)
+                GLib.idle_add(self.qp_p_scale.set_value, encoding_task.video_codec.qp_p)
+                GLib.idle_add(self.qp_b_scale.set_value, encoding_task.video_codec.qp_b)
+
+            def _apply_rc_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.rc_combobox.set_active, encoding_task.video_codec.rc)
+
+            def _apply_rc_lookahead_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.rc_lookahead_spin_button.set_value, encoding_task.video_codec.rc_lookahead)
+
+            def _apply_surfaces_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.surfaces_spin_button.set_value, encoding_task.video_codec.surfaces)
+
+            def _apply_tier_setting_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.is_video_hevc_nvenc():
+                    GLib.idle_add(self.tier_switch.set_active, encoding_task.video_codec.tier)
+
+            def _apply_b_frames_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.b_frames_spin_button.set_value, encoding_task.video_codec.b_frames)
+
+            def _apply_refs_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.refs_spin_button.set_value, encoding_task.video_codec.refs)
+
+            def _apply_no_scenecut_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.no_scenecut_switch.set_active, encoding_task.video_codec.no_scenecut)
+
+            def _apply_forced_idr_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.forced_idr_switch.set_active, encoding_task.video_codec.forced_idr)
+
+            def _apply_b_adapt_setting_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.is_video_h264_nvenc():
+                    GLib.idle_add(self.b_adapt_switch.set_active, encoding_task.video_codec.b_adapt)
+
+            def _apply_aq_method_settings_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.video_codec.spatial_aq:
+                    GLib.idle_add(self.spatial_aq_check_button.set_active, True)
+                else:
+                    GLib.idle_add(self.temporal_aq_check_button.set_active, True)
+
+            def _apply_non_ref_p_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.non_ref_p_switch.set_active, encoding_task.video_codec.non_ref_p)
+
+            def _apply_strict_gop_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.strict_gop_switch.set_active, encoding_task.video_codec.strict_gop)
+
+            def _apply_aq_strength_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.aq_strength_spin_button.set_value, encoding_task.video_codec.aq_strength)
+
+            def _apply_bluray_compat_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.bluray_compat_switch.set_active, encoding_task.video_codec.bluray_compat)
+
+            def _apply_weighted_pred_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.weighted_pred_switch.set_active, encoding_task.video_codec.weighted_pred)
+
+            def _apply_coder_setting_to_widgets(self, encoding_task: encoding.Task):
+                if encoding_task.is_video_h264_nvenc():
+                    GLib.idle_add(self.coder_combobox.set_active, encoding_task.video_codec.coder)
+
+            def _apply_b_ref_mode_setting_to_widgets(self, encoding_task: encoding.Task):
+                GLib.idle_add(self.b_ref_mode_combobox.set_active, encoding_task.video_codec.b_ref_mode)
+
+            def apply_settings_from_widgets(self):
+                if self._is_h264_state:
+                    nvenc_settings = h264_nvenc.H264Nvenc()
+                else:
+                    nvenc_settings = hevc_nvenc.HevcNvenc()
+
+                nvenc_settings.preset = self.preset_combobox.get_active()
+                nvenc_settings.profile = self.profile_combobox.get_active()
+                nvenc_settings.level = self.level_combobox.get_active()
+                nvenc_settings.tune = self.tune_combobox.get_active()
+                nvenc_settings.is_advanced_enabled = self.advanced_settings_switch.get_active()
+
+                self._apply_rate_type_settings_from_widgets(nvenc_settings)
+
+                if self.advanced_settings_switch.get_active():
+                    nvenc_settings.rc = self.rc_combobox.get_active()
+                    nvenc_settings.rc_lookahead = self.rc_lookahead_spin_button.get_value_as_int()
+                    nvenc_settings.surfaces = self.surfaces_spin_button.get_value_as_int()
+                    nvenc_settings.b_frames = self.b_frames_spin_button.get_value_as_int()
+                    nvenc_settings.refs = self.refs_spin_button.get_value_as_int()
+                    nvenc_settings.no_scenecut = self.no_scenecut_switch.get_active()
+                    nvenc_settings.forced_idr = self.forced_idr_switch.get_active()
+                    nvenc_settings.non_ref_p = self.non_ref_p_switch.get_active()
+                    nvenc_settings.strict_gop = self.strict_gop_switch.get_active()
+                    nvenc_settings.bluray_compat = self.bluray_compat_switch.get_active()
+                    nvenc_settings.weighted_pred = self.weighted_pred_switch.get_active()
+                    nvenc_settings.b_ref_mode = self.b_ref_mode_combobox.get_active()
+
+                    self._apply_tier_setting_from_widgets(nvenc_settings)
+                    self._apply_coder_setting_from_widgets(nvenc_settings)
+                    self._apply_b_adapt_setting_from_widgets(nvenc_settings)
+                    self._apply_aq_settings_from_widgets(nvenc_settings)
+                    self._apply_qp_custom_settings_from_widgets(nvenc_settings)
+
+                is_settings_compatible = None
+
+                for input_row in self.inputs_page.get_selected_rows():
+                    encoding_task = input_row.encoding_task
+                    encoding_task.video_codec = copy.deepcopy(nvenc_settings)
+
+                    if is_settings_compatible is None:
+                        is_settings_compatible = nvidia_helper.Compatibility.is_encoding_task_compatible(encoding_task)
+                    print(encoding_task.get_info())
+
+                GLib.idle_add(self.show_settings_not_compatible_message, is_settings_compatible)
+
+            def _apply_rate_type_settings_from_widgets(self,
+                                                       nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                if self.qp_check_button.get_active():
+                    nvenc_settings.qp = self.qp_scale.get_value()
+                else:
+                    nvenc_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
+                    nvenc_settings.cbr = self.constant_bitrate_check_button.get_active()
+                    nvenc_settings.multi_pass = self.multi_pass_combobox.get_active()
+
+            def _apply_tier_setting_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                if self._is_h265_state:
+                    nvenc_settings.tier = self.tier_switch.get_active()
+
+            def _apply_coder_setting_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                if self._is_h264_state:
+                    nvenc_settings.coder = self.coder_combobox.get_active()
+
+            def _apply_b_adapt_setting_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                if self._is_h264_state:
+                    nvenc_settings.b_adapt = self.b_adapt_switch.get_active()
+
+            def _apply_aq_settings_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                if self.temporal_aq_check_button.get_active():
+                    nvenc_settings.temporal_aq = True
+                else:
+                    nvenc_settings.spatial_aq = True
+                    nvenc_settings.aq_strength = self.aq_strength_spin_button.get_value_as_int()
+
+            def _apply_qp_custom_settings_from_widgets(self,
+                                                       nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                if self.custom_quantizer_switch.get_active():
+                    nvenc_settings.is_qp_custom_enabled = True
+                    nvenc_settings.qp_i = self.qp_i_scale.get_value()
+                    nvenc_settings.qp_p = self.qp_p_scale.get_value()
+                    nvenc_settings.qp_b = self.qp_b_scale.get_value()
+
+            def on_widget_changed_clicked_set(self, *args, **kwargs):
+                if self.is_widgets_setting_up:
+                    return
+
+                threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
+
+            def on_scale_adjust_bounds(self, scale, value):
+                if self.is_widgets_setting_up:
+                    return
+
+                if int(value) != int(scale.get_value()):
+                    self.on_widget_changed_clicked_set(scale)
 
             def on_qp_check_button_toggled(self, check_button):
+                self.custom_quantizer_row.set_sensitive(check_button.get_active())
+
                 if check_button.get_active():
                     self.rate_type_settings_stack.set_visible_child_name('qp_page')
                     self.rate_type_settings_row.set_title('QP')
                     self.rate_type_settings_row.set_subtitle('Constant Quantizer: P-frames')
                     self.multi_pass_row.set_sensitive(False)
+
+                    self.on_widget_changed_clicked_set(check_button)
+                else:
+                    self.custom_quantizer_switch.set_active(False)
 
             def on_bitrate_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -4415,13 +4778,60 @@ class SettingsSidebarWidgets:
                     self.rate_type_settings_row.set_subtitle('Encoder bitrate')
                     self.multi_pass_row.set_sensitive(True)
 
+                self.on_widget_changed_clicked_set(check_button)
+
             def on_custom_quantizer_switch_state_set(self, switch, user_data):
                 self.qp_i_row.set_sensitive(switch.get_active())
                 self.qp_p_row.set_sensitive(switch.get_active())
                 self.qp_b_row.set_sensitive(switch.get_active())
 
+                self.on_widget_changed_clicked_set(switch)
+
             def on_spatial_aq_check_button_toggled(self, check_button):
                 self.aq_strength_row.set_sensitive(check_button.get_active())
+
+                self.on_widget_changed_clicked_set(check_button)
+
+            def on_advanced_settings_switch_state_set(self, switch, user_data):
+                is_state_enabled = self.advanced_settings_switch.get_active()
+                self._set_qp_custom_rows_enabled(is_state_enabled)
+                self.rc_row.set_sensitive(is_state_enabled)
+                self.rc_lookahead_row.set_sensitive(is_state_enabled)
+                self.surfaces_row.set_sensitive(is_state_enabled)
+                self._set_tier_row_enabled(is_state_enabled)
+                self.refs_row.set_sensitive(is_state_enabled)
+                self.forced_idr_row.set_sensitive(is_state_enabled)
+                self.non_ref_p_row.set_sensitive(is_state_enabled)
+                self.no_scenecut_row.set_sensitive(is_state_enabled)
+                self.strict_gop_row.set_sensitive(is_state_enabled)
+                self.b_frames_row.set_sensitive(is_state_enabled)
+                self.b_ref_mode_row.set_sensitive(is_state_enabled)
+                self._set_b_adapt_row_enabled(is_state_enabled)
+                self.weighted_pred_row.set_sensitive(is_state_enabled)
+                self._set_aq_rows_enabled(is_state_enabled)
+                self._set_coder_row_enabled(is_state_enabled)
+                self.bluray_compat_row.set_sensitive(is_state_enabled)
+
+                self.on_widget_changed_clicked_set(switch)
+
+            def _set_qp_custom_rows_enabled(self, is_state_enabled: bool):
+                self.custom_quantizer_row.set_sensitive(self.qp_check_button.get_active() and is_state_enabled)
+                self.qp_i_row.set_sensitive(self.custom_quantizer_switch.get_active())
+                self.qp_p_row.set_sensitive(self.custom_quantizer_switch.get_active())
+                self.qp_b_row.set_sensitive(self.custom_quantizer_switch.get_active())
+
+            def _set_tier_row_enabled(self, is_state_enabled: bool):
+                self.tier_row.set_sensitive(self._is_h265_state and is_state_enabled)
+
+            def _set_b_adapt_row_enabled(self, is_state_enabled: bool):
+                self.b_adapt_row.set_sensitive(self._is_h264_state and is_state_enabled)
+
+            def _set_aq_rows_enabled(self, is_state_enabled: bool):
+                self.aq_mode_row.set_sensitive(is_state_enabled)
+                self.aq_strength_row.set_sensitive(self.spatial_aq_check_button.get_active() and is_state_enabled)
+
+            def _set_coder_row_enabled(self, is_state_enabled: bool):
+                self.coder_row.set_sensitive(self._is_h264_state and is_state_enabled)
 
         class CodecSettingsNoAvailPage(Gtk.Box):
             def __init__(self):

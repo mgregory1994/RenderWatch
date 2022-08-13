@@ -73,11 +73,33 @@ class H264Nvenc:
         self.is_advanced_enabled = False
         self.is_qp_custom_enabled = False
         self.is_dual_pass_enabled = False
+        self._is_qp_enabled = True
+        self._is_bitrate_enabled = False
         self._ffmpeg_advanced_args = {}
         self.ffmpeg_args = {
             '-c:v': 'h264_nvenc',
             '-qp': '20.0'
         }
+
+    @property
+    def is_qp_enabled(self) -> bool:
+        """
+        Returns whether QP is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether QP is enabled for the rate type settings.
+        """
+        return self._is_qp_enabled
+
+    @property
+    def is_bitrate_enabled(self) -> bool:
+        """
+        Returns whether bitrate is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether bitrate is enabled for the rate type settings.
+        """
+        return self._is_bitrate_enabled
 
     @property
     def codec_name(self) -> str:
@@ -117,6 +139,8 @@ class H264Nvenc:
         else:
             self.ffmpeg_args['-qp'] = str(qp_value)
             self.bitrate = None
+            self._is_qp_enabled = True
+            self._is_bitrate_enabled = False
 
     @property
     def bitrate(self) -> int:
@@ -148,6 +172,8 @@ class H264Nvenc:
         else:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
             self.qp = None
+            self._is_qp_enabled = False
+            self._is_bitrate_enabled = True
 
     @property
     def profile(self) -> int:
@@ -932,4 +958,4 @@ class H264Nvenc:
         """
         if self.is_advanced_enabled:
             return self._ffmpeg_advanced_args
-        return {None: None}
+        return {}
