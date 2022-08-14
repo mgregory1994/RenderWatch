@@ -102,7 +102,7 @@ class X265:
         self._is_bitrate_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libx265',
-            '-crf': '20.0'
+            '-crf': '20'
         }
         self._ffmpeg_advanced_args = {}
 
@@ -162,7 +162,7 @@ class X265:
             self._is_bitrate_enabled = False
 
     @property
-    def qp(self) -> float:
+    def qp(self) -> int:
         """
         Returns the value of the QP setting.
 
@@ -170,11 +170,11 @@ class X265:
             QP setting as a float.
         """
         if '-qp' in self.ffmpeg_args:
-            return float(self.ffmpeg_args['-qp'])
-        return 20.0
+            return int(self.ffmpeg_args['-qp'])
+        return 20
 
     @qp.setter
-    def qp(self, qp_value: float | None):
+    def qp(self, qp_value: int | None):
         """
         Sets the QP setting to the specified value.
 
@@ -1102,7 +1102,7 @@ class X265:
         return False
 
     @sao_non_deblock.setter
-    def sao_non_deblock(self, is_sao_non_deblock_enabled):
+    def sao_non_deblock(self, is_sao_non_deblock_enabled: bool):
         """
         Sets the SAO non-deblock setting to the specified value.
 

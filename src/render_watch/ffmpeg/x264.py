@@ -113,7 +113,7 @@ class X264:
         self._is_bitrate_enabled = False
         self.ffmpeg_args = {
             '-c:v': 'libx264',
-            '-crf': '20.0'
+            '-crf': '20'
         }
         self._ffmpeg_advanced_args = {}
 
@@ -158,7 +158,7 @@ class X264:
         return self.ffmpeg_args['-c:v']
 
     @property
-    def crf(self) -> float:
+    def crf(self) -> int:
         """
         Returns the value of the CRF setting.
 
@@ -166,11 +166,11 @@ class X264:
             CRF setting as a float.
         """
         if '-crf' in self.ffmpeg_args:
-            return float(self.ffmpeg_args['-crf'])
-        return 20.0
+            return int(self.ffmpeg_args['-crf'])
+        return 20
 
     @crf.setter
-    def crf(self, crf_value: float | None):
+    def crf(self, crf_value: int | None):
         """
         Sets the CRF setting to the specified value.
 
@@ -191,7 +191,7 @@ class X264:
             self._is_bitrate_enabled = False
 
     @property
-    def qp(self) -> float:
+    def qp(self) -> int:
         """
         Returns the value of the QP setting.
 
@@ -200,10 +200,10 @@ class X264:
         """
         if '-qp' in self.ffmpeg_args:
             return float(self.ffmpeg_args['-qp'])
-        return 20.0
+        return 20
 
     @qp.setter
-    def qp(self, qp_value: float | None):
+    def qp(self, qp_value: int | None):
         """
         Sets the QP setting to the specified value.
 

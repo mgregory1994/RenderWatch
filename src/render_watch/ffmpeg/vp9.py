@@ -287,7 +287,7 @@ class VP9:
             self.ffmpeg_args['-b:v'] = str(bitrate_value) + 'k'
 
     @property
-    def crf(self) -> float:
+    def crf(self) -> int:
         """
         Returns what the CRF option is set to.
 
@@ -295,11 +295,11 @@ class VP9:
             CRF as a float.
         """
         if '-crf' in self.ffmpeg_args:
-            return float(self.ffmpeg_args['-crf'])
-        return 30.0
+            return int(self.ffmpeg_args['-crf'])
+        return 30
 
     @crf.setter
-    def crf(self, crf_value: float | None):
+    def crf(self, crf_value: int | None):
         """
         Sets the CRF option to the specified value.
 

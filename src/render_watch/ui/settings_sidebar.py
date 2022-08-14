@@ -729,8 +729,8 @@ class SettingsSidebarWidgets:
                                                          min=x264.X264.QP_MIN,
                                                          max=x264.X264.QP_MAX,
                                                          step=1.0)
-                self.qp_scale.set_value(20.0)
-                self.qp_scale.set_digits(1)
+                self.qp_scale.set_value(20)
+                self.qp_scale.set_digits(0)
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
@@ -2024,8 +2024,8 @@ class SettingsSidebarWidgets:
                                                           min=x265.X265.CRF_MIN,
                                                           max=x265.X265.CRF_MAX,
                                                           step=1.0)
-                self.crf_scale.set_value(20.0)
-                self.crf_scale.set_digits(1)
+                self.crf_scale.set_value(20)
+                self.crf_scale.set_digits(0)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
@@ -2036,8 +2036,8 @@ class SettingsSidebarWidgets:
                                                          min=x265.X265.QP_MIN,
                                                          max=x265.X265.QP_MAX,
                                                          step=1.0)
-                self.qp_scale.set_value(20.0)
-                self.qp_scale.set_digits(1)
+                self.qp_scale.set_value(20)
+                self.qp_scale.set_digits(0)
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
@@ -3451,8 +3451,8 @@ class SettingsSidebarWidgets:
                                                           min=vp9.VP9.CRF_MIN,
                                                           max=vp9.VP9.CRF_MAX,
                                                           step=1.0)
-                self.crf_scale.set_value(30.0)
-                self.crf_scale.set_digits(1)
+                self.crf_scale.set_value(30)
+                self.crf_scale.set_digits(0)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
@@ -3954,8 +3954,8 @@ class SettingsSidebarWidgets:
                                                          min=h264_nvenc.H264Nvenc.QP_MIN,
                                                          max=h264_nvenc.H264Nvenc.QP_MAX,
                                                          step=1.0)
-                self.qp_scale.set_value(20.0)
-                self.qp_scale.set_digits(1)
+                self.qp_scale.set_value(20)
+                self.qp_scale.set_digits(0)
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
@@ -4663,7 +4663,7 @@ class SettingsSidebarWidgets:
             def _apply_b_ref_mode_setting_to_widgets(self, encoding_task: encoding.Task):
                 GLib.idle_add(self.b_ref_mode_combobox.set_active, encoding_task.video_codec.b_ref_mode)
 
-            def apply_settings_from_widgets(self):
+            def apply_settings_from_widgets(self, is_compatibilty_check_enabled=True):
                 if self._is_h264_state:
                     nvenc_settings = h264_nvenc.H264Nvenc()
                 else:
@@ -4707,7 +4707,8 @@ class SettingsSidebarWidgets:
                         is_settings_compatible = nvidia_helper.Compatibility.is_encoding_task_compatible(encoding_task)
                     print(encoding_task.get_info())
 
-                GLib.idle_add(self.show_settings_not_compatible_message, is_settings_compatible)
+                if is_compatibilty_check_enabled:
+                    GLib.idle_add(self.show_settings_not_compatible_message, is_settings_compatible)
 
             def _apply_rate_type_settings_from_widgets(self,
                                                        nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
@@ -4756,7 +4757,9 @@ class SettingsSidebarWidgets:
                     return
 
                 if int(value) != int(scale.get_value()):
-                    self.on_widget_changed_clicked_set(scale)
+                    threading.Thread(target=self.apply_settings_from_widgets,
+                                     args=(),
+                                     kwargs={'is_compatibilty_check_enabled': False}).start()
 
             def on_qp_check_button_toggled(self, check_button):
                 self.custom_quantizer_row.set_sensitive(check_button.get_active())

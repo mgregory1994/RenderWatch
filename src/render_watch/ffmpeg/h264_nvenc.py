@@ -78,7 +78,7 @@ class H264Nvenc:
         self._ffmpeg_advanced_args = {}
         self.ffmpeg_args = {
             '-c:v': 'h264_nvenc',
-            '-qp': '20.0'
+            '-qp': '20'
         }
 
     @property
@@ -112,7 +112,7 @@ class H264Nvenc:
         return self.ffmpeg_args['-c:v']
 
     @property
-    def qp(self) -> float:
+    def qp(self) -> int:
         """
         Returns the value of the QP setting.
 
@@ -120,11 +120,11 @@ class H264Nvenc:
             QP setting as a float.
         """
         if '-qp' in self.ffmpeg_args:
-            return float(self.ffmpeg_args['-qp'])
-        return 20.0
+            return int(self.ffmpeg_args['-qp'])
+        return 20
 
     @qp.setter
-    def qp(self, qp_value: float | None):
+    def qp(self, qp_value: int | None):
         """
         Sets the QP setting to the specified value.
 
@@ -356,7 +356,7 @@ class H264Nvenc:
             self.ffmpeg_args.pop('-cbr', 0)
 
     @property
-    def qp_i(self) -> float:
+    def qp_i(self) -> int:
         """
         Returns the value of the QP I setting.
 
@@ -364,11 +364,11 @@ class H264Nvenc:
             QP I setting as a float.
         """
         if '-init_qpI' in self._ffmpeg_advanced_args:
-            return float(self._ffmpeg_advanced_args['-init_qpI'])
-        return 20.0
+            return int(self._ffmpeg_advanced_args['-init_qpI'])
+        return 20
 
     @qp_i.setter
-    def qp_i(self, qp_i_value: float | None):
+    def qp_i(self, qp_i_value: int | None):
         """
         Sets the QP I setting to the specified value.
 
@@ -384,7 +384,7 @@ class H264Nvenc:
             self._ffmpeg_advanced_args['-init_qpI'] = str(qp_i_value)
 
     @property
-    def qp_p(self) -> float:
+    def qp_p(self) -> int:
         """
         Returns the value of the QP P setting.
 
@@ -392,11 +392,11 @@ class H264Nvenc:
             QP P setting as a float.
         """
         if '-init_qpP' in self._ffmpeg_advanced_args:
-            return float(self._ffmpeg_advanced_args['-init_qpP'])
-        return 20.0
+            return int(self._ffmpeg_advanced_args['-init_qpP'])
+        return 20
 
     @qp_p.setter
-    def qp_p(self, qp_p_value: float | None):
+    def qp_p(self, qp_p_value: int | None):
         """
         Sets the QP P setting to the specified value.
 
@@ -412,7 +412,7 @@ class H264Nvenc:
             self._ffmpeg_advanced_args['-init_qpP'] = str(qp_p_value)
 
     @property
-    def qp_b(self) -> float:
+    def qp_b(self) -> int:
         """
         Returns the value of the QP B setting.
 
@@ -420,11 +420,11 @@ class H264Nvenc:
             QP B setting as a float.
         """
         if '-init_qpB' in self._ffmpeg_advanced_args:
-            return float(self._ffmpeg_advanced_args['-init_qpB'])
-        return 20.0
+            return int(self._ffmpeg_advanced_args['-init_qpB'])
+        return 20
 
     @qp_b.setter
-    def qp_b(self, qp_b_value: float | None):
+    def qp_b(self, qp_b_value: int | None):
         """
         Sets the QP B setting to the specified value.
 
