@@ -92,9 +92,9 @@ class MainWindowWidgets:
         self.task_states_view_switcher.set_stack(self.task_states_stack)
 
     def _setup_add_inputs_widgets(self):
-        add_button = Gtk.Button(label='Add')
-        add_button.connect('clicked', self.on_add_button_clicked)
-        add_button.add_css_class('suggested-action')
+        self.add_button = Gtk.Button(label='Add')
+        self.add_button.connect('clicked', self.on_add_button_clicked)
+        self.add_button.add_css_class('suggested-action')
 
         self.input_type_combobox = Gtk.ComboBoxText()
         self.input_type_combobox.append_text('Files')
@@ -103,7 +103,7 @@ class MainWindowWidgets:
         self.input_type_combobox.connect('changed', self.on_input_type_combobox_changed)
 
         self.add_inputs_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.add_inputs_horizontal_box.append(add_button)
+        self.add_inputs_horizontal_box.append(self.add_button)
         self.add_inputs_horizontal_box.append(self.input_type_combobox)
         self.add_inputs_horizontal_box.add_css_class('linked')
 
@@ -158,6 +158,11 @@ class MainWindowWidgets:
 
     def is_folder_input_type(self):
         return self.input_type_combobox.get_active_text() == 'Folders'
+
+    def set_adding_inputs_state(self, is_state_enabled: bool):
+        self.add_button.set_sensitive(not is_state_enabled)
+        self.input_type_combobox.set_sensitive(not is_state_enabled)
+        self.options_menu_button.set_sensitive(not is_state_enabled)
 
     def on_task_states_stack_notify(self, property, user_data):
         try:

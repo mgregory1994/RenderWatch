@@ -682,6 +682,7 @@ class InputsPageWidgets:
         return True
 
     def add_inputs(self, input_files: list):
+        GLib.idle_add(self.main_window_widgets.set_adding_inputs_state, True)
         GLib.idle_add(self.main_widget.set_visible_child_name, 'adding_inputs')
 
         for index, file in enumerate(input_files):
@@ -693,6 +694,7 @@ class InputsPageWidgets:
             if encoding_task:
                 GLib.idle_add(self._create_input_row, encoding_task)
 
+        GLib.idle_add(self.main_window_widgets.set_adding_inputs_state, False)
         GLib.idle_add(self.main_widget.set_visible_child_name, 'edit_inputs')
 
     def _create_encoding_task(self, input_file: Gio.File):
@@ -741,6 +743,9 @@ class InputsPageWidgets:
     def remove_input_row(self, input_row: Adw.ActionRow):
         self.inputs_list_box.remove(input_row)
         self.main_window_widgets.on_inputs_list_box_row_selected(self.inputs_list_box.get_selected_row())
+
+        if self.inputs_list_box.get_row_at_index(0) is None:
+            self.inputs_page_flap.set_reveal_flap(False)
 
     def set_input_type_state(self, is_file_state_enabled=False):
         if is_file_state_enabled:
