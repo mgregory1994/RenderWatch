@@ -36,7 +36,7 @@ LONG_BENCHMARK_DURATION = 30
 class BenchmarkGenerator:
     """Class that queues encoding tasks and runs a benchmark for them."""
 
-    def __int__(self, app_settings: app_preferences.Settings):
+    def __init__(self, app_settings: app_preferences.Settings):
         """
         Initializes the BenchmarkGenerator class with the necessary variables for queueing encoding tasks and
         sending them to the benchmark queue.
@@ -273,4 +273,4 @@ class BenchmarkGenerator:
 
     def _add_stop_task(self):
         # Adds a False boolean that represents the stop task for the benchmark queue loop.
-        self._benchmark_tasks_queue.put(False)
+        self._benchmark_tasks_queue.put((False, False))

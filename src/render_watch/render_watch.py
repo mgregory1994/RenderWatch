@@ -21,6 +21,7 @@ import sys
 from render_watch import logger
 from render_watch import app_preferences
 from render_watch.ui import application
+from render_watch.encode import encoder_queue, preview, benchmark
 from render_watch.helpers import nvidia_helper
 
 
@@ -33,15 +34,30 @@ def main(args=None):
 
 
 def _start_render_watch():
-    # Creates application settings, configures NVENC and the logger, and starts the application's UI loop.
+    # Creates application settings, configures NVENC and the logger, and starts the application.
+    app_settings = _get_application_settings()
+
+    _setup_nvenc_compatibility(app_settings)
+    logger.setup_logging(app_preferences.APPLICATION_CONFIG_DIRECTORY)
+
+    task_queue = encoder_queue.TaskQueue(app_settings)
+    preview_generator = preview.PreviewGenerator(app_settings)
+    benchmark_generator = benchmark.BenchmarkGenerator(app_settings)
+
+    app = application.RenderWatch(app_settings, task_queue, preview_generator, benchmark_generator)
+    sys.exit(app.run(sys.argv))
+
+
+def _get_application_settings() -> app_preferences.Settings:
+    # Creates, configures, and returns the application's settings.
     app_settings = app_preferences.Settings()
     app_preferences.create_config_directory()
     app_preferences.create_temp_directory(app_settings)
 
+    return app_settings
+
+
+def _setup_nvenc_compatibility(app_settings: app_preferences.Settings):
+    # Checks for Nvenc compatibility and configures Nvenc if applicable.
     if nvidia_helper.Compatibility.is_nvenc_supported():
         nvidia_helper.Parallel.setup_nvenc_max_workers(app_settings)
-
-    logger.setup_logging(app_preferences.APPLICATION_CONFIG_DIRECTORY)
-
-    app = application.RenderWatch(app_settings)
-    sys.exit(app.run(sys.argv))

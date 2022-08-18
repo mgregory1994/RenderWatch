@@ -360,7 +360,7 @@ class _ParallelTasksQueue:
     def _initialize_x264_codec_queue_loop(self, app_settings: app_preferences.Settings):
         # Starts queue loop instances for the user specified number of x264 encoding tasks.
         self.x264_codec_queue = queue.Queue()
-        self.number_of_x264_tasks = app_settings.per_codec_parallel_tasks['x264']
+        self.number_of_x264_tasks = app_settings.per_codec_x264
 
         with ThreadPoolExecutor(max_workers=self.number_of_x264_tasks) as future_executor:
             future_executor.map(self._run_codec_queue_loop_instance,
@@ -369,7 +369,7 @@ class _ParallelTasksQueue:
     def _initialize_x265_codec_queue_loop(self, app_settings: app_preferences.Settings):
         # Starts queue loop instances for the user specified number of x265 encoding tasks.
         self.x265_codec_queue = queue.Queue()
-        self.number_of_x265_tasks = app_settings.per_codec_parallel_tasks['x265']
+        self.number_of_x265_tasks = app_settings.per_codec_x265
 
         with ThreadPoolExecutor(max_workers=self.number_of_x265_tasks) as future_executor:
             future_executor.map(self._run_codec_queue_loop_instance,
@@ -378,7 +378,7 @@ class _ParallelTasksQueue:
     def _initialize_vp9_codec_queue_loop(self, app_settings: app_preferences.Settings):
         # Starts queue loop instances for the user specified number of vp9 encoding tasks.
         self.vp9_codec_queue = queue.Queue()
-        self.number_of_vp9_tasks = app_settings.per_codec_parallel_tasks['vp9']
+        self.number_of_vp9_tasks = app_settings.per_codec_vp9
 
         with ThreadPoolExecutor(max_workers=self.number_of_vp9_tasks) as future_executor:
             future_executor.map(self._run_codec_queue_loop_instance,
