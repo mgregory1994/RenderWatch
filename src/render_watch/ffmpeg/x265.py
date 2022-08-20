@@ -108,14 +108,32 @@ class X265:
 
     @property
     def is_crf_enabled(self) -> bool:
+        """
+        Returns whether CRF is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether CRF is enabled for the rate type settings.
+        """
         return self._is_crf_enabled
 
     @property
     def is_qp_enabled(self) -> bool:
+        """
+        Returns whether QP is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether QP is enabled for the rate type settings.
+        """
         return self._is_qp_enabled
 
     @property
     def is_bitrate_enabled(self) -> bool:
+        """
+        Returns whether bitrate is enabled for the rate type settings.
+
+        Returns:
+            Boolean that represents whether bitrate is enabled for the rate type settings.
+        """
         return self._is_bitrate_enabled
 
     @property
