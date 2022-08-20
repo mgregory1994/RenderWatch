@@ -25,10 +25,17 @@ from datetime import datetime
 
 
 def setup_logging(application_config_directory: str):
+    """
+    Sets the file path and logging level for the logger.
+
+    Parameters:
+        application_config_directory: String that represents the application's configuration directory.
+    """
     logging.basicConfig(filename=_get_logging_file_path(application_config_directory), level=_get_logging_type())
 
 
 def _get_logging_file_path(application_config_directory: str) -> str:
+    # Returns the logger's file path using the date and time.
     logging_file_name = datetime.now().strftime('%d-%m-%Y_%H:%M:%S') + '.log'
     logging_file_path = os.path.join(application_config_directory, logging_file_name)
 
@@ -36,6 +43,7 @@ def _get_logging_file_path(application_config_directory: str) -> str:
 
 
 def _get_logging_type() -> int:
+    # Returns the logging level type depending on whether the debug arg was passed into the application.
     logging_type = logging.ERROR
 
     for arg in sys.argv:
