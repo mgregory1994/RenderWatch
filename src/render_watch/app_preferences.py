@@ -33,6 +33,8 @@ DEFAULT_APPLICATION_TEMP_DIRECTORY = os.path.join(APPLICATION_CONFIG_DIRECTORY, 
 
 
 class Settings:
+    """Class that stores, saves, and loads settings for Render Watch."""
+
     PARALLEL_TASKS_ENABLED = 'parallel-encoding-tasks'
     PARALLEL_TASKS_CHUNKING_ENABLED = 'parallel-encoding-method-chunking'
     X264_TASKS = 'per-codec-x264'
@@ -55,6 +57,10 @@ class Settings:
     NVENC_TASK_MAX = 12
 
     def __init__(self):
+        """
+        Initializes the Settings class with the variables necessary for storing, saving, and loading the settings for
+        Render Watch. Each setting is loaded with Gio.Settings.
+        """
         self._settings = Gio.Settings.new(APP_NAME)
         self._settings_thread_lock = threading.Lock()
 
@@ -77,9 +83,10 @@ class Settings:
         self._is_overwriting_output_files = self._settings.get_boolean(self.OVERWRITE_OUTPUT_DIRECTORY_ENABLED)
         self._is_encoder_showing_preview = self._settings.get_boolean(self.ENCODER_PREVIEW_ENABLED)
 
-        self._setup_directories()
+        self._set_default_directories()
 
-    def _setup_directories(self):
+    def _set_default_directories(self):
+        # Sets the output and temp directories to their default values if they weren't set after loading settings.
         if not self._output_directory:
             self._output_directory = os.getenv('HOME')
 
@@ -88,38 +95,92 @@ class Settings:
 
     @property
     def output_directory(self) -> str:
+        """
+        Returns the value of the output directory. This property is thread safe.
+
+        Returns:
+            Output directory as a string.
+        """
         with self._settings_thread_lock:
             return self._output_directory
 
     @output_directory.setter
     def output_directory(self, directory: str):
+        """
+        Sets the output directory to the directory specified. This property is thread safe.
+
+        Parameters:
+            directory: The directory to use for the output directory.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._output_directory = directory
 
     @property
     def is_overwriting_output_files(self) -> bool:
+        """
+        Returns a boolean that represents whether existing output files will be overwritten when
+        running an encoding task. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether encoding tasks will overwrite existing outputs.
+        """
         with self._settings_thread_lock:
             return self._is_overwriting_output_files
 
     @is_overwriting_output_files.setter
     def is_overwriting_output_files(self, is_enabled: bool):
+        """
+        Sets whether existing output files will be overwritten when running an encoding task. This property
+        is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether encoding tasks will overwrite existing outputs.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._is_overwriting_output_files = is_enabled
 
     @property
     def temp_directory(self) -> str:
+        """
+        Returns the value of the temp directory. This property is thread safe.
+
+        Returns:
+            Temp directory as a string.
+        """
         with self._settings_thread_lock:
             return self._temp_directory
 
     @temp_directory.setter
-    def temp_directory(self, temp_directory_path: str):
+    def temp_directory(self, directory: str):
+        """
+        Sets the temp directory to the directory specified. This property is thread safe.
+
+        Parameters:
+            directory: The directory to use for the temp directory.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
-            if temp_directory_path == self._temp_directory:
+            if directory == self._temp_directory:
                 self._new_temp_directory = None
             else:
-                self._new_temp_directory = temp_directory_path
+                self._new_temp_directory = directory
 
     def get_new_temp_directory(self) -> str:
+        """
+        Returns the new temp directory that's been set. The original temp directory is overwritten after the application
+        is restarted. You then have a new and an original temp directory that's stored. This function is thread safe.
+
+        Returns:
+            Newly set temp directory as a string.
+        """
         if self._new_temp_directory is None:
             return self.temp_directory
 
@@ -128,71 +189,176 @@ class Settings:
 
     @property
     def is_encoding_parallel_tasks(self) -> bool:
+        """
+        Returns whether encoding tasks are run in parallel. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether encoding tasks are run in parallel.
+        """
         with self._settings_thread_lock:
             return self._is_encoding_parallel_tasks
 
     @is_encoding_parallel_tasks.setter
     def is_encoding_parallel_tasks(self, is_enabled: bool):
+        """
+        Sets whether encoding tasks are run in parallel. This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether encoding tasks will be run in parallel.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._is_encoding_parallel_tasks = is_enabled
 
     @property
     def is_encoding_parallel_method_chunking(self) -> bool:
+        """
+        Returns weather parallel tasks will be processes as chunks. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether parallel tasks will be processed as chunks.
+        """
         with self._settings_thread_lock:
             return self._is_encoding_parallel_method_chunking
 
     @is_encoding_parallel_method_chunking.setter
     def is_encoding_parallel_method_chunking(self, is_enabled: bool):
+        """
+        Sets whether parallel tasks will be processed as chunks. This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether parallel tasks will be processed as chunks.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._is_encoding_parallel_method_chunking = is_enabled
 
     @property
     def per_codec_x264(self) -> int:
+        """
+        Returns the number of x264 tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Returns:
+            Integer that represents how many x264 tasks that will run when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             return self._per_codec_parallel_tasks['x264']
 
     @per_codec_x264.setter
     def per_codec_x264(self, x264_tasks: int):
+        """
+        Sets the number of x264 tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Parameters:
+            x264_tasks: Number of x264 tasks that will run when parallel encoding is enabled.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._per_codec_parallel_tasks['x264'] = x264_tasks
 
     @property
     def per_codec_x265(self) -> int:
+        """
+        Returns the number of x265 tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Returns:
+            Integer that represents how many x265 tasks that will run when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             return self._per_codec_parallel_tasks['x265']
 
     @per_codec_x265.setter
     def per_codec_x265(self, x265_tasks: int):
+        """
+        Sets the number of x265 tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Parameters:
+            x265_tasks: Number of x265 tasks that will run when parallel encoding is enabled.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._per_codec_parallel_tasks['x265'] = x265_tasks
 
     @property
     def per_codec_vp9(self) -> int:
+        """
+        Returns the number of vp9 tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Returns:
+            Integer that represents how many vp9 tasks that will run when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             return self._per_codec_parallel_tasks['vp9']
 
     @per_codec_vp9.setter
     def per_codec_vp9(self, vp9_tasks: int):
+        """
+        Sets the number of vp9 tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Parameters:
+            vp9_tasks: Number of vp9 tasks that will run when parallel encoding is enabled.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             self._per_codec_parallel_tasks['vp9'] = vp9_tasks
 
     @property
     def is_nvenc_tasks_parallel(self) -> bool:
+        """
+        Returns whether Nvenc tasks will be processed in parallel when parallel encoding is enabled.
+        This property is thread safe.
+
+        Returns:
+            Boolean that represents whether Nvenc tasks will be processed in parallel when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             return self._is_nvenc_tasks_parallel
 
     @is_nvenc_tasks_parallel.setter
     def is_nvenc_tasks_parallel(self, is_enabled: bool):
+        """
+        Sets whether Nvenc tasks will be processed in parallel when parallel encoding is enabled.
+        This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether Nvenc tasks will be processed in parallel
+            when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             self._is_nvenc_tasks_parallel = is_enabled
 
     @property
     def parallel_nvenc_workers(self) -> int:
+        """
+        Returns the number of Nvenc tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Returns:
+            Integer that represents how many Nvenc tasks that will run when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             return self._parallel_nvenc_workers
 
     @parallel_nvenc_workers.setter
     def parallel_nvenc_workers(self, number_of_workers: int):
+        """
+        Sets the number of Nvenc tasks that will run when parallel encoding is enabled. This property is thread safe.
+
+        Parameters:
+            number_of_workers: Number of Nvenc tasks that will run when parallel encoding is enabled.
+
+        Returns:
+            None
+        """
         with self._settings_thread_lock:
             if number_of_workers == 0:
                 self._parallel_nvenc_workers = None
@@ -201,45 +367,112 @@ class Settings:
 
     @property
     def is_auto_cropping_inputs(self) -> bool:
+        """
+        Returns whether inputs are automatically cropped when imported to get rid of "black bars" in the video stream.
+        This property is thread safe.
+
+        Returns:
+            Boolean that represents whether inputs are automatically cropped when imported.
+        """
         with self._settings_thread_lock:
             return self._is_auto_cropping_inputs
 
     @is_auto_cropping_inputs.setter
     def is_auto_cropping_inputs(self, is_enabled: bool):
+        """
+        Sets whether inputs are automatically cropped when imported to get rid of "black bars" in the video stream.
+        This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether inputs are automatically cropped when imported.
+        """
         with self._settings_thread_lock:
             self._is_auto_cropping_inputs = is_enabled
 
     @property
     def is_encoding_parallel_watch_folders(self) -> bool:
+        """
+        Returns whether watch folder tasks are processed in parallel when parallel encoding is enabled.
+        This property is thread safe.
+
+        Returns:
+            Boolean that represents whether watch folder tasks are processed in parallel
+            when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             return self._is_encoding_parallel_watch_folders
 
     @is_encoding_parallel_watch_folders.setter
     def is_encoding_parallel_watch_folders(self, is_enabled: bool):
+        """
+        Sets whether watch folder tasks are processed in parallel when parallel encoding is enabled.
+        This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether watch folder tasks are processed in parallel
+            when parallel encoding is enabled.
+        """
         with self._settings_thread_lock:
             self._is_encoding_parallel_watch_folders = is_enabled
 
     @property
     def is_watch_folders_waiting_for_tasks(self) -> bool:
+        """
+        Returns whether watch folder tasks wait for other tasks to complete before processing.
+        This property is thread safe.
+
+        Returns:
+            Boolean that represents whether watch folder tasks wait for other tasks to complete before processing.
+        """
         with self._settings_thread_lock:
             return self._is_watch_folders_waiting_for_tasks
 
     @is_watch_folders_waiting_for_tasks.setter
     def is_watch_folders_waiting_for_tasks(self, is_enabled: bool):
+        """
+        Sets whether watch folder tasks wait for other tasks to complete before processing.
+        This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether watch folder tasks wait for
+            other tasks to complete before processing.
+        """
         with self._settings_thread_lock:
             self._is_watch_folders_waiting_for_tasks = is_enabled
 
     @property
     def is_watch_folders_moving_to_done(self) -> bool:
+        """
+        Returns whether inputs are moved to a "done" folder once the watch folder task has completed.
+        This property is thread safe.
+
+        Returns:
+            Boolean that represents whether inputs are moved to a "done" folder
+            once the watch folder task has completed.
+        """
         with self._settings_thread_lock:
             return self._is_watch_folders_moving_to_done
 
     @is_watch_folders_moving_to_done.setter
     def is_watch_folders_moving_to_done(self, is_enabled: bool):
+        """
+        Sets whether inputs are moved to a "done" folder once the watch folder task has completed.
+        This property is thread safe.
+
+        Parameters:
+            is_enabled: Boolean that represents whether inputs are moved to a "done" folder
+            once the watch folder task has completed.
+        """
         with self._settings_thread_lock:
             self._is_watch_folders_moving_to_done = is_enabled
 
     def save(self):
+        """
+        Uses Gio.Settings to save all settings in Render Watch.
+
+        Returns:
+            None
+        """
         self._settings.set_boolean(self.PARALLEL_NVENC_ENABLED, self._is_nvenc_tasks_parallel)
         self._settings.set_boolean(self.PARALLEL_TASKS_ENABLED, self._is_encoding_parallel_tasks)
         self._settings.set_boolean(self.PARALLEL_TASKS_CHUNKING_ENABLED, self._is_encoding_parallel_method_chunking)
@@ -255,23 +488,32 @@ class Settings:
         self._save_per_codec_parallel_tasks_options()
 
     def _save_parallel_nvenc_workers_option(self):
+        # Saves the parallel nvenc workers option using Gio.Settings
         if self.parallel_nvenc_workers:
             self._settings.set_int(self.PARALLEL_NVENC_TASKS, self.parallel_nvenc_workers)
         else:
             self._settings.set_int(self.PARALLEL_NVENC_TASKS, 0)
 
     def _save_per_codec_parallel_tasks_options(self):
+        # Saves each per-codec parallel tasks value using Gio.Settings
         self._settings.set_int(self.X264_TASKS, self._per_codec_parallel_tasks['x264'])
         self._settings.set_int(self.X265_TASKS, self._per_codec_parallel_tasks['x265'])
         self._settings.set_int(self.VP9_TASKS, self._per_codec_parallel_tasks['vp9'])
 
 
 def create_config_directory():
+    """Creates the application's configuration directory to store logs and temporary files."""
     directory_helper.create_application_config_directory(APPLICATION_CONFIG_DIRECTORY,
                                                          DEFAULT_APPLICATION_TEMP_DIRECTORY)
 
 
 def create_temp_directory(app_settings: Settings):
+    """
+    Creates the application's temporary directory if it doesn't already exist.
+
+    Parameters:
+        app_settings: Application's settings.
+    """
     try:
         os.mkdir(app_settings.temp_directory)
     except FileExistsError:
@@ -279,6 +521,12 @@ def create_temp_directory(app_settings: Settings):
 
 
 def clear_temp_directory(app_settings: Settings):
+    """
+    Removes the application's temporary directory.
+
+    Parameters:
+        app_settings: Application's settings.
+    """
     try:
         shutil.rmtree(app_settings.get_new_temp_directory())
     except OSError:
