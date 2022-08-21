@@ -52,6 +52,7 @@ def _get_application_settings() -> app_preferences.Settings:
     # Creates, configures, and returns the application's settings.
     app_settings = app_preferences.Settings()
     app_preferences.create_config_directory()
+    app_preferences.create_default_temp_directory()
     app_preferences.create_temp_directory(app_settings)
 
     return app_settings

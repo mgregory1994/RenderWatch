@@ -503,8 +503,12 @@ class Settings:
 
 def create_config_directory():
     """Creates the application's configuration directory to store logs and temporary files."""
-    directory_helper.create_application_config_directory(APPLICATION_CONFIG_DIRECTORY,
-                                                         DEFAULT_APPLICATION_TEMP_DIRECTORY)
+    directory_helper.create_application_config_directory(APPLICATION_CONFIG_DIRECTORY)
+
+
+def create_default_temp_directory():
+    """Creates the application's default temp directory."""
+    directory_helper.create_application_default_temp_directory(DEFAULT_APPLICATION_TEMP_DIRECTORY)
 
 
 def create_temp_directory(app_settings: Settings):
