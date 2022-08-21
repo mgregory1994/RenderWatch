@@ -35,12 +35,19 @@ MAX_NVENC_WORKERS = 16
 
 
 class Compatibility:
+    """Class that checks for Nvenc and Nvdec compatibility with the system that's running the application."""
     _nvenc_supported = None
     _nvdec_supported = None
     _npp_supported = None
 
     @staticmethod
     def is_nvenc_supported() -> bool:
+        """
+        Returns whether Nvenc is supported on the system that's running the application.
+
+        Returns:
+            Boolean that represents whether Nvenc is supported.
+        """
         if Compatibility._nvenc_supported is None:
             Compatibility._nvenc_supported = Compatibility.run_test_process(Compatibility.get_nvenc_test_args())
 
@@ -53,6 +60,17 @@ class Compatibility:
 
     @staticmethod
     def run_test_process(test_process_args: list, counter=None) -> bool:  # Unused parameter necessary for this function
+        """
+        Runs subprocess.Popen using the given list of arguments. Used to test if the given arguments will result in a
+        successful run of subprocess.Popen.
+
+        Parameters:
+            test_process_args: List of Strings that represent the args to pass into subprocess.Popen.
+            counter: (Default: None) Variable passed in from ThreadPoolExecutor.
+
+        Returns:
+            Boolean that represents whether subprocess.Popen had a successful return code.
+        """
         with subprocess.Popen(test_process_args,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT) as test_process:
@@ -60,6 +78,12 @@ class Compatibility:
 
     @staticmethod
     def get_nvenc_test_args() -> list:
+        """
+        Returns a list of Strings that represent the arguments for running ffmpeg to test the H264 Nvenc codec.
+
+        Returns:
+            List of Strings that represent the arguments for running ffmpeg using the H264 Nvenc codec.
+        """
         nvenc_test_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         nvenc_test_args.append('-f')
         nvenc_test_args.append('lavfi')
@@ -75,6 +99,12 @@ class Compatibility:
 
     @staticmethod
     def is_encoding_task_compatible(encoding_task) -> bool:
+        """
+        Returns whether the given encoding task will run successfully with its current settings.
+
+        Returns:
+            Boolean that represents whether the given encoding task will run successfully.
+        """
         nvenc_test_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         nvenc_test_args.append('-f')
         nvenc_test_args.append('lavfi')
@@ -97,6 +127,12 @@ class Compatibility:
 
     @staticmethod
     def is_nvdec_supported() -> bool:
+        """
+        Returns whether Nvdec is supported on the system running the application.
+
+        Returns:
+            Boolean that represents whether Nvdec is supported.
+        """
         if Compatibility._nvdec_supported is None:
             Compatibility._nvdec_supported = Compatibility._run_nvdec_test_process()
 
@@ -104,6 +140,7 @@ class Compatibility:
 
     @staticmethod
     def _run_nvdec_test_process() -> bool:
+        # Returns whether cuvid was found in ffmpeg's list of decoders.
         is_nvdec_found = False
 
         with subprocess.Popen(Compatibility._get_list_decoders_args(),
@@ -126,6 +163,7 @@ class Compatibility:
 
     @staticmethod
     def _get_list_decoders_args() -> list:
+        # Returns a list of Strings that represent the args that will show ffmpeg's available decoders.
         list_decoders_process_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         list_decoders_process_args.append('-decoders')
 
@@ -133,6 +171,12 @@ class Compatibility:
 
     @staticmethod
     def is_npp_supported() -> bool:
+        """
+        Returns whether NPP is supported on the system running this application.
+
+        Returns:
+            Boolean that represents whether NPP is supported.
+        """
         if Compatibility._npp_supported is None:
             Compatibility._npp_supported = Compatibility._run_npp_test_process()
 
@@ -140,6 +184,7 @@ class Compatibility:
 
     @staticmethod
     def _run_npp_test_process() -> bool:
+        # Returns whether NPP was found in ffmpeg's list of filters.
         is_npp_found = False
 
         with subprocess.Popen(Compatibility._get_npp_test_args(),
@@ -162,6 +207,7 @@ class Compatibility:
 
     @staticmethod
     def _get_npp_test_args() -> list:
+        # Returns a list of Strings that represent the args that will show ffmpeg's available filters.
         npp_test_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         npp_test_args.append('-filters')
 
@@ -169,10 +215,21 @@ class Compatibility:
 
     @staticmethod
     def is_nvenc_available() -> bool:
+        """
+        Returns whether the system running this application can run another process that's utilizing Nvenc.
+
+        Returns:
+            Boolean that represents whether the system that's running this application can run another process
+            that's utilizing Nvenc.
+        """
         return Compatibility.run_test_process(Compatibility.get_nvenc_test_args())
 
     @staticmethod
     def wait_until_nvenc_available():
+        """
+        Suspends the calling thread until the system that's running this application is able to run
+        a process that's utilizing Nvenc.
+        """
         while True:
             if Compatibility.is_nvenc_available():
                 break
@@ -181,10 +238,17 @@ class Compatibility:
 
 
 class Parallel:
+    """Class that checks/sets parallel processing for Nvenc tasks."""
     nvenc_max_workers = 1
 
     @staticmethod
     def setup_nvenc_max_workers(app_settings: app_preferences.Settings):
+        """
+        Sets the maximum number of Nvenc workers that can run simultaneously when parallel encoding is enabled.
+
+        Parameters:
+            app_settings: Application's settings.
+        """
         if app_settings.parallel_nvenc_workers:
             Parallel.nvenc_max_workers = app_settings.parallel_nvenc_workers
 
@@ -196,6 +260,7 @@ class Parallel:
 
     @staticmethod
     def _test_nvenc_max_workers():
+        # Runs multiple Nvenc processes simultaneously until it fails or reaches the global max amount of workers.
         counter = 1
 
         while True:
@@ -217,6 +282,7 @@ class Parallel:
 
     @staticmethod
     def _has_future_executor_results_failed(results) -> bool:
+        # Returns whether the ThreadPoolExecutor results have failed.
         for result in results:
             if not result:
                 return True

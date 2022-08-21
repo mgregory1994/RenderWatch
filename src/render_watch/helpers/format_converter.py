@@ -20,30 +20,39 @@ GIGABYTE_IN_BYTES = 1073741824
 MEGABYTE_IN_BYTES = 1048576
 KILOBYTE_IN_BYTES = 1024
 
+SECONDS_IN_HOUR = 3600
+SECONDS_IN_MINUTE = 60
+
 
 def get_timecode_from_seconds(seconds: int) -> str:
     """
-    Creates and returns a time code string using the number of seconds.
+    Creates and returns string that represents a timecode using the given number of seconds.
 
-    Time code format: HH:MM:SS.
+    Time code format: HH:MM:SS
 
-    :param seconds: Number of seconds.
+    Parameters:
+         seconds: Integer that represents the given number of seconds.
+
+    Returns:
+        String that represents a timecode using the given number of seconds.
     """
-    hours = int(seconds / 3600)
-    seconds_left = seconds % 3600
-    minutes = int(seconds_left / 60)
-    seconds_left = round(seconds_left % 60, 1)
+    hours = int(seconds / SECONDS_IN_HOUR)
+    seconds_left = seconds % SECONDS_IN_HOUR
+    minutes = int(seconds_left / SECONDS_IN_MINUTE)
+    seconds_left = round(seconds_left % SECONDS_IN_MINUTE, 1)
 
     return _generate_timecode(hours, minutes, seconds_left)
 
 
 def _generate_timecode(hours: int, minutes: int, seconds: int) -> str:
+    # Returns a String formatted as a timecode for the given hours, minutes, and seconds.
     return ':'.join([_generate_hours_timecode_portion(hours),
                     _generate_minutes_timecode_portion(minutes),
                     _generate_seconds_timecode_portion(seconds)])
 
 
 def _generate_hours_timecode_portion(hours: int) -> str:
+    # Returns a String that represents the hours portion of a timecode.
     if hours == 0:
         timecode_hours_portion = '00'
     elif hours < 10:
@@ -55,6 +64,7 @@ def _generate_hours_timecode_portion(hours: int) -> str:
 
 
 def _generate_minutes_timecode_portion(minutes: int) -> str:
+    # Returns a String that represents the minutes portion of a timecode.
     if minutes == 0:
         timecode_minutes_portion = '00'
     elif minutes < 10:
@@ -66,6 +76,7 @@ def _generate_minutes_timecode_portion(minutes: int) -> str:
 
 
 def _generate_seconds_timecode_portion(seconds: int) -> str:
+    # Returns a String that represents the seconds portion of a timecode.
     if seconds == 0:
         timecode_seconds_portion = '00'
     elif seconds < 10:
@@ -78,13 +89,17 @@ def _generate_seconds_timecode_portion(seconds: int) -> str:
 
 def get_seconds_from_timecode(timecode: str) -> float:
     """
-    Returns the total seconds that makes up the given timecode.
+    Returns the total number of seconds that makes up the given timecode.
 
-    :param timecode: Timecode string formatted as: HH:MM:SS.
+    Parameters:
+         timecode: String that represents a timecode formatted as: HH:MM:SS .
+
+     Returns:
+         Float that represents the total number of seconds that makes up the given timecode.
     """
     timecode_values = timecode.split(':')
-    hours = int(timecode_values[0]) * 3600
-    minutes = int(timecode_values[1]) * 60
+    hours = int(timecode_values[0]) * SECONDS_IN_HOUR
+    minutes = int(timecode_values[1]) * SECONDS_IN_MINUTE
     seconds = round(float(timecode_values[2]), 1)
 
     return hours + minutes + seconds
@@ -92,10 +107,16 @@ def get_seconds_from_timecode(timecode: str) -> float:
 
 def get_file_size_from_bytes(bytes_value: int) -> str:
     """
-    Converts the given bytes value into a file size string.
-    Depending on the bytes value, this will return a string with file sizes as large as GBs and as low as KBs.
+    Uses the given number of bytes and returns a String that represents the file size.
 
-    :param bytes_value: Amount of bytes.
+    Depending on the bytes value, this will return a String that represents a file size as large as GBs
+    and as low as KBs.
+
+    Parameters:
+        bytes_value: Integer that represents the number of bytes.
+
+    Returns:
+        String that represents the file size using the given number of bytes.
     """
     if _is_gigabytes(bytes_value):
         return _get_gigabytes_from_bytes(bytes_value)
@@ -105,26 +126,31 @@ def get_file_size_from_bytes(bytes_value: int) -> str:
 
 
 def _is_gigabytes(bytes_value: int) -> bool:
+    # Returns whether the given number of bytes is large enough to represent a file size in Gigabytes.
     return int(bytes_value / GIGABYTE_IN_BYTES) != 0
 
 
 def _is_megabytes(bytes_value: int) -> bool:
+    # Returns whether the given number of bytes is large enough to represent a file size in Megabytes.
     return int(bytes_value / MEGABYTE_IN_BYTES) != 0
 
 
 def _get_gigabytes_from_bytes(bytes_value: int) -> str:
+    # Returns a String that represents a file size in Gigabytes using the given number of bytes.
     gigabytes = round(bytes_value / GIGABYTE_IN_BYTES, 1)
 
     return str(gigabytes) + 'GB'
 
 
 def _get_megabytes_from_bytes(bytes_value: int) -> str:
+    # Returns a String that represents a file size in Megabytes using the given number of bytes.
     megabytes = round(bytes_value / MEGABYTE_IN_BYTES, 1)
 
     return str(megabytes) + 'MB'
 
 
 def _get_kilobytes_from_bytes(bytes_value: int) -> str:
+    # Returns a String that represents a file size in Kilobytes using the given number of bytes.
     kilobytes = round(bytes_value / KILOBYTE_IN_BYTES, 1)
 
     return str(kilobytes) + 'KB'
@@ -132,6 +158,12 @@ def _get_kilobytes_from_bytes(bytes_value: int) -> str:
 
 def get_bytes_from_kilobytes(kilobytes: int) -> int:
     """
-    Converts kilobytes to bytes.
+    Returns an Integer that represents the number of bytes that makes up the given number of Kilobytes.
+
+    Parameters:
+        kilobytes: Integer that represents the number of Kilobytes.
+
+    Returns:
+        Integer that represents the number of bytes that makes up the given number of Kilobytes.
     """
     return kilobytes * KILOBYTE_IN_BYTES

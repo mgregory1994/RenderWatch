@@ -16,6 +16,9 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+"""Constants for modules in the ffmpeg package."""
+
+
 # FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-loglevel', 'quiet', '-stats', "-y"]
 FFMPEG_INIT_ARGS = ['ffmpeg', '-hide_banner', '-stats', "-y"]
 FFMPEG_INIT_AUTO_CROP_ARGS = ['ffmpeg', '-hide_banner', '-y']
