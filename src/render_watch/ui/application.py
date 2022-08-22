@@ -64,7 +64,10 @@ class RenderWatch(Adw.Application):
         Returns:
             None
         """
-        main_window_widgets = main_window.MainWindowWidgets(self, None, self.preview_generator, self.app_settings)
+        main_window_widgets = main_window.MainWindowWidgets(self,
+                                                            self.task_queue,
+                                                            self.preview_generator,
+                                                            self.app_settings)
         main_window_widgets.main_window.present()
 
     def do_shutdown(self):

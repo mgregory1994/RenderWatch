@@ -26,11 +26,22 @@ from render_watch import app_preferences
 
 
 class MainWindowWidgets:
+    """Class that contains the widgets that make up the application's main window."""
+
     def __init__(self,
                  application: Adw.Application,
-                 task_queue,
+                 task_queue: encoder_queue.TaskQueue,
                  preview_generator: preview.PreviewGenerator,
                  app_settings: app_preferences.Settings):
+        """
+        Initializes the MainWindowWidgets class with the necessary variables for creating the application's main window.
+
+        Parameters:
+            application: Adwaita application for Render Watch.
+            task_queue: The encoder_queue.TaskQueue for sending encoding tasks to.
+            preview_generator: The preview.PreviewGenerator for creating previews for encoding tasks.
+            app_settings: Application's settings.
+        """
         self.application = application
         self.task_queue = task_queue
         self.preview_generator = preview_generator
@@ -45,9 +56,14 @@ class MainWindowWidgets:
 
     def _setup_main_window(self):
         self._setup_main_window_contents()
+
         self.main_window.set_size_request(1000, 600)
-        self.main_window.set_default_size(1280, 720)
-        self.main_window.connect('close-request', lambda user_data: self.application.quit())
+        self.main_window.set_default_size(self.app_settings.window_width, self.app_settings.window_height)
+
+        if self.app_settings.is_window_maximized:
+            self.main_window.maximize()
+
+        self.main_window.connect('close-request', self.on_main_window_close_request)
 
     def _setup_main_window_contents(self):
         self._setup_task_states_stack()
@@ -163,6 +179,14 @@ class MainWindowWidgets:
         self.add_button.set_sensitive(not is_state_enabled)
         self.input_type_combobox.set_sensitive(not is_state_enabled)
         self.options_menu_button.set_sensitive(not is_state_enabled)
+
+    def on_main_window_close_request(self, user_data):
+        window_width, window_height = self.main_window.get_default_size()
+        self.app_settings.window_width = window_width
+        self.app_settings.window_height = window_height
+        self.app_settings.is_window_maximized = self.main_window.is_maximized()
+
+        self.application.quit()
 
     def on_task_states_stack_notify(self, property, user_data):
         try:

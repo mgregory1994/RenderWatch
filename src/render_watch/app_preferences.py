@@ -50,6 +50,9 @@ class Settings:
     OVERWRITE_OUTPUT_DIRECTORY_ENABLED = 'overwrite-output-files'
     TEMP_DIRECTORY = 'temp-directory'
     ENCODER_PREVIEW_ENABLED = 'encoder-preview'
+    WINDOW_WIDTH = 'window-width'
+    WINDOW_HEIGHT = 'window-height'
+    IS_WINDOW_MAXIMIZED = 'window-maximized'
 
     TASK_MIN = 2
     TASK_MAX = 8
@@ -82,6 +85,9 @@ class Settings:
         self._output_directory = self._settings.get_string(self.OUTPUT_DIRECTORY)
         self._is_overwriting_output_files = self._settings.get_boolean(self.OVERWRITE_OUTPUT_DIRECTORY_ENABLED)
         self._is_encoder_showing_preview = self._settings.get_boolean(self.ENCODER_PREVIEW_ENABLED)
+        self._window_width = self._settings.get_int(self.WINDOW_WIDTH)
+        self._window_height = self._settings.get_int(self.WINDOW_HEIGHT)
+        self._is_window_maximized = self._settings.get_boolean(self.IS_WINDOW_MAXIMIZED)
 
         self._set_default_directories()
 
@@ -466,6 +472,78 @@ class Settings:
         with self._settings_thread_lock:
             self._is_watch_folders_moving_to_done = is_enabled
 
+    @property
+    def window_width(self) -> int:
+        """
+        Returns the width of the application's main window. This property is thread safe.
+
+        Returns:
+            Integer that represents the width of the application's main window.
+        """
+        with self._settings_thread_lock:
+            return self._window_width
+
+    @window_width.setter
+    def window_width(self, width: int):
+        """
+        Sets the width of the application's main window. This property is thread safe.
+
+        Parameters:
+            width: Integer that represents the width of the application's main window.
+        """
+        with self._settings_thread_lock:
+            if width > 0:
+                self._window_width = width
+            else:
+                self._window_width = 1280
+
+    @property
+    def window_height(self) -> int:
+        """
+        Returns the height of the application's main window. This property is thread safe.
+
+        Returns:
+            Integer that represents the height of the application's main window.
+        """
+        with self._settings_thread_lock:
+            return self._window_height
+
+    @window_height.setter
+    def window_height(self, height: int):
+        """
+        Sets the height of the application's main window. This property is thread safe.
+
+        Parameters:
+            height: Integer that represents the height of the application's main window.
+        """
+        with self._settings_thread_lock:
+            if height > 0:
+                self._window_height = height
+            else:
+                self._window_height = 720
+
+    @property
+    def is_window_maximized(self) -> bool:
+        """
+        Returns whether the main window is maximized. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the main window is maximized.
+        """
+        with self._settings_thread_lock:
+            return self._is_window_maximized
+
+    @is_window_maximized.setter
+    def is_window_maximized(self, is_maximized: bool):
+        """
+        Sets whether the main window is maximized. This property is thread safe.
+
+        Parameters:
+            is_maximized: Boolean that represents whether the main window is maximized.
+        """
+        with self._settings_thread_lock:
+            self._is_window_maximized = is_maximized
+
     def save(self):
         """
         Uses Gio.Settings to save all settings in Render Watch.
@@ -484,6 +562,9 @@ class Settings:
         self._settings.set_boolean(self.OVERWRITE_OUTPUT_DIRECTORY_ENABLED, self._is_overwriting_output_files)
         self._settings.set_string(self.OUTPUT_DIRECTORY, self._output_directory)
         self._settings.set_boolean(self.ENCODER_PREVIEW_ENABLED, self._is_encoder_showing_preview)
+        self._settings.set_int(self.WINDOW_WIDTH, self._window_width)
+        self._settings.set_int(self.WINDOW_HEIGHT, self._window_height)
+        self._settings.set_boolean(self.IS_WINDOW_MAXIMIZED, self._is_window_maximized)
         self._save_parallel_nvenc_workers_option()
         self._save_per_codec_parallel_tasks_options()
 
