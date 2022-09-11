@@ -731,7 +731,7 @@ class InputsPageWidgets:
     def _create_input_row(self, encoding_task: encoding.Task):
         input_row = InputActionRow(self, encoding_task, self.preview_generator, self.app_settings)
         input_row.output_path_link_button.connect('activate-link',
-                                                  self.main_window_widgets.show_output_file_chooser,
+                                                  self.main_window_widgets.on_output_path_link_button_activate_link,
                                                   input_row)
         GLib.idle_add(self.inputs_list_box.append, input_row)
 
