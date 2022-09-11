@@ -24,7 +24,7 @@ import time
 from pathlib import Path
 
 from render_watch.ui import Gtk, Gio, Gdk, GLib, Adw, GdkPixbuf, Pango
-from render_watch.ui import settings_sidebar
+from render_watch.ui import settings_sidebar, additional_task_settings_pages
 from render_watch.encode import preview
 from render_watch.ffmpeg import encoding, input
 from render_watch.helpers import directory_helper
@@ -439,6 +439,7 @@ class InputsPageWidgets:
         self._setup_inputs_list()
         self._setup_adding_inputs_widgets()
         self._setup_settings_sidebar_widgets()
+        self._setup_additional_task_settings_widgets()
         self._setup_flap()
         self._setup_options_popover_widgets()
 
@@ -523,10 +524,64 @@ class InputsPageWidgets:
 
     def _setup_settings_sidebar_widgets(self):
         self.settings_sidebar_widgets = settings_sidebar.SettingsSidebarWidgets(self, self.app_settings)
+        self.settings_sidebar_widgets.settings_preview_button.connect('clicked',
+                                                                      self.on_settings_preview_button_clicked)
+        self.settings_sidebar_widgets.crop_preview_button.connect('clicked', self.on_crop_preview_button_clicked)
+        self.settings_sidebar_widgets.trim_preview_button.connect('clicked', self.on_trim_preview_button_clicked)
+        self.settings_sidebar_widgets.benchmark_button.connect('clicked', self.on_benchmark_button_clicked)
+
+    def _setup_additional_task_settings_widgets(self):
+        self._setup_edit_inputs_button()
+        self._setup_crop_page_widgets()
+        self._setup_trim_page_widgets()
+        self._setup_preview_page_widgets()
+        self._setup_benchmark_page_widgets()
+        self._setup_additional_task_settings_page()
+
+        self.inputs_page_stack = Gtk.Stack()
+        self.inputs_page_stack.add_named(self.inputs_scrolled_window, 'inputs_page')
+        self.inputs_page_stack.add_named(self.additional_task_settings_vertical_box, 'additional_task_settings_page')
+        self.inputs_page_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+    def _setup_edit_inputs_button(self):
+        self.edit_inputs_button = Gtk.Button.new_from_icon_name('view-list-symbolic')
+        self.edit_inputs_button.set_hexpand(False)
+        self.edit_inputs_button.set_halign(Gtk.Align.END)
+        self.edit_inputs_button.set_margin_top(10)
+        self.edit_inputs_button.set_margin_bottom(10)
+        self.edit_inputs_button.set_margin_end(10)
+        self.edit_inputs_button.connect('clicked', self.on_edit_inputs_button_clicked)
+
+    def _setup_crop_page_widgets(self):
+        self.crop_page = additional_task_settings_pages.CropPage()
+
+    def _setup_trim_page_widgets(self):
+        self.trim_page = additional_task_settings_pages.TrimPage()
+
+    def _setup_preview_page_widgets(self):
+        self.preview_page = additional_task_settings_pages.PreviewPage()
+
+    def _setup_benchmark_page_widgets(self):
+        self.benchmark_page = additional_task_settings_pages.BenchmarkPage()
+
+    def _setup_additional_task_settings_page(self):
+        self._setup_additional_task_settings_stack()
+
+        self.additional_task_settings_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.additional_task_settings_vertical_box.append(self.edit_inputs_button)
+        self.additional_task_settings_vertical_box.append(self.additional_task_settings_stack)
+
+    def _setup_additional_task_settings_stack(self):
+        self.additional_task_settings_stack = Gtk.Stack()
+        self.additional_task_settings_stack.add_named(self.crop_page, 'crop_page')
+        self.additional_task_settings_stack.add_named(self.trim_page, 'trim_page')
+        self.additional_task_settings_stack.add_named(self.preview_page, 'preview_page')
+        self.additional_task_settings_stack.add_named(self.benchmark_page, 'benchmark_page')
+        self.additional_task_settings_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
 
     def _setup_flap(self):
         self.inputs_page_flap = Adw.Flap()
-        self.inputs_page_flap.set_content(self.inputs_scrolled_window)
+        self.inputs_page_flap.set_content(self.inputs_page_stack)
         self.inputs_page_flap.set_flap(self.settings_sidebar_widgets.main_widget)
         self.inputs_page_flap.set_separator(Gtk.Separator(orientation=Gtk.Orientation.VERTICAL))
         self.inputs_page_flap.get_flap().add_css_class('background')
@@ -771,3 +826,22 @@ class InputsPageWidgets:
 
     def on_task_chunks_switch_state_set(self, switch, user_data):
         self.app_settings.is_encoding_parallel_method_chunking = switch.get_active()
+
+    def on_edit_inputs_button_clicked(self, button):
+        self.inputs_page_stack.set_visible_child_name('inputs_page')
+
+    def on_settings_preview_button_clicked(self, button):
+        self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
+        self.additional_task_settings_stack.set_visible_child_name('preview_page')
+
+    def on_crop_preview_button_clicked(self, button):
+        self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
+        self.additional_task_settings_stack.set_visible_child_name('crop_page')
+
+    def on_trim_preview_button_clicked(self, button):
+        self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
+        self.additional_task_settings_stack.set_visible_child_name('trim_page')
+
+    def on_benchmark_button_clicked(self, button):
+        self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
+        self.additional_task_settings_stack.set_visible_child_name('benchmark_page')

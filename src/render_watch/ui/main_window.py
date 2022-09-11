@@ -383,7 +383,7 @@ class MainWindowWidgets:
         self.options_popover.popdown()
         self.about_dialog.show()
 
-    def on_inputs_list_box_row_selected(self, input_row, user_data):
+    def on_inputs_list_box_row_selected(self, input_row, user_data=None):
         """
         Signal callback function for the inputs list box row's 'selected' signal.
         Toggles the sensitivity of the toggle settings sidebar button.
