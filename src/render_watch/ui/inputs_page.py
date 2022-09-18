@@ -556,7 +556,7 @@ class InputsPageWidgets:
         self.crop_page = additional_task_settings_pages.CropPage()
 
     def _setup_trim_page_widgets(self):
-        self.trim_page = additional_task_settings_pages.TrimPage()
+        self.trim_page = additional_task_settings_pages.TrimPage(self.preview_generator)
 
     def _setup_preview_page_widgets(self):
         self.preview_page = additional_task_settings_pages.PreviewPage()
@@ -669,6 +669,9 @@ class InputsPageWidgets:
 
     def get_selected_rows(self):
         return self.inputs_list_box.get_selected_rows()
+
+    def kill_preview_queues(self):
+        self.trim_page.trim_previewer.kill()
 
     def on_remove_all_button_clicked(self, button):
         self.main_window_widgets.options_popover.popdown()
@@ -841,6 +844,9 @@ class InputsPageWidgets:
     def on_trim_preview_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('trim_page')
+
+        encoding_task = self.get_selected_rows()[-1].encoding_task
+        threading.Thread(target=self.trim_page.apply_settings_to_widgets, args=(encoding_task,)).start()
 
     def on_benchmark_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')

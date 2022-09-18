@@ -706,7 +706,7 @@ class _InputInformation:
         """
         try:
             duration = re.search(r'duration=\d+\.\d+', self.stream_info).group().split('=')[1]
-            duration_in_seconds = round(float(duration))
+            duration_in_seconds = round(float(duration), 1)
 
             if duration:
                 self.input_file.duration = duration_in_seconds

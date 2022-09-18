@@ -45,6 +45,7 @@ class RenderWatch(Adw.Application):
         self.task_queue = task_queue
         self.preview_generator = preview_generator
         self.benchmark_generator = benchmark_generator
+        self.main_window_widgets = None
 
     def do_startup(self):
         """
@@ -64,11 +65,11 @@ class RenderWatch(Adw.Application):
         Returns:
             None
         """
-        main_window_widgets = main_window.MainWindowWidgets(self,
-                                                            self.task_queue,
-                                                            self.preview_generator,
-                                                            self.app_settings)
-        main_window_widgets.main_window.present()
+        self.main_window_widgets = main_window.MainWindowWidgets(self,
+                                                                 self.task_queue,
+                                                                 self.preview_generator,
+                                                                 self.app_settings)
+        self.main_window_widgets.main_window.present()
 
     def do_shutdown(self):
         """
@@ -88,6 +89,7 @@ class RenderWatch(Adw.Application):
         self.task_queue.kill()
         self.preview_generator.kill()
         self.benchmark_generator.kill()
+        self.main_window_widgets.inputs_page_widgets.kill_preview_queues()
 
     def _save_application_settings(self):
         # Saves the application's settings and clears the temp directory.

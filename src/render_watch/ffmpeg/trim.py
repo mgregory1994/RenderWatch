@@ -19,6 +19,8 @@
 class TrimSettings:
     """Class that configures all trim settings available for Render Watch."""
 
+    MIN_TRIM_DURATION_IN_SECONDS = 0.5
+
     def __init__(self):
         """Initializes the TrimSettings class with all necessary variables for the trim options."""
         self.ffmpeg_args = {}
@@ -47,7 +49,7 @@ class TrimSettings:
             None
         """
         if start_time_in_seconds:
-            self.ffmpeg_args['-ss'] = str(round(start_time_in_seconds, 2))
+            self.ffmpeg_args['-ss'] = str(round(start_time_in_seconds, 1))
         else:
             self.ffmpeg_args.pop('-ss', 0)
 
@@ -77,4 +79,4 @@ class TrimSettings:
         if trim_duration_in_seconds is None:
             self.ffmpeg_args.pop('-to', 0)
         else:
-            self.ffmpeg_args['-to'] = str(round(trim_duration_in_seconds, 2))
+            self.ffmpeg_args['-to'] = str(round(trim_duration_in_seconds, 1))

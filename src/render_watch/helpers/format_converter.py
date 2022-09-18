@@ -20,11 +20,11 @@ GIGABYTE_IN_BYTES = 1073741824
 MEGABYTE_IN_BYTES = 1048576
 KILOBYTE_IN_BYTES = 1024
 
-SECONDS_IN_HOUR = 3600
-SECONDS_IN_MINUTE = 60
+SECONDS_IN_HOUR = 3600.0
+SECONDS_IN_MINUTE = 60.0
 
 
-def get_timecode_from_seconds(seconds: int) -> str:
+def get_timecode_from_seconds(seconds: float | int) -> str:
     """
     Creates and returns string that represents a timecode using the given number of seconds.
 
@@ -44,7 +44,7 @@ def get_timecode_from_seconds(seconds: int) -> str:
     return _generate_timecode(hours, minutes, seconds_left)
 
 
-def _generate_timecode(hours: int, minutes: int, seconds: int) -> str:
+def _generate_timecode(hours: int, minutes: int, seconds: float | int) -> str:
     # Returns a String formatted as a timecode for the given hours, minutes, and seconds.
     return ':'.join([_generate_hours_timecode_portion(hours),
                     _generate_minutes_timecode_portion(minutes),
@@ -75,7 +75,7 @@ def _generate_minutes_timecode_portion(minutes: int) -> str:
     return timecode_minutes_portion
 
 
-def _generate_seconds_timecode_portion(seconds: int) -> str:
+def _generate_seconds_timecode_portion(seconds: float | int) -> str:
     # Returns a String that represents the seconds portion of a timecode.
     if seconds == 0:
         timecode_seconds_portion = '00'
