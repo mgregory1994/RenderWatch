@@ -30,8 +30,9 @@ class Crop:
 
     AUTO_CROP_SEGMENTS = 3
     AUTO_CROP_LENGTH = 15
+    AUTO_CROP_THRESHOLD = 10
 
-    def __init__(self, encoding_task, app_settings: app_preferences.Settings):
+    def __init__(self, encoding_task, app_settings: app_preferences.Settings, autocrop=True):
         """
         Initializes the Crop class with all necessary variables for the crop option.
 
@@ -42,7 +43,7 @@ class Crop:
         self._auto_crop_dimensions = None
         self.ffmpeg_args = None
 
-        if self.auto_crop_enabled:
+        if self.auto_crop_enabled and autocrop:
             self.process_auto_crop(encoding_task)
 
     @property
@@ -198,8 +199,8 @@ class Crop:
         width, height, x_pad, y_pad = self._auto_crop_dimensions
 
         try:
-            is_width_valid = ((int(width) + 10) < encoding_task.video_stream.width)
-            is_height_valid = ((int(height) + 10) < encoding_task.video_stream.height)
+            is_width_valid = ((int(width) + self.AUTO_CROP_THRESHOLD) < encoding_task.video_stream.width)
+            is_height_valid = ((int(height) + self.AUTO_CROP_THRESHOLD) < encoding_task.video_stream.height)
 
             return is_width_valid or is_height_valid
         except (TypeError, ValueError):

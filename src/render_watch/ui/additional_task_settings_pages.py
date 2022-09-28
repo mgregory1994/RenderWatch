@@ -20,9 +20,9 @@ import queue
 import threading
 import time
 
-from render_watch.ui import Gtk, Gio, Gdk, GLib, Adw, GdkPixbuf
+from render_watch.ui import Gtk, Gio, Gdk, GLib, Adw
 from render_watch.encode import preview
-from render_watch.ffmpeg import encoding, trim
+from render_watch.ffmpeg import encoding, trim, filters
 from render_watch.helpers import format_converter
 from render_watch import app_preferences
 
@@ -41,16 +41,841 @@ class PreviewPage(Gtk.Box):
 
 
 class CropPage(Gtk.Box):
-    def __init__(self):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+    """Class that contains the widgets that make up the application's crop page."""
 
-        crop_page_label = Gtk.Label(label='Crop Page')
-        crop_page_label.set_vexpand(True)
-        crop_page_label.set_valign(Gtk.Align.CENTER)
-        crop_page_label.set_hexpand(True)
-        crop_page_label.set_halign(Gtk.Align.CENTER)
+    RESOLUTION_MIN = 240
+    RESOLUTION_MAX = 9216
 
-        self.append(crop_page_label)
+    def __init__(self, preview_generator: preview.PreviewGenerator, app_settings: app_preferences.Settings):
+        """
+        Initializes the CropPage widgets class with the necessary variables for creating the application's crop page.
+
+        Parameters:
+            preview_generator: The preview.PreviewGenerator for creating previews for encoding tasks.
+            app_settings: Application settings.
+        """
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+        self.app_settings = app_settings
+        self.encoding_task = None
+        self.video_duration = None
+        self.is_widgets_setting_up = False
+
+        self._setup_crop_page_contents()
+
+        self.crop_previewer = self.CropPreviewer(self, preview_generator)
+
+        self.set_margin_top(10)
+        self.set_margin_bottom(20)
+        self.set_margin_start(20)
+        self.set_margin_end(20)
+
+    def _setup_crop_page_contents(self):
+        # Instantiates all of the widgets needed for the crop page.
+        self._setup_preview_widgets()
+        self._setup_crop_settings_widgets()
+        self._setup_scale_settings_widgets()
+
+        crop_page_settings_contents_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        crop_page_settings_contents_horizontal_box.append(self.crop_settings_group)
+        crop_page_settings_contents_horizontal_box.append(self.scale_settings_group)
+
+        self.append(self.preview_vertical_box)
+        self.append(crop_page_settings_contents_horizontal_box)
+
+    def _setup_preview_widgets(self):
+        # Instantiates the preview widgets.
+        self._setup_preview_picture()
+        self._setup_preview_not_available_label()
+        self._setup_preview_stack()
+        self._setup_time_position_settings()
+
+        self.preview_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        self.preview_vertical_box.append(self.preview_stack)
+        self.preview_vertical_box.append(self.time_position_settings_group)
+
+    def _setup_preview_picture(self):
+        # Instantiates the preview picture widget.
+        self.preview_picture = Gtk.Picture()
+        self.preview_picture.content_fit = True
+        self.preview_picture.set_can_shrink(True)
+        self.preview_picture.set_keep_aspect_ratio(True)
+
+    def _setup_preview_not_available_label(self):
+        # Instantiates the preview not available label widget.
+        self.preview_not_available_label = Gtk.Label(label='Preview Not Available')
+        self.preview_not_available_label.add_css_class('dim-label')
+        self.preview_not_available_label.set_vexpand(True)
+        self.preview_not_available_label.set_valign(Gtk.Align.CENTER)
+        self.preview_not_available_label.set_hexpand(True)
+        self.preview_not_available_label.set_halign(Gtk.Align.CENTER)
+
+    def _setup_preview_stack(self):
+        # Instantiates the preview stack widget.
+        self.preview_stack = Gtk.Stack()
+        self.preview_stack.add_named(self.preview_not_available_label, 'not_available')
+        self.preview_stack.add_named(self.preview_picture, 'preview')
+        self.preview_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+    def _setup_time_position_settings(self):
+        # Instantiates the preview time position widgets.
+        self._setup_preview_time_position_row()
+
+        self.time_position_settings_group = Adw.PreferencesGroup()
+        self.time_position_settings_group.add(self.preview_time_position_row)
+
+    def _setup_preview_time_position_row(self):
+        # Instantiates the preview time position setting widgets.
+        self._setup_preview_time_position_title_label()
+        self._setup_preview_time_position_value_label()
+        self._setup_preview_time_position_scale()
+
+        titles_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        titles_vertical_box.append(self.preview_time_position_title_label)
+        titles_vertical_box.append(self.preview_time_position_value_label)
+
+        contents_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        contents_horizontal_box.append(titles_vertical_box)
+        contents_horizontal_box.append(self.preview_time_position_scale)
+        contents_horizontal_box.set_margin_top(10)
+        contents_horizontal_box.set_margin_bottom(10)
+        contents_horizontal_box.set_margin_start(10)
+        contents_horizontal_box.set_margin_end(10)
+
+        self.preview_time_position_row = Adw.ActionRow()
+        self.preview_time_position_row.set_child(contents_horizontal_box)
+
+    def _setup_preview_time_position_title_label(self):
+        # Instantiates the preview time position title label widget.
+        self.preview_time_position_title_label = Gtk.Label(label='Video Position')
+        self.preview_time_position_title_label.set_vexpand(True)
+        self.preview_time_position_title_label.set_valign(Gtk.Align.END)
+        self.preview_time_position_title_label.set_hexpand(False)
+        self.preview_time_position_title_label.set_halign(Gtk.Align.START)
+
+    def _setup_preview_time_position_value_label(self):
+        # Instantiates the preview time position value label widget.
+        self.preview_time_position_value_label = Gtk.Label(label='##:##:##')
+        self.preview_time_position_value_label.add_css_class('dim-label')
+        self.preview_time_position_value_label.add_css_class('caption')
+        self.preview_time_position_value_label.set_vexpand(True)
+        self.preview_time_position_value_label.set_valign(Gtk.Align.START)
+        self.preview_time_position_value_label.set_hexpand(False)
+        self.preview_time_position_value_label.set_halign(Gtk.Align.START)
+
+    def _setup_preview_time_position_scale(self):
+        # Instantiates the preview time position scale widget.
+        self.preview_time_position_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                                    min=0.0,
+                                                                    max=1.0,
+                                                                    step=0.1)
+        self.preview_time_position_scale.set_value(0.0)
+        self.preview_time_position_scale.set_digits(1)
+        self.preview_time_position_scale.set_draw_value(False)
+        self.preview_time_position_scale.set_hexpand(True)
+        self.preview_time_position_scale.connect('value-changed', self.on_preview_time_position_scale_value_changed)
+
+    def _setup_crop_settings_widgets(self):
+        # Instantiates the crop settings widgets.
+        self._setup_auto_crop_row()
+        self._setup_crop_size_row()
+        self._setup_crop_padding_row()
+        self._setup_crop_settings_switch()
+
+        self.crop_settings_group = Adw.PreferencesGroup()
+        self.crop_settings_group.set_title('Crop Settings')
+        self.crop_settings_group.set_header_suffix(self.crop_settings_switch)
+        self.crop_settings_group.add(self.auto_crop_row)
+        self.crop_settings_group.add(self.crop_size_row)
+        self.crop_settings_group.add(self.crop_padding_row)
+
+    def _setup_auto_crop_row(self):
+        # Instantiates the auto crop setting widgets.
+        self._setup_auto_crop_switch()
+
+        self.auto_crop_row = Adw.ActionRow()
+        self.auto_crop_row.set_title('Auto Crop')
+        self.auto_crop_row.add_suffix(self.auto_crop_switch)
+        self.auto_crop_row.set_sensitive(False)
+
+    def _setup_auto_crop_switch(self):
+        # Instantiates the auto crop switch widget.
+        self.auto_crop_switch = Gtk.Switch()
+        self.auto_crop_switch.set_vexpand(False)
+        self.auto_crop_switch.set_valign(Gtk.Align.CENTER)
+        self.auto_crop_switch.connect('state-set', self.on_auto_crop_switch_state_set)
+
+    def _setup_crop_size_row(self):
+        # Instantiates the crop size setting widgets.
+        self._setup_crop_width_label()
+        self._setup_crop_width_spin_button()
+        self._setup_crop_height_label()
+        self._setup_crop_height_spin_button()
+        self._setup_crop_size_title_label()
+
+        crop_width_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        crop_width_horizontal_box.append(self.crop_width_label)
+        crop_width_horizontal_box.append(self.crop_width_spin_button)
+
+        crop_height_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        crop_height_horizontal_box.append(self.crop_height_label)
+        crop_height_horizontal_box.append(self.crop_height_spin_button)
+
+        crop_settings_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        crop_settings_horizontal_box.append(crop_width_horizontal_box)
+        crop_settings_horizontal_box.append(crop_height_horizontal_box)
+        crop_settings_horizontal_box.set_hexpand(True)
+        crop_settings_horizontal_box.set_halign(Gtk.Align.END)
+
+        crop_size_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        crop_size_horizontal_box.append(self.crop_size_title_label)
+        crop_size_horizontal_box.append(crop_settings_horizontal_box)
+        crop_size_horizontal_box.set_margin_top(10)
+        crop_size_horizontal_box.set_margin_bottom(10)
+        crop_size_horizontal_box.set_margin_start(10)
+        crop_size_horizontal_box.set_margin_end(10)
+
+        self.crop_size_row = Adw.ActionRow()
+        self.crop_size_row.set_child(crop_size_horizontal_box)
+        self.crop_size_row.set_sensitive(False)
+
+    def _setup_crop_width_label(self):
+        # Instantiates the crop width label widget.
+        self.crop_width_label = Gtk.Label(label='Width')
+        self.crop_width_label.set_vexpand(True)
+        self.crop_width_label.set_valign(Gtk.Align.CENTER)
+        self.crop_width_label.set_hexpand(False)
+        self.crop_width_label.set_halign(Gtk.Align.START)
+
+    def _setup_crop_width_spin_button(self):
+        # Instantiates the crop width spin button widget.
+        self.crop_width_spin_button = Gtk.SpinButton()
+        self.crop_width_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
+        self.crop_width_spin_button.set_digits(0)
+        self.crop_width_spin_button.set_increments(240, 1024)
+        self.crop_width_spin_button.set_numeric(True)
+        self.crop_width_spin_button.set_value(240)
+        self.crop_width_spin_button.set_size_request(125, -1)
+        self.crop_width_spin_button.set_vexpand(False)
+        self.crop_width_spin_button.set_valign(Gtk.Align.CENTER)
+        self.crop_width_spin_button.connect('value-changed', self.on_crop_width_spin_button_value_changed)
+
+    def _setup_crop_height_label(self):
+        # Instantiates the crop height label widget.
+        self.crop_height_label = Gtk.Label(label='Height')
+        self.crop_height_label.set_vexpand(True)
+        self.crop_height_label.set_valign(Gtk.Align.CENTER)
+        self.crop_height_label.set_hexpand(False)
+        self.crop_height_label.set_halign(Gtk.Align.START)
+
+    def _setup_crop_height_spin_button(self):
+        # Instantiates the crop height spin button widget.
+        self.crop_height_spin_button = Gtk.SpinButton()
+        self.crop_height_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
+        self.crop_height_spin_button.set_digits(0)
+        self.crop_height_spin_button.set_increments(240, 1024)
+        self.crop_height_spin_button.set_numeric(True)
+        self.crop_height_spin_button.set_value(240)
+        self.crop_height_spin_button.set_size_request(125, -1)
+        self.crop_height_spin_button.set_vexpand(False)
+        self.crop_height_spin_button.set_valign(Gtk.Align.CENTER)
+        self.crop_height_spin_button.connect('value-changed', self.on_crop_height_spin_button_value_changed)
+
+    def _setup_crop_size_title_label(self):
+        # Instantiates the crop size title label widget.
+        self.crop_size_title_label = Gtk.Label(label='Size')
+        self.crop_size_title_label.set_vexpand(True)
+        self.crop_size_title_label.set_valign(Gtk.Align.CENTER)
+
+    def _setup_crop_padding_row(self):
+        # Instantiates the crop padding setting widgets.
+        self._setup_crop_x_padding_title_label()
+        self._setup_crop_x_padding_spin_button()
+        self._setup_crop_y_padding_title_label()
+        self._setup_crop_y_padding_spin_button()
+        self._setup_crop_padding_title_label()
+
+        crop_x_padding_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        crop_x_padding_horizontal_box.append(self.crop_x_padding_title_label)
+        crop_x_padding_horizontal_box.append(self.crop_x_padding_spin_button)
+
+        crop_y_padding_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        crop_y_padding_horizontal_box.append(self.crop_y_padding_title_label)
+        crop_y_padding_horizontal_box.append(self.crop_y_padding_spin_button)
+
+        crop_padding_settings_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        crop_padding_settings_horizontal_box.append(crop_x_padding_horizontal_box)
+        crop_padding_settings_horizontal_box.append(crop_y_padding_horizontal_box)
+        crop_padding_settings_horizontal_box.set_hexpand(True)
+        crop_padding_settings_horizontal_box.set_halign(Gtk.Align.END)
+
+        crop_padding_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        crop_padding_horizontal_box.append(self.crop_padding_title_label)
+        crop_padding_horizontal_box.append(crop_padding_settings_horizontal_box)
+        crop_padding_horizontal_box.set_margin_top(10)
+        crop_padding_horizontal_box.set_margin_bottom(10)
+        crop_padding_horizontal_box.set_margin_start(10)
+        crop_padding_horizontal_box.set_margin_end(10)
+
+        self.crop_padding_row = Adw.ActionRow()
+        self.crop_padding_row.set_child(crop_padding_horizontal_box)
+        self.crop_padding_row.set_sensitive(False)
+
+    def _setup_crop_x_padding_title_label(self):
+        # Instantiates the crop x padding title label widget.
+        self.crop_x_padding_title_label = Gtk.Label(label='X')
+        self.crop_x_padding_title_label.set_vexpand(True)
+        self.crop_x_padding_title_label.set_valign(Gtk.Align.CENTER)
+        self.crop_x_padding_title_label.set_hexpand(False)
+        self.crop_x_padding_title_label.set_halign(Gtk.Align.END)
+
+    def _setup_crop_x_padding_spin_button(self):
+        # Instantiates the crop x padding spin button widget.
+        self.crop_x_padding_spin_button = Gtk.SpinButton()
+        self.crop_x_padding_spin_button.set_digits(0)
+        self.crop_x_padding_spin_button.set_increments(1, 10)
+        self.crop_x_padding_spin_button.set_numeric(True)
+        self.crop_x_padding_spin_button.set_value(0)
+        self.crop_x_padding_spin_button.set_size_request(125, -1)
+        self.crop_x_padding_spin_button.set_vexpand(False)
+        self.crop_x_padding_spin_button.set_valign(Gtk.Align.CENTER)
+        self.crop_x_padding_spin_button.connect('value-changed', self.on_crop_x_padding_spin_button_value_changed)
+
+    def _setup_crop_y_padding_title_label(self):
+        # Instantiates the crop y padding title label widget.
+        self.crop_y_padding_title_label = Gtk.Label(label='Y')
+        self.crop_y_padding_title_label.set_vexpand(True)
+        self.crop_y_padding_title_label.set_valign(Gtk.Align.CENTER)
+        self.crop_y_padding_title_label.set_hexpand(False)
+        self.crop_y_padding_title_label.set_halign(Gtk.Align.END)
+
+    def _setup_crop_y_padding_spin_button(self):
+        # Instantiates the crop y padding spin button widget.
+        self.crop_y_padding_spin_button = Gtk.SpinButton()
+        self.crop_y_padding_spin_button.set_digits(0)
+        self.crop_y_padding_spin_button.set_increments(1, 10)
+        self.crop_y_padding_spin_button.set_numeric(True)
+        self.crop_y_padding_spin_button.set_value(0)
+        self.crop_y_padding_spin_button.set_size_request(125, -1)
+        self.crop_y_padding_spin_button.set_vexpand(False)
+        self.crop_y_padding_spin_button.set_valign(Gtk.Align.CENTER)
+        self.crop_y_padding_spin_button.connect('value-changed', self.on_crop_y_padding_spin_button_value_changed)
+
+    def _setup_crop_padding_title_label(self):
+        # Instantiates the crop padding title label widget.
+        self.crop_padding_title_label = Gtk.Label(label='Padding')
+        self.crop_padding_title_label.set_vexpand(True)
+        self.crop_padding_title_label.set_valign(Gtk.Align.CENTER)
+
+    def _setup_crop_settings_switch(self):
+        # Instantiates the crop settings switch widget.
+        self.crop_settings_switch = Gtk.Switch()
+        self.crop_settings_switch.set_vexpand(False)
+        self.crop_settings_switch.set_valign(Gtk.Align.CENTER)
+        self.crop_settings_switch.connect('state-set', self.on_crop_settings_switch_state_set)
+
+    def _setup_scale_settings_widgets(self):
+        # Instantiates the scale settings widgets.
+        self._setup_scale_size_row()
+        self._setup_scale_settings_switch()
+
+        self.scale_settings_group = Adw.PreferencesGroup()
+        self.scale_settings_group.set_title('Scale Settings')
+        self.scale_settings_group.set_header_suffix(self.scale_settings_switch)
+        self.scale_settings_group.add(self.scale_size_row)
+
+    def _setup_scale_size_row(self):
+        # Instantiates the scale size setting widgets.
+        self._setup_scale_width_label()
+        self._setup_scale_width_spin_button()
+        self._setup_scale_height_label()
+        self._setup_scale_height_spin_button()
+        self._setup_scale_size_title_label()
+
+        scale_width_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        scale_width_horizontal_box.append(self.scale_width_label)
+        scale_width_horizontal_box.append(self.scale_width_spin_button)
+
+        scale_height_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        scale_height_horizontal_box.append(self.scale_height_label)
+        scale_height_horizontal_box.append(self.scale_height_spin_button)
+
+        scale_settings_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        scale_settings_horizontal_box.append(scale_width_horizontal_box)
+        scale_settings_horizontal_box.append(scale_height_horizontal_box)
+        scale_settings_horizontal_box.set_hexpand(True)
+        scale_settings_horizontal_box.set_halign(Gtk.Align.END)
+
+        scale_size_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        scale_size_horizontal_box.append(self.scale_size_title_label)
+        scale_size_horizontal_box.append(scale_settings_horizontal_box)
+        scale_size_horizontal_box.set_margin_top(10)
+        scale_size_horizontal_box.set_margin_bottom(10)
+        scale_size_horizontal_box.set_margin_start(10)
+        scale_size_horizontal_box.set_margin_end(10)
+
+        self.scale_size_row = Adw.ActionRow()
+        self.scale_size_row.set_child(scale_size_horizontal_box)
+        self.scale_size_row.set_sensitive(False)
+
+    def _setup_scale_width_label(self):
+        # Instantiates the scale width label widget.
+        self.scale_width_label = Gtk.Label(label='Width')
+        self.scale_width_label.set_vexpand(True)
+        self.scale_width_label.set_valign(Gtk.Align.CENTER)
+        self.scale_width_label.set_hexpand(False)
+        self.scale_width_label.set_halign(Gtk.Align.START)
+
+    def _setup_scale_width_spin_button(self):
+        # Instantiates the scale width spin button widget.
+        self.scale_width_spin_button = Gtk.SpinButton()
+        self.scale_width_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
+        self.scale_width_spin_button.set_digits(0)
+        self.scale_width_spin_button.set_increments(240, 1024)
+        self.scale_width_spin_button.set_numeric(True)
+        self.scale_width_spin_button.set_value(240)
+        self.scale_width_spin_button.set_size_request(125, -1)
+        self.scale_width_spin_button.set_vexpand(False)
+        self.scale_width_spin_button.set_valign(Gtk.Align.CENTER)
+        self.scale_width_spin_button.connect('value-changed', self.on_scale_width_spin_button_value_changed)
+
+    def _setup_scale_height_label(self):
+        # Instantiates the scale height label widget.
+        self.scale_height_label = Gtk.Label(label='Height')
+        self.scale_height_label.set_vexpand(True)
+        self.scale_height_label.set_valign(Gtk.Align.CENTER)
+        self.scale_height_label.set_hexpand(False)
+        self.scale_height_label.set_halign(Gtk.Align.START)
+
+    def _setup_scale_height_spin_button(self):
+        # Instantiates the scale height spin button widget.
+        self.scale_height_spin_button = Gtk.SpinButton()
+        self.scale_height_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
+        self.scale_height_spin_button.set_digits(0)
+        self.scale_height_spin_button.set_increments(240, 1024)
+        self.scale_height_spin_button.set_numeric(True)
+        self.scale_height_spin_button.set_value(240)
+        self.scale_height_spin_button.set_size_request(125, -1)
+        self.scale_height_spin_button.set_vexpand(False)
+        self.scale_height_spin_button.set_valign(Gtk.Align.CENTER)
+        self.scale_height_spin_button.connect('value-changed', self.on_scale_height_spin_button_value_changed)
+
+    def _setup_scale_size_title_label(self):
+        # Instantiates the scale size title label widget.
+        self.scale_size_title_label = Gtk.Label(label='Size')
+        self.scale_size_title_label.set_vexpand(True)
+        self.scale_size_title_label.set_valign(Gtk.Align.CENTER)
+        self.scale_size_title_label.set_hexpand(False)
+        self.scale_size_title_label.set_halign(Gtk.Align.CENTER)
+
+    def _setup_scale_settings_switch(self):
+        # Instantiates the scale settings switch widget.
+        self.scale_settings_switch = Gtk.Switch()
+        self.scale_settings_switch.set_vexpand(False)
+        self.scale_settings_switch.set_valign(Gtk.Align.CENTER)
+        self.scale_settings_switch.connect('state-set', self.on_scale_settings_switch_state_set)
+
+    def set_crop_state_enabled(self, is_state_enabled: bool):
+        """
+        Sets the state of the crop widgets to reflect whether the crop settings are enabled.
+
+        Parameters:
+             is_state_enabled: Boolean that represents whether the crop settings are enabled.
+        """
+        self.auto_crop_row.set_sensitive(is_state_enabled)
+        self.crop_size_row.set_sensitive(is_state_enabled and not self.auto_crop_switch.get_active())
+        self.crop_padding_row.set_sensitive(is_state_enabled and not self.auto_crop_switch.get_active())
+
+    def set_auto_crop_state_enabled(self, is_state_enabled: bool):
+        """
+        Sets the state of the auto crop widgets to reflect whether the auto crop setting is enabled.
+
+        Parameters:
+            is_state_enabled: Boolean that represents whether the auto crop setting is enabled.
+        """
+        self.crop_size_row.set_sensitive(not is_state_enabled)
+        self.crop_padding_row.set_sensitive(not is_state_enabled)
+
+    def set_scale_state_enabled(self, is_state_enabled: bool):
+        """
+        Sets the state of the scale widgets to reflect whether the scale settings are enabled.
+
+        Parameters:
+            is_state_enabled: Boolean that represents whether the scale settings are enabled.
+        """
+        self.scale_size_row.set_sensitive(is_state_enabled)
+
+    def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+        """
+        Sets whether the widgets are being set up for a new encoding task.
+
+        Parameters:
+            is_widgets_setting_up: Boolean that represents whether the widgets are being set up for a new encoding task.
+        """
+        self.is_widgets_setting_up = is_widgets_setting_up
+
+    def update_crop_size_range(self):
+        """
+        Uses the encoding task's selected video stream's dimensions to set the range for the
+        crop width and height spin buttons.
+        """
+        origin_width = self.encoding_task.video_stream.width
+        origin_height = self.encoding_task.video_stream.height
+
+        self.crop_width_spin_button.set_range(self.RESOLUTION_MIN, origin_width)
+        self.crop_height_spin_button.set_range(self.RESOLUTION_MIN, origin_height)
+
+    def update_crop_padding_range(self):
+        """
+        Uses the encoding task's selected video stream's dimensions to set the range for the
+        crop x and y padding spin buttons.
+        """
+        origin_width = self.encoding_task.video_stream.width
+        origin_height = self.encoding_task.video_stream.height
+        x_pad = self.crop_x_padding_spin_button.get_value_as_int()
+        y_pad = self.crop_y_padding_spin_button.get_value_as_int()
+        x_padding_max = origin_width - self.crop_width_spin_button.get_value_as_int()
+        y_padding_max = origin_height - self.crop_height_spin_button.get_value_as_int()
+
+        self.crop_x_padding_spin_button.set_range(0, x_padding_max)
+        self.crop_y_padding_spin_button.set_range(0, y_padding_max)
+
+        if x_pad > x_padding_max:
+            self.crop_x_padding_spin_button.set_value(x_padding_max)
+
+        if y_pad > y_padding_max:
+            self.crop_y_padding_spin_button.set_value(y_padding_max)
+
+    def update_preview_position_range(self):
+        """
+        Uses the encoding task's selected video stream's duration to set the range for the preview time position scale.
+        """
+        video_duration = self.encoding_task.input_file.duration
+
+        self.preview_time_position_scale.set_range(min=0.0, max=video_duration)
+        self.preview_time_position_scale.set_value(round(video_duration / 2.0, 1))
+        self.preview_time_position_value_label.set_label(format_converter.get_timecode_from_seconds(video_duration / 2.0))
+
+    def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        """
+        Applies the given encoding task's settings to the crop page's widgets.
+
+        Parameters:
+            encoding_task: Encoding task to apply to the crop page's widgets.
+        """
+        if self.encoding_task is encoding_task:
+            return
+
+        self.encoding_task = encoding_task
+
+        GLib.idle_add(self.set_widgets_setting_up, True)
+        GLib.idle_add(self.update_crop_size_range)
+        GLib.idle_add(self.update_preview_position_range)
+        self._apply_crop_preview_to_widgets()
+        self._apply_crop_enabled_setting_to_widgets()
+        self._apply_crop_settings_to_widgets()
+        self._apply_scale_enabled_setting_to_widgets()
+        self._apply_scale_settings_to_widgets()
+        GLib.idle_add(self.set_widgets_setting_up, False)
+
+    def _apply_crop_preview_to_widgets(self):
+        # Applies the encoding task's settings to the preview picture widget.
+        GLib.idle_add(self.preview_picture.set_filename, self.encoding_task.temp_output_file.crop_preview_file_path)
+        GLib.idle_add(self.preview_stack.set_visible_child_name, 'preview')
+
+    def _apply_crop_enabled_setting_to_widgets(self):
+        # Applies the encoding task's settings to the crop enabled settings widgets.
+        GLib.idle_add(self.crop_settings_switch.set_active, self.encoding_task.filter.crop is not None)
+        GLib.idle_add(self.auto_crop_switch.set_active, self.encoding_task.filter.crop.auto_crop_enabled)
+
+    def _apply_crop_settings_to_widgets(self):
+        # Applies the encoding task's settings to the crop settings widgets.
+        if self.encoding_task.filter.is_crop_enabled():
+            width, height, x_pad, y_pad = self.encoding_task.filter.crop.dimensions
+
+            GLib.idle_add(self.crop_width_spin_button.set_value, width)
+            GLib.idle_add(self.crop_height_spin_button.set_value, height)
+            GLib.idle_add(self.update_crop_padding_range)
+            GLib.idle_add(self.crop_x_padding_spin_button.set_value, x_pad)
+            GLib.idle_add(self.crop_y_padding_spin_button.set_value, y_pad)
+        else:
+            origin_width = self.encoding_task.video_stream.width
+            origin_height = self.encoding_task.video_stream.height
+
+            GLib.idle_add(self.crop_width_spin_button.set_value, origin_width)
+            GLib.idle_add(self.crop_height_spin_button.set_value, origin_height)
+            GLib.idle_add(self.update_crop_padding_range)
+            GLib.idle_add(self.crop_x_padding_spin_button.set_value, 0)
+            GLib.idle_add(self.crop_y_padding_spin_button.set_value, 0)
+
+    def _apply_scale_enabled_setting_to_widgets(self):
+        # Applies the encoding task's settings to the scale enabled settings widget.
+        GLib.idle_add(self.scale_settings_switch.set_active, (self.encoding_task.filter.scale is not None))
+
+    def _apply_scale_settings_to_widgets(self):
+        # Applies the encoding task's settings to the scale settings widgets.
+        if self.encoding_task.filter.is_scale_enabled():
+            width, height = self.encoding_task.filter.scale.dimensions
+
+            GLib.idle_add(self.scale_width_spin_button.set_value, width)
+            GLib.idle_add(self.scale_height_spin_button.set_value, height)
+        else:
+            origin_width = self.encoding_task.video_stream.width
+            origin_height = self.encoding_task.video_stream.height
+
+            GLib.idle_add(self.scale_width_spin_button.set_value, origin_width)
+            GLib.idle_add(self.scale_height_spin_button.set_value, origin_height)
+
+    def apply_settings_from_widgets(self):
+        """Applies the state of the crop page's widgets to the encoding task."""
+        self._apply_crop_settings_from_widgets()
+        self._apply_scale_settings_from_widgets()
+
+    def _apply_crop_settings_from_widgets(self):
+        # Applies the state of the crop settings widgets to the encoding task.
+        if self.crop_settings_switch.get_active():
+            if self.auto_crop_switch.get_active():
+                crop_settings = filters.Crop(self.encoding_task, self.app_settings)
+            else:
+                width = self.crop_width_spin_button.get_value_as_int()
+                height = self.crop_height_spin_button.get_value_as_int()
+                x_pad = self.crop_x_padding_spin_button.get_value_as_int()
+                y_pad = self.crop_y_padding_spin_button.get_value_as_int()
+
+                crop_settings = filters.Crop(self.encoding_task, self.app_settings, autocrop=False)
+                crop_settings.dimensions = (width, height, x_pad, y_pad)
+
+            self.encoding_task.filter.crop = crop_settings
+        else:
+            self.encoding_task.filter.crop = None
+
+        GLib.idle_add(self.update_crop_padding_range)
+
+    def _apply_scale_settings_from_widgets(self):
+        # Applies the state of the scale widgets to the encoding task.
+        if self.scale_settings_switch.get_active():
+            width = self.scale_width_spin_button.get_value_as_int()
+            height = self.scale_height_spin_button.get_value_as_int()
+
+            scale_settings = filters.Scale()
+            scale_settings.dimensions = (width, height)
+            self.encoding_task.filter.scale = scale_settings
+        else:
+            self.encoding_task.filter.scale = None
+
+    def on_preview_time_position_scale_value_changed(self, scale):
+        """
+        Signal callback function for the preview time position scale's 'value-changed' signal.
+        Updates the preview time position value label to reflect what time position is set and generates a new preview.
+
+        Parameters:
+            scale: Gtk.Scale that emitted the signal.
+        """
+        scale_value = scale.get_value()
+        self.preview_time_position_value_label.set_label(format_converter.get_timecode_from_seconds(scale_value))
+
+        self.crop_previewer.add_preview_task(self.encoding_task, scale_value)
+
+    def on_crop_settings_switch_state_set(self, switch, user_data=None):
+        """
+        Signal callback function for the crop settings switch's 'state-set' signal.
+        Sets the state of the crop settings widgets and generates a new preview.
+
+        Parameters:
+            switch: Gtk.Switch that emitted the signal.
+            user_data: Additional data passed from the signal.
+        """
+        self.set_crop_state_enabled(switch.get_active())
+
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_auto_crop_switch_state_set(self, switch, user_data=None):
+        """
+        Signal callback function for the auto crop switch's 'state-set' signal.
+        Sets the state of the crop settings and generates a new preview.
+
+        Parameters:
+            switch: Gtk.Switch that emitted the signal.
+            user_data: Additional data passed from the signal.
+        """
+        self.set_auto_crop_state_enabled(switch.get_active())
+
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_crop_width_spin_button_value_changed(self, spin_button):
+        """
+        Signal callback function for the crop width spin button's 'value-changed' signal.
+        Generates a new preview.
+
+        Parameters:
+            spin_button: Gtk.SpinButton that emitted the signal.
+        """
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_crop_height_spin_button_value_changed(self, spin_button):
+        """
+        Signal callback function for the crop height spin button's 'value-changed' signal.
+        Generates a new preview.
+
+        Parameters:
+            spin_button: Gtk.SpinButton that emitted the signal.
+        """
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_crop_x_padding_spin_button_value_changed(self, spin_button):
+        """
+        Signal callback function for the crop x padding spin button's 'value-changed' signal.
+        Generates a new preview.
+
+        Parameters:
+            spin_button: Gtk.SpinButton that emitted the signal.
+        """
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_crop_y_padding_spin_button_value_changed(self, spin_button):
+        """
+        Signal callback function for the crop y padding spin button's 'value-changed' signal.
+        Generates a new preview.
+
+        Parameters:
+            spin_button: Gtk.SpinButton that emitted the signal.
+        """
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_scale_settings_switch_state_set(self, switch, user_data=None):
+        """
+        Signal callback function for the scale settings switch's 'state-set' signal.
+        Sets the state of the scale settings widgets and generates a new preview.
+
+        Parameters:
+            switch: Gtk.Switch that emitted the signal.
+            user_data: Additional data passed from the signal.
+        """
+        self.set_scale_state_enabled(switch.get_active())
+
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_scale_width_spin_button_value_changed(self, spin_button):
+        """
+        Signal callback function for the scale width spin button's 'value-changed' signal.
+        Generates a new preview.
+
+        Parameters:
+            spin_button: Gtk.SpinButton that emitted the signal.
+        """
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_scale_height_spin_button_value_changed(self, spin_button):
+        """
+        Signal callback function for the scale height spin button's 'value-changed' signal.
+        Generates a new preview.
+
+        Parameters:
+            spin_button: Gtk.SpinButton that emitted the signal.
+        """
+        if self.is_widgets_setting_up:
+            return
+
+        self.crop_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    class CropPreviewer:
+        """Class that manages the preview queue and generates a new preview for each request."""
+
+        def __init__(self, crop_page, preview_generator: preview.PreviewGenerator):
+            """
+            Initializes the CropPreviewer class with the necessary variables for managing the crop previewer.
+
+            Parameters:
+                crop_page: The crop page to manage previews for.
+                preview_generator: preview.PreviewGenerator to send preview requests to.
+            """
+            self._crop_page = crop_page
+            self._preview_generator = preview_generator
+            self._preview_queue = queue.Queue()
+
+            threading.Thread(target=self._preview_queue_loop, args=()).start()
+
+        def _preview_queue_loop(self):
+            # The loop that consumes the preview queue in order to process crop preview requests.
+            while True:
+                encoding_task, time_position = self._preview_queue.get()
+
+                GLib.idle_add(self._crop_page.preview_picture.set_opacity, 0.5)
+
+                if not encoding_task:
+                    return
+
+                time.sleep(0.1)
+
+                while not self._preview_queue.empty():
+                    with self._preview_queue.mutex:
+                        encoding_task, time_position = self._preview_queue.queue[-1]
+
+                        self._preview_queue.queue.clear()
+
+                    time.sleep(0.1)
+
+                self._crop_page.apply_settings_from_widgets()
+                self._generate_preview(encoding_task, time_position)
+
+                GLib.idle_add(self._crop_page.preview_picture.set_opacity, 1.0)
+
+        def _generate_preview(self, encoding_task: encoding.Task, time_position: float):
+            # Uses the preview generator to generate a new crop preview.
+            self._preview_generator.generate_crop_preview(encoding_task, time_position)
+            self._wait_for_preview_generation(encoding_task)
+
+            GLib.idle_add(self._crop_page.preview_picture.set_filename,
+                          encoding_task.temp_output_file.crop_preview_file_path)
+
+        @staticmethod
+        def _wait_for_preview_generation( encoding_task: encoding.Task):
+            # Waits for the preview generator to finish creating the crop preview file.
+            if encoding_task.temp_output_file.crop_preview_threading_event.is_set():
+                encoding_task.temp_output_file.crop_preview_threading_event.clear()
+
+            encoding_task.temp_output_file.crop_preview_threading_event.wait()
+
+        def add_preview_task(self, encoding_task: encoding.Task, time_position: int | float):
+            """
+            Adds the given encoding task and time position to the preview queue in order to request a new crop preview.
+
+            Parameters:
+                encoding_task: Encoding task to send to the preview queue.
+                time_position: Time position (in seconds) to use for the crop preview.
+            """
+            self._preview_queue.put((encoding_task, time_position))
+
+        def kill(self):
+            """Empties the preview queue and stops the preview queue loop."""
+            while not self._preview_queue.empty():
+                self._preview_queue.get()
+
+            self._preview_queue.put((False, False))
 
 
 class TrimPage(Gtk.Box):
@@ -73,7 +898,7 @@ class TrimPage(Gtk.Box):
 
         self._setup_trim_page_contents()
 
-        self.trim_previewer = self.TrimPreviewer(self, preview_generator, self.preview_picture)
+        self.trim_previewer = self.TrimPreviewer(self, preview_generator)
 
         self.set_margin_top(10)
         self.set_margin_bottom(20)
@@ -504,18 +1329,16 @@ class TrimPage(Gtk.Box):
     class TrimPreviewer:
         """Class that manages the preview queue and generates a new preview for each request."""
 
-        def __init__(self, trim_page, preview_generator: preview.PreviewGenerator, preview_picture):
+        def __init__(self, trim_page, preview_generator: preview.PreviewGenerator):
             """
             Initializes the TrimPreviewer class with the necessary variables for managing the trim previewer.
 
             Parameters:
                 trim_page: The trim page to manage previews for.
                 preview_generator: preview.PreviewGenerator to send preview requests to.
-                preview_picture: The Gtk.Picture to use for showing the trim preview image.
             """
             self._trim_page = trim_page
             self._preview_generator = preview_generator
-            self._preview_picture = preview_picture
             self._preview_queue = queue.Queue()
 
             threading.Thread(target=self._preview_queue_loop, args=()).start()
@@ -525,7 +1348,7 @@ class TrimPage(Gtk.Box):
             while True:
                 encoding_task, time_position = self._preview_queue.get()
 
-                GLib.idle_add(self._preview_picture.set_opacity, 0.5)
+                GLib.idle_add(self._trim_page.preview_picture.set_opacity, 0.5)
 
                 if not encoding_task:
                     return
@@ -545,14 +1368,14 @@ class TrimPage(Gtk.Box):
                 if encoding_task.input_file.is_video:
                     self._generate_preview(encoding_task, time_position)
 
-                GLib.idle_add(self._preview_picture.set_opacity, 1.0)
+                GLib.idle_add(self._trim_page.preview_picture.set_opacity, 1.0)
 
         def _generate_preview(self, encoding_task: encoding.Task, time_position: float):
             # Uses the preview generator to generate a new trim preview.
             self._preview_generator.generate_trim_preview(encoding_task, time_position)
             self._wait_for_preview_generation(encoding_task)
 
-            GLib.idle_add(self._preview_picture.set_filename,
+            GLib.idle_add(self._trim_page.preview_picture.set_filename,
                           encoding_task.temp_output_file.trim_preview_file_path)
 
         @staticmethod
