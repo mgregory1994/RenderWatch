@@ -68,6 +68,7 @@ class RenderWatch(Adw.Application):
         self.main_window_widgets = main_window.MainWindowWidgets(self,
                                                                  self.task_queue,
                                                                  self.preview_generator,
+                                                                 self.benchmark_generator,
                                                                  self.app_settings)
         self.main_window_widgets.main_window.present()
 

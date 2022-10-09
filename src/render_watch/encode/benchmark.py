@@ -65,6 +65,7 @@ class BenchmarkGenerator:
                     break
 
                 try:
+                    self._reset_encoding_task(encoding_task)
                     self._setup_encoding_task(encoding_task_copy, time_position, benchmark_length)
                     self._process_benchmark_task(encoding_task, encoding_task_copy, benchmark_length)
                 except:
@@ -89,6 +90,16 @@ class BenchmarkGenerator:
             return encoding_task.input_file.duration / 2
         return 0
 
+    @staticmethod
+    def _reset_encoding_task(encoding_task: encoding.Task):
+        # Resets the benchmark values in the encoding task.
+        encoding_task.benchmark_progress = 0.0
+        encoding_task.benchmark_bitrate = None
+        encoding_task.benchmark_speed = None
+        encoding_task.benchmark_file_size = None
+        encoding_task.benchmark_time_estimate = None
+        encoding_task.benchmark_current_position = None
+
     def _setup_encoding_task(self, encoding_task: encoding.Task, time_position: int | float, benchmark_length: int):
         # Changes the encoding task's settings for running a benchmark.
         encoding_task.temp_output_file.name = 'benchmark'
@@ -106,7 +117,8 @@ class BenchmarkGenerator:
         trim_settings.trim_duration = benchmark_length
         encoding_task.trim = trim_settings
 
-    def _process_benchmark_task(self, encoding_task: encoding.Task,
+    def _process_benchmark_task(self,
+                                encoding_task: encoding.Task,
                                 encoding_task_copy: encoding.Task,
                                 benchmark_length: int):
         # Gets the ffmpeg args for the benchmark task and sends them to the benchmark subprocess.
@@ -115,7 +127,8 @@ class BenchmarkGenerator:
         encoding_task.has_benchmark_started = True
 
         if self._run_benchmark_subprocess(encoding_task, benchmark_subprocess_args, benchmark_length):
-            raise Exception
+            if not encoding_task.is_benchmark_stopped:
+                raise Exception
 
     def _run_benchmark_subprocess(self,
                                   encoding_task: encoding.Task,
@@ -140,7 +153,7 @@ class BenchmarkGenerator:
 
                     stdout_last_line = stdout
 
-                    self._update_task_status(encoding_task, stdout, encode_pass)
+                    self._update_task_status(encoding_task, stdout, encode_pass, benchmark_length)
 
         self._update_task_total_file_size_status(encoding_task, benchmark_length)
         self._update_task_time_estimate(encoding_task, len(benchmark_subprocess_args))
@@ -150,13 +163,13 @@ class BenchmarkGenerator:
 
         return benchmark_process.wait()
 
-    def _update_task_status(self, encoding_task: encoding.Task, stdout: str, encode_pass: int):
+    def _update_task_status(self, encoding_task: encoding.Task, stdout: str, encode_pass: int, benchmark_length: int):
         # Updates the benchmark status variables of the encoding task.
         self._update_task_bitrate_status(encoding_task, stdout)
         self._update_task_file_size_status(encoding_task, stdout)
         self._update_task_speed_status(encoding_task, stdout)
         self._update_task_current_position_status(encoding_task, stdout)
-        self._update_task_progress_status(encoding_task, encode_pass)
+        self._update_task_progress_status(encoding_task, encode_pass, benchmark_length)
 
     @staticmethod
     def _update_task_bitrate_status(encoding_task: encoding.Task, stdout: str):
@@ -198,11 +211,11 @@ class BenchmarkGenerator:
             pass
 
     @staticmethod
-    def _update_task_progress_status(encoding_task: encoding.Task, encode_pass: int):
+    def _update_task_progress_status(encoding_task: encoding.Task, encode_pass: int, benchmark_length: int):
         # Updates the benchmark task's progress status.
         try:
             current_time_position = encoding_task.benchmark_current_position
-            input_file_duration = encoding_task.input_file.duration
+            # input_file_duration = encoding_task.input_file.duration
 
             if encoding_task.is_video_2_pass():
                 encode_passes = 2
@@ -210,19 +223,19 @@ class BenchmarkGenerator:
                 encode_passes = 1
 
             if encode_pass == 0:
-                progress = (current_time_position / input_file_duration) / encode_passes
+                progress = (current_time_position / benchmark_length) / encode_passes
             else:
-                progress = 0.5 + ((current_time_position / input_file_duration) / encode_passes)
+                progress = 0.5 + ((current_time_position / benchmark_length) / encode_passes)
 
             encoding_task.benchmark_progress = round(progress, 4)
         except (AttributeError, TypeError, ZeroDivisionError):
             pass
 
     @staticmethod
-    def _update_task_total_file_size_status(encoding_task: encoding.Task, benchmark_duration: int):
+    def _update_task_total_file_size_status(encoding_task: encoding.Task, benchmark_length: int):
         # Updates the benchmark task's file size status.
-        ratio = encoding_task.input_file.duration / benchmark_duration
-        encoding_task.benchmark_file_size = encoding_task.benchmark_file_size * ratio * format_converter.KILOBYTE_IN_BYTES
+        ratio = encoding_task.input_file.duration / benchmark_length
+        encoding_task.benchmark_file_size = encoding_task.benchmark_file_size * ratio
 
     @staticmethod
     def _update_task_time_estimate(encoding_task: encoding.Task, encode_passes: int):

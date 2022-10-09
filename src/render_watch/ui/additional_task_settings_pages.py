@@ -16,12 +16,13 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import logging
 import queue
 import threading
 import time
 
 from render_watch.ui import Gtk, Gio, Gdk, GLib, Adw
-from render_watch.encode import preview
+from render_watch.encode import preview, benchmark
 from render_watch.ffmpeg import encoding, trim, filters
 from render_watch.helpers import format_converter
 from render_watch import app_preferences
@@ -44,7 +45,7 @@ class CropPage(Gtk.Box):
     """Class that contains the widgets that make up the application's crop page."""
 
     RESOLUTION_MIN = 240
-    RESOLUTION_MAX = 9216
+    RESOLUTION_MAX = 7680
 
     def __init__(self, preview_generator: preview.PreviewGenerator, app_settings: app_preferences.Settings):
         """
@@ -71,7 +72,7 @@ class CropPage(Gtk.Box):
         self.set_margin_end(20)
 
     def _setup_crop_page_contents(self):
-        # Instantiates all of the widgets needed for the crop page.
+        # Instantiates all the widgets needed for the crop page.
         self._setup_preview_widgets()
         self._setup_crop_settings_widgets()
         self._setup_scale_settings_widgets()
@@ -252,7 +253,7 @@ class CropPage(Gtk.Box):
         self.crop_width_spin_button = Gtk.SpinButton()
         self.crop_width_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
         self.crop_width_spin_button.set_digits(0)
-        self.crop_width_spin_button.set_increments(240, 1024)
+        self.crop_width_spin_button.set_increments(120, 1024)
         self.crop_width_spin_button.set_numeric(True)
         self.crop_width_spin_button.set_value(240)
         self.crop_width_spin_button.set_size_request(125, -1)
@@ -273,7 +274,7 @@ class CropPage(Gtk.Box):
         self.crop_height_spin_button = Gtk.SpinButton()
         self.crop_height_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
         self.crop_height_spin_button.set_digits(0)
-        self.crop_height_spin_button.set_increments(240, 1024)
+        self.crop_height_spin_button.set_increments(120, 1024)
         self.crop_height_spin_button.set_numeric(True)
         self.crop_height_spin_button.set_value(240)
         self.crop_height_spin_button.set_size_request(125, -1)
@@ -431,7 +432,7 @@ class CropPage(Gtk.Box):
         self.scale_width_spin_button = Gtk.SpinButton()
         self.scale_width_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
         self.scale_width_spin_button.set_digits(0)
-        self.scale_width_spin_button.set_increments(240, 1024)
+        self.scale_width_spin_button.set_increments(120, 1024)
         self.scale_width_spin_button.set_numeric(True)
         self.scale_width_spin_button.set_value(240)
         self.scale_width_spin_button.set_size_request(125, -1)
@@ -452,7 +453,7 @@ class CropPage(Gtk.Box):
         self.scale_height_spin_button = Gtk.SpinButton()
         self.scale_height_spin_button.set_range(self.RESOLUTION_MIN, self.RESOLUTION_MAX)
         self.scale_height_spin_button.set_digits(0)
-        self.scale_height_spin_button.set_increments(240, 1024)
+        self.scale_height_spin_button.set_increments(120, 1024)
         self.scale_height_spin_button.set_numeric(True)
         self.scale_height_spin_button.set_value(240)
         self.scale_height_spin_button.set_size_request(125, -1)
@@ -1405,13 +1406,358 @@ class TrimPage(Gtk.Box):
 
 
 class BenchmarkPage(Gtk.Box):
-    def __init__(self):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+    """Class that contains the widgets that make up the application's benchmark page."""
 
-        benchmark_page_label = Gtk.Label(label='Benchmark Page')
-        benchmark_page_label.set_vexpand(True)
-        benchmark_page_label.set_valign(Gtk.Align.CENTER)
-        benchmark_page_label.set_hexpand(True)
-        benchmark_page_label.set_halign(Gtk.Align.CENTER)
+    BENCHMARK_TYPE_OPTIONS = ('Short', 'Long')
 
-        self.append(benchmark_page_label)
+    def __init__(self, benchmark_generator: benchmark.BenchmarkGenerator, app_settings: app_preferences.Settings):
+        """
+        Initializes the BenchmarkPage class with the necessary variables for creating the application's benchmark page.
+
+        Parameters:
+            benchmark_generator: The benchmark.BenchmarkGenerator for running benchmarks for encoding tasks.
+            app_settings: Application's settings.
+        """
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+        self.benchmark_generator = benchmark_generator
+        self.app_settings = app_settings
+        self.encoding_task = None
+        self._is_stop_button_clicked = False
+        self._stop_button_thread_lock = threading.Lock()
+
+        self._setup_benchmark_page_contents()
+
+        self.set_vexpand(True)
+        self.set_valign(Gtk.Align.CENTER)
+
+        self.set_margin_top(10)
+        self.set_margin_bottom(20)
+        self.set_margin_start(20)
+        self.set_margin_end(20)
+
+    @property
+    def is_stop_button_clicked(self) -> bool:
+        """
+        Returns whether the stop button has been clicked. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the stop button has been clicked.
+        """
+        with self._stop_button_thread_lock:
+            return self._is_stop_button_clicked
+
+    @is_stop_button_clicked.setter
+    def is_stop_button_clicked(self, is_clicked: bool):
+        """
+        Sets whether the stop button has been clicked. This property is thread safe.
+
+        Parameters:
+            is_clicked: Boolean that represents whether the stop button has been clicked.
+        """
+        with self._stop_button_thread_lock:
+            self._is_stop_button_clicked = is_clicked
+
+    def _setup_benchmark_page_contents(self):
+        # Instantiates all the widgets needed for the benchmark page.
+        self._setup_benchmark_results_widgets()
+        self._setup_benchmark_settings_widgets()
+
+        self.append(self.results_group)
+        self.append(self.benchmark_settings_vertical_box)
+
+    def _setup_benchmark_results_widgets(self):
+        # Instantiates the benchmark results widgets.
+        self._setup_results_grid()
+        self._setup_results_row()
+        self._setup_progress_row()
+
+        self.results_group = Adw.PreferencesGroup()
+        self.results_group.set_title('Results')
+        self.results_group.add(self.results_row)
+        self.results_group.add(self.progress_row)
+
+    def _setup_results_grid(self):
+        # Instantiates the grid widget that contains the results.
+        self._setup_bitrate_results()
+        self._setup_speed_results()
+        self._setup_file_size_results()
+        self._setup_encode_time_results()
+
+        self.results_grid = Gtk.Grid()
+        self.results_grid.attach(self.bitrate_results_horizontal_box, column=0, row=0, width=1, height=1)
+        self.results_grid.attach(self.speed_result_horizontal_box, column=1, row=0, width=1, height=1)
+        self.results_grid.attach(self.file_size_result_horizontal_box, column=0, row=1, width=1, height=1)
+        self.results_grid.attach(self.encode_time_result_horizontal_box, column=1, row=1, width=1, height=1)
+        self.results_grid.set_column_homogeneous(True)
+        self.results_grid.set_column_spacing(10)
+        self.results_grid.set_row_homogeneous(True)
+        self.results_grid.set_row_spacing(10)
+        self.results_grid.set_hexpand(True)
+        self.results_grid.set_margin_top(10)
+        self.results_grid.set_margin_bottom(10)
+        self.results_grid.set_margin_start(10)
+        self.results_grid.set_margin_end(10)
+
+    def _setup_bitrate_results(self):
+        # Instantiates the bitrate results widgets.
+        bitrate_title_label = Gtk.Label(label='Bitrate:')
+        bitrate_title_label.set_hexpand(False)
+        bitrate_title_label.set_halign(Gtk.Align.START)
+
+        self.bitrate_results_label = Gtk.Label(label='--')
+        self.bitrate_results_label.set_hexpand(False)
+        self.bitrate_results_label.set_halign(Gtk.Align.START)
+
+        self.bitrate_results_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.bitrate_results_horizontal_box.append(bitrate_title_label)
+        self.bitrate_results_horizontal_box.append(self.bitrate_results_label)
+
+    def _setup_speed_results(self):
+        # Instantiates the speed results widgets.
+        speed_title_label = Gtk.Label(label='Speed:')
+        speed_title_label.set_hexpand(False)
+        speed_title_label.set_halign(Gtk.Align.START)
+
+        self.speed_result_label = Gtk.Label(label='--')
+        self.speed_result_label.set_hexpand(False)
+        self.speed_result_label.set_halign(Gtk.Align.START)
+
+        self.speed_result_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.speed_result_horizontal_box.append(speed_title_label)
+        self.speed_result_horizontal_box.append(self.speed_result_label)
+
+    def _setup_file_size_results(self):
+        # Instantiates the file size results widgets.
+        file_size_title_label = Gtk.Label(label='Est. File Size:')
+        file_size_title_label.set_hexpand(False)
+        file_size_title_label.set_halign(Gtk.Align.START)
+
+        self.file_size_result_label = Gtk.Label(label='--')
+        self.file_size_result_label.set_hexpand(False)
+        self.file_size_result_label.set_halign(Gtk.Align.START)
+
+        self.file_size_result_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.file_size_result_horizontal_box.append(file_size_title_label)
+        self.file_size_result_horizontal_box.append(self.file_size_result_label)
+
+    def _setup_encode_time_results(self):
+        # Instantiates the encode time results widgets.
+        encode_time_title_label = Gtk.Label(label='Est. Encode Time:')
+        encode_time_title_label.set_hexpand(False)
+        encode_time_title_label.set_halign(Gtk.Align.START)
+
+        self.encode_time_result_label = Gtk.Label(label='--')
+        self.encode_time_result_label.set_hexpand(False)
+        self.encode_time_result_label.set_halign(Gtk.Align.START)
+
+        self.encode_time_result_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        self.encode_time_result_horizontal_box.append(encode_time_title_label)
+        self.encode_time_result_horizontal_box.append(self.encode_time_result_label)
+
+    def _setup_results_row(self):
+        # Instantiates the results row widget.
+        self.results_row = Adw.ActionRow()
+        self.results_row.set_child(self.results_grid)
+
+    def _setup_progress_row(self):
+        # Instantiates the progress row widgets.
+        self.benchmark_progress_bar = Gtk.ProgressBar()
+        self.benchmark_progress_bar.set_hexpand(True)
+        self.benchmark_progress_bar.set_margin_top(20)
+        self.benchmark_progress_bar.set_margin_bottom(20)
+        self.benchmark_progress_bar.set_margin_start(40)
+        self.benchmark_progress_bar.set_margin_end(40)
+
+        self.progress_row = Adw.ActionRow()
+        self.progress_row.set_child(self.benchmark_progress_bar)
+
+    def _setup_benchmark_settings_widgets(self):
+        # Instantiates the benchmark settings widgets.
+        self._setup_benchmark_type_row()
+        self._setup_start_stop_button()
+
+        self.benchmark_settings_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+        self.benchmark_settings_vertical_box.append(self.benchmark_type_group)
+        self.benchmark_settings_vertical_box.append(self.start_stop_button_stack)
+
+    def _setup_benchmark_type_row(self):
+        # Instantiates the benchmark type row widgets.
+        self._setup_benchmark_type_string_list()
+
+        self.benchmark_type_combo_row = Adw.ComboRow()
+        self.benchmark_type_combo_row.set_title('Type')
+        self.benchmark_type_combo_row.set_subtitle('Choose how long the benchmark should be')
+        self.benchmark_type_combo_row.set_model(self.benchmark_type_string_list)
+
+        self.benchmark_type_group = Adw.PreferencesGroup()
+        self.benchmark_type_group.set_title('Settings')
+        self.benchmark_type_group.add(self.benchmark_type_combo_row)
+
+    def _setup_benchmark_type_string_list(self):
+        # Instantiates the benchmark types as a string list.
+        self.benchmark_type_string_list = Gtk.StringList.new(self.BENCHMARK_TYPE_OPTIONS)
+
+    def _setup_start_stop_button(self):
+        # Instantiates the start/stop button widgets.
+        self._setup_start_button()
+        self._setup_stop_button()
+
+        self.start_stop_button_stack = Gtk.Stack()
+        self.start_stop_button_stack.add_named(self.start_button, 'start')
+        self.start_stop_button_stack.add_named(self.stop_button, 'stop')
+        self.start_stop_button_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+    def _setup_start_button(self):
+        # Instantiates the start button.
+        self.start_button = Gtk.Button.new_from_icon_name('media-playback-start-symbolic')
+        self.start_button.set_hexpand(True)
+        self.start_button.set_halign(Gtk.Align.CENTER)
+        self.start_button.add_css_class('suggested-action')
+        self.start_button.set_size_request(100, -1)
+        self.start_button.connect('clicked', self.on_start_button_clicked)
+
+    def _setup_stop_button(self):
+        # Instantiates the stop button.
+        self.stop_button = Gtk.Button.new_from_icon_name('media-playback-stop-symbolic')
+        self.stop_button.set_hexpand(True)
+        self.stop_button.set_halign(Gtk.Align.CENTER)
+        self.stop_button.add_css_class('destructive-action')
+        self.stop_button.set_size_request(100, -1)
+        self.stop_button.connect('clicked', self.on_stop_button_clicked)
+
+    def setup_encode_task(self, encoding_task: encoding.Task):
+        """
+        Sets a new encoding task to use for the benchmark and resets the state of the benchmark widgets.
+
+        Parameters:
+            encoding_task: The new encoding task to use for the benchmark.
+        """
+        if encoding_task is self.encoding_task:
+            return
+
+        self.encoding_task = encoding_task
+        self.reset_state()
+
+    def reset_state(self):
+        """Resets the state of the benchmark widgets."""
+        self.reset_results()
+        self.start_stop_button_stack.set_visible_child_name('start')
+
+    def reset_results(self):
+        """Resets the state of the results widgets."""
+        self.bitrate_results_label.set_label('--')
+        self.speed_result_label.set_label('--')
+        self.file_size_result_label.set_label('--')
+        self.encode_time_result_label.set_label('--')
+        self.benchmark_progress_bar.set_fraction(0.0)
+
+    def stop_benchmark(self):
+        """Sets the encoding task's stop benchmark state."""
+        if self.encoding_task:
+            self.encoding_task.is_benchmark_stopped = True
+
+    def start_benchmark(self):
+        """
+        Starts a benchmark for the encoding task. Adds the encoding task to the benchmark generator
+        and waits for the benchmark to complete. This needs to be run in a thread otherwise it will block.
+        """
+        GLib.idle_add(self.reset_results)
+
+        if self.encoding_task:
+            self.benchmark_generator.add_benchmark_task(self.encoding_task,
+                                                        long_benchmark=bool(self.benchmark_type_combo_row.get_selected()))
+            self._wait_until_benchmark_is_done()
+
+        GLib.idle_add(self.start_stop_button_stack.set_visible_child_name, 'start')
+
+    def _wait_until_benchmark_is_done(self):
+        # Waits for the benchmark to start and then waits for the benchmark to finish.
+        while not self.encoding_task.has_benchmark_started and not self.encoding_task.is_benchmark_stopped:
+            time.sleep(0.25)
+
+        while self.encoding_task.has_benchmark_started and not self.encoding_task.is_benchmark_stopped:
+            self._update_results()
+
+            time.sleep(1)
+
+        if self.is_stop_button_clicked:
+            self.reset_results()
+        else:
+            self._update_final_results()
+
+    def _update_results(self):
+        # Updates the running benchmark widgets with the encoding task's benchmark values.
+        try:
+            self._update_bitrate_results()
+            self._update_speed_results()
+            self._update_benchmark_progress()
+        except TypeError:
+            pass
+
+    def _update_bitrate_results(self):
+        # Updates the bitrate results widget using the encoding task's benchmark bitrate value.
+        if self.encoding_task.benchmark_bitrate:
+            GLib.idle_add(self.bitrate_results_label.set_label, str(self.encoding_task.benchmark_bitrate) + 'Kbps')
+
+    def _update_speed_results(self):
+        # Updates the speed results widget using the encoding task's benchmark speed value.
+        if self.encoding_task.benchmark_speed:
+            GLib.idle_add(self.speed_result_label.set_label, str(self.encoding_task.benchmark_speed) + 'x')
+
+    def _update_benchmark_progress(self):
+        # Updates the benchmark progress widget using the encoding task's benchmark progress value.
+        if self.encoding_task.benchmark_progress is not None:
+            GLib.idle_add(self.benchmark_progress_bar.set_fraction, self.encoding_task.benchmark_progress)
+
+    def _update_final_results(self):
+        # Updates all the benchmark results widgets using the encoding task's benchmark values.
+        self._update_results()
+        self._update_file_size_results()
+        self._update_encode_time_results()
+
+    def _update_file_size_results(self):
+        # Updates the file size results widget using the encoding task's benchmark file size value.
+        try:
+            GLib.idle_add(self.file_size_result_label.set_label,
+                          format_converter.get_file_size_from_bytes(self.encoding_task.benchmark_file_size))
+        except TypeError as e:
+            GLib.idle_add(self.file_size_result_label.set_label, 'Error')
+
+            logging.exception(e)
+
+    def _update_encode_time_results(self):
+        # Updates the encode time results widget using the encoding task's benchmark time estimate value.
+        try:
+            GLib.idle_add(self.encode_time_result_label.set_label,
+                          format_converter.get_timecode_from_seconds(self.encoding_task.benchmark_time_estimate))
+        except TypeError as e:
+            GLib.idle_add(self.encode_time_result_label.set_label, 'Error')
+
+            logging.exception(e)
+
+    def on_start_button_clicked(self, button):
+        """
+        Signal callback function for the start button's 'clicked' signal.
+        Shows the stop button and starts the benchmark process.
+
+        Parameters:
+            button: Gtk.Button that emitted the signal.
+        """
+        self.start_stop_button_stack.set_visible_child_name('stop')
+
+        self.is_stop_button_clicked = False
+        threading.Thread(target=self.start_benchmark, args=()).start()
+
+    def on_stop_button_clicked(self, button):
+        """
+        Signal callback function for the stop button's 'clicked' signal.
+        Shows the start button and stops the benchmark process.
+
+        Parameters:
+            button: Gtk.Button that emitted the signal.
+        """
+        self.start_stop_button_stack.set_visible_child_name('start')
+
+        self.is_stop_button_clicked = True
+        self.stop_benchmark()

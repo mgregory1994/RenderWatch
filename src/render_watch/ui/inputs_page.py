@@ -25,7 +25,7 @@ from pathlib import Path
 
 from render_watch.ui import Gtk, Gio, Gdk, GLib, Adw, GdkPixbuf, Pango
 from render_watch.ui import settings_sidebar, additional_task_settings_pages
-from render_watch.encode import preview
+from render_watch.encode import preview, benchmark
 from render_watch.ffmpeg import encoding, input
 from render_watch.helpers import directory_helper
 from render_watch import app_preferences
@@ -427,9 +427,11 @@ class InputsPageWidgets:
     def __init__(self,
                  main_window_widgets,
                  preview_generator: preview.PreviewGenerator,
+                 benchmark_generator: benchmark.BenchmarkGenerator,
                  app_settings: app_preferences.Settings):
         self.main_window_widgets = main_window_widgets
         self.preview_generator = preview_generator
+        self.benchmark_generator = benchmark_generator
         self.app_settings = app_settings
         self.main_widget = Gtk.Stack()
 
@@ -562,7 +564,7 @@ class InputsPageWidgets:
         self.preview_page = additional_task_settings_pages.PreviewPage()
 
     def _setup_benchmark_page_widgets(self):
-        self.benchmark_page = additional_task_settings_pages.BenchmarkPage()
+        self.benchmark_page = additional_task_settings_pages.BenchmarkPage(self.benchmark_generator, self.app_settings)
 
     def _setup_additional_task_settings_page(self):
         self._setup_additional_task_settings_stack()
@@ -855,3 +857,6 @@ class InputsPageWidgets:
     def on_benchmark_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('benchmark_page')
+
+        encoding_task = self.get_selected_rows()[-1].encoding_task
+        self.benchmark_page.setup_encode_task(encoding_task)

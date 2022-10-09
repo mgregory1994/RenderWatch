@@ -199,7 +199,7 @@ class X264:
             QP setting as a float.
         """
         if '-qp' in self.ffmpeg_args:
-            return float(self.ffmpeg_args['-qp'])
+            return int(self.ffmpeg_args['-qp'])
         return 20
 
     @qp.setter

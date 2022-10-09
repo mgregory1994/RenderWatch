@@ -63,8 +63,8 @@ class SettingsSidebarWidgets:
 
     def _setup_general_settings_page(self):
         self.general_settings_page = self.GeneralSettingsPage(self.inputs_page)
-        self.general_settings_page.extension_combobox.connect('changed',
-                                                              self.on_general_page_extension_combobox_changed)
+        self.general_settings_page.extension_combo_row.connect('notify::selected-item',
+                                                               self.on_general_page_extension_combo_row_activated)
 
     def _setup_video_codec_settings_page(self):
         self.video_codec_settings_page = self.VideoCodecSettingsPage(self.inputs_page)
@@ -127,11 +127,11 @@ class SettingsSidebarWidgets:
         self.subtitle_settings_page.apply_settings_to_widgets(encoding_task)
         GLib.idle_add(self.set_widgets_setting_up, False)
 
-    def on_general_page_extension_combobox_changed(self, combobox):
+    def on_general_page_extension_combo_row_activated(self, combo_row, parameter):
         if self.is_widgets_setting_up:
             return
 
-        self.general_settings_page.on_extension_combobox_changed(combobox)
+        self.general_settings_page.on_extension_combobox_changed()
         self.video_codec_settings_page.update_video_codec_settings_from_extension(self.general_settings_page)
         self.audio_codec_settings_page.update_audio_streams_from_extension(self.general_settings_page)
 
@@ -202,26 +202,19 @@ class SettingsSidebarWidgets:
 
             self.output_settings_group = Adw.PreferencesGroup()
             self.output_settings_group.set_title('Output File')
-            self.output_settings_group.add(self.extension_row)
+            self.output_settings_group.add(self.extension_combo_row)
             self.output_settings_group.add(self.fast_start_row)
 
         def _setup_extension_row(self):
-            self._setup_extension_combobox()
+            self._setup_extension_string_list()
 
-            self.extension_row = Adw.ActionRow()
-            self.extension_row.set_title('Extension')
-            self.extension_row.set_subtitle('Output file extension type')
-            self.extension_row.add_suffix(self.extension_combobox)
+            self.extension_combo_row = Adw.ComboRow()
+            self.extension_combo_row.set_title('Extension')
+            self.extension_combo_row.set_subtitle('Output file extension type')
+            self.extension_combo_row.set_model(self.extension_string_list)
 
-        def _setup_extension_combobox(self):
-            self.extension_combobox = Gtk.ComboBoxText()
-            self.extension_combobox.set_vexpand(False)
-            self.extension_combobox.set_valign(Gtk.Align.CENTER)
-
-            for extension in encoding.output.CONTAINERS:
-                self.extension_combobox.append_text(extension)
-
-            self.extension_combobox.set_active(0)
+        def _setup_extension_string_list(self):
+            self.extension_string_list = Gtk.StringList.new(encoding.output.CONTAINERS)
 
         def _setup_fast_start_row(self):
             self._setup_fast_start_switch()
@@ -271,11 +264,13 @@ class SettingsSidebarWidgets:
             self.custom_frame_rate_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
         def get_video_codecs_list(self) -> list:
-            if self.extension_combobox.get_active_text() == '.mp4':
+            extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
+
+            if extension == '.mp4':
                 video_codecs_list = encoding.Task.VIDEO_CODECS_MP4_UI
-            elif self.extension_combobox.get_active_text() == '.mkv':
+            elif extension == '.mkv':
                 video_codecs_list = encoding.Task.VIDEO_CODECS_MKV_UI
-            elif self.extension_combobox.get_active_text() == '.ts':
+            elif extension == '.ts':
                 video_codecs_list = encoding.Task.VIDEO_CODECS_TS_UI
             else:
                 video_codecs_list = encoding.Task.VIDEO_CODECS_WEBM_UI
@@ -283,11 +278,13 @@ class SettingsSidebarWidgets:
             return video_codecs_list
 
         def get_audio_codecs_list(self) -> list:
-            if self.extension_combobox.get_active_text() == '.mp4':
+            extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
+
+            if extension == '.mp4':
                 audio_codecs_list = encoding.Task.AUDIO_CODECS_MP4_UI
-            elif self.extension_combobox.get_active_text() == '.mkv':
+            elif extension == '.mkv':
                 audio_codecs_list = encoding.Task.AUDIO_CODECS_MKV_UI
-            elif self.extension_combobox.get_active_text() == '.ts':
+            elif extension == '.ts':
                 audio_codecs_list = encoding.Task.AUDIO_CODECS_TS_UI
             else:
                 audio_codecs_list = encoding.Task.AUDIO_CODECS_WEBM_UI
@@ -306,7 +303,7 @@ class SettingsSidebarWidgets:
 
         def _apply_extension_setting_to_widgets(self, encoding_task: encoding.Task):
             extension_index = encoding.output.CONTAINERS.index(encoding_task.output_file.extension)
-            GLib.idle_add(self.extension_combobox.set_active, extension_index)
+            GLib.idle_add(self.extension_combo_row.set_selected, extension_index)
 
         def _apply_fast_start_setting_to_widgets(self, encoding_task: encoding.Task):
             GLib.idle_add(self.fast_start_switch.set_active, encoding_task.general_settings.fast_start)
@@ -332,7 +329,7 @@ class SettingsSidebarWidgets:
 
             for input_row in self.inputs_page.get_selected_rows():
                 encoding_task = input_row.encoding_task
-                encoding_task.output_file.extension = self.extension_combobox.get_active_text()
+                encoding_task.output_file.extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
                 encoding_task.general_settings = copy.deepcopy(task_general_settings)
 
         def on_widget_changed_clicked_set(self, *args, **kwargs):
@@ -341,11 +338,12 @@ class SettingsSidebarWidgets:
 
             threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
 
-        def on_extension_combobox_changed(self, combobox):
+        def on_extension_combobox_changed(self):
             if self.is_widgets_setting_up:
                 return
 
-            self.fast_start_row.set_sensitive(combobox.get_active_text() == '.mp4')
+            extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
+            self.fast_start_row.set_sensitive(extension == '.mp4')
             self.on_widget_changed_clicked_set()
 
         def on_custom_frame_rate_switch_state_set(self, switch, user_data):
@@ -1707,9 +1705,9 @@ class SettingsSidebarWidgets:
 
             def _apply_rate_type_settings_from_widgets(self, x264_settings: x264.X264):
                 if self.crf_check_button.get_active():
-                    x264_settings.crf = self.crf_scale.get_value()
+                    x264_settings.crf = int(self.crf_scale.get_value())
                 elif self.qp_check_button.get_active():
-                    x264_settings.qp = self.qp_scale.get_value()
+                    x264_settings.qp = int(self.qp_scale.get_value())
                 else:
                     x264_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
 

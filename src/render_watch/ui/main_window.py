@@ -21,7 +21,7 @@ import threading
 
 from render_watch.ui import Gtk, Gdk, Gio, Adw
 from render_watch.ui import inputs_page, active_page, completed_page
-from render_watch.encode import encoder_queue, preview
+from render_watch.encode import encoder_queue, preview, benchmark
 from render_watch import app_preferences
 
 
@@ -32,6 +32,7 @@ class MainWindowWidgets:
                  application: Adw.Application,
                  task_queue: encoder_queue.TaskQueue,
                  preview_generator: preview.PreviewGenerator,
+                 benchmark_generator: benchmark.BenchmarkGenerator,
                  app_settings: app_preferences.Settings):
         """
         Initializes the MainWindowWidgets class with the necessary variables for creating the application's main window.
@@ -45,6 +46,7 @@ class MainWindowWidgets:
         self.application = application
         self.task_queue = task_queue
         self.preview_generator = preview_generator
+        self.benchmark_generator = benchmark_generator
         self.app_settings = app_settings
         self.main_window = Adw.ApplicationWindow(application=application,
                                                  destroy_with_parent=True,
@@ -98,7 +100,10 @@ class MainWindowWidgets:
 
     def _setup_inputs_page_widgets(self):
         # Initializes the inputs page's widgets.
-        self.inputs_page_widgets = inputs_page.InputsPageWidgets(self, self.preview_generator, self.app_settings)
+        self.inputs_page_widgets = inputs_page.InputsPageWidgets(self,
+                                                                 self.preview_generator,
+                                                                 self.benchmark_generator,
+                                                                 self.app_settings)
 
     def _setup_active_page_widgets(self):
         # Initializes the active page's widgets.
