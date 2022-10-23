@@ -29,16 +29,477 @@ from render_watch import app_preferences
 
 
 class PreviewPage(Gtk.Box):
-    def __init__(self):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL)
+    """Class that contains the widgets that make up the application's preview page."""
 
-        preview_page_label = Gtk.Label(label='Preview Page')
-        preview_page_label.set_vexpand(True)
-        preview_page_label.set_valign(Gtk.Align.CENTER)
-        preview_page_label.set_hexpand(True)
-        preview_page_label.set_halign(Gtk.Align.CENTER)
+    PREVIEW_DURATIONS = (5, 10, 20, 30)
+    PREVIEW_DURATIONS_UI = ('5 Seconds', '10 Seconds', '20 Seconds', '30 Seconds')
 
-        self.append(preview_page_label)
+    NOT_AVAILABLE_PAGE = 'not_available'
+    GENERATING_PREVIEW_PAGE = 'generating'
+    LIVE_PREVIEW_PAGE = 'preview'
+    AUDIO_PREVIEW_PAGE = 'audio'
+
+    def __init__(self, preview_generator: preview.PreviewGenerator, app_settings: app_preferences.Settings):
+        """
+        Initializes the PreviewPage widgets class with the necessary variables for creating
+        the application's preview page.
+
+        Parameters:
+            preview_generator: The preview.PreviewGenerator for creating previews for encoding tasks.
+            app_settings: Application's settings.
+        """
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=20)
+
+        self.preview_generator = preview_generator
+        self.app_settings = app_settings
+        self._encoding_task = None
+        self._encoding_task_thread_lock = threading.Lock()
+        self.is_widgets_setting_up = False
+
+        self._setup_preview_page_contents()
+
+        self.preview_previewer = self.PreviewPreviewer(self, preview_generator)
+
+        self.set_margin_top(10)
+        self.set_margin_bottom(20)
+        self.set_margin_start(20)
+        self.set_margin_end(20)
+
+    @property
+    def encoding_task(self) -> encoding.Task:
+        """
+        Returns the encoding task that's currently loaded for the preview page. This property is thread safe.
+
+        Returns:
+            Encoding task that's currently loaded for the preview page.
+        """
+        with self._encoding_task_thread_lock:
+            return self._encoding_task
+
+    @encoding_task.setter
+    def encoding_task(self, new_encoding_task: encoding.Task):
+        """
+        Sets the encoding task to be loaded for the preview page. This property is thread safe.
+
+        Parameters:
+            new_encoding_task: Encoding task to be loaded for the preview page.
+        """
+        with self._encoding_task_thread_lock:
+            self._encoding_task = new_encoding_task
+
+    def _setup_preview_page_contents(self):
+        # Instantiates all the widgets needed for the preview page.
+        self._setup_preview_widgets()
+        self._setup_preview_type_widgets()
+
+        self.append(self.preview_stack)
+        self.append(self.preview_type_group)
+
+    def _setup_preview_widgets(self):
+        # Instantiates the preview widgets.
+        self._setup_preview_picture()
+        self._setup_preview_not_available_status_page()
+        self._setup_generating_preview_status_page()
+        self._setup_audio_preview_status_page()
+        self._setup_preview_stack()
+
+    def _setup_preview_picture(self):
+        # Instantiates the preview picture widget.
+        self.preview_picture = Gtk.Picture()
+        self.preview_picture.content_fit = True
+        self.preview_picture.set_can_shrink(True)
+        self.preview_picture.set_keep_aspect_ratio(True)
+
+    def _setup_preview_not_available_status_page(self):
+        # Instantiates the preview not available status page widget.
+        self.preview_not_available_status_page = Adw.StatusPage.new()
+        self.preview_not_available_status_page.set_title('Preview Not Available')
+        self.preview_not_available_status_page.set_description('Current settings can\'t be used for previews')
+        self.preview_not_available_status_page.set_icon_name('action-unavailable-symbolic')
+        self.preview_not_available_status_page.set_sensitive(False)
+
+    def _setup_generating_preview_status_page(self):
+        # Instantiates the generating preview status page widget.
+        self._setup_preview_progress_bar()
+
+        self.generating_preview_status_page = Adw.StatusPage.new()
+        self.generating_preview_status_page.set_title('Generating Preview')
+        self.generating_preview_status_page.set_description('Take a sip of coffee...')
+        self.generating_preview_status_page.set_icon_name('image-loading-symbolic')
+        self.generating_preview_status_page.set_child(self.preview_progress_bar)
+
+    def _setup_preview_progress_bar(self):
+        # Instantiates the preview progress bar widget.
+        self.preview_progress_bar = Gtk.ProgressBar.new()
+        self.preview_progress_bar.set_hexpand(True)
+        self.preview_progress_bar.set_margin_start(40)
+        self.preview_progress_bar.set_margin_end(40)
+
+    def _setup_audio_preview_status_page(self):
+        # Instantiates the audio preview status page widget.
+        self.audio_preview_status_page = Adw.StatusPage.new()
+        self.audio_preview_status_page.set_title('Audio Only')
+        self.audio_preview_status_page.set_description('Only audio can be previewed for this input')
+        self.audio_preview_status_page.set_icon_name('audio-speakers-symbolic')
+        self.audio_preview_status_page.set_sensitive(False)
+
+    def _setup_preview_stack(self):
+        # Instantiates the preview stack widget.
+        spacing_label = Gtk.Label()
+        spacing_label.set_vexpand(True)
+        spacing_label.set_valign(Gtk.Align.CENTER)
+        spacing_label.set_hexpand(True)
+        spacing_label.set_halign(Gtk.Align.CENTER)
+
+        self.preview_stack = Gtk.Stack()
+        self.preview_stack.add_named(self.preview_not_available_status_page, self.NOT_AVAILABLE_PAGE)
+        self.preview_stack.add_named(self.generating_preview_status_page, self.GENERATING_PREVIEW_PAGE)
+        self.preview_stack.add_named(self.audio_preview_status_page, self.AUDIO_PREVIEW_PAGE)
+        self.preview_stack.add_named(self.preview_picture, self.LIVE_PREVIEW_PAGE)
+        self.preview_stack.add_named(spacing_label, 'spacing')
+        self.preview_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+    def _setup_preview_type_widgets(self):
+        # Instantiates the preview type and controls widgets.
+        self._setup_preview_time_position_row()
+        self._setup_preview_type_row()
+
+        self.preview_type_group = Adw.PreferencesGroup()
+        self.preview_type_group.set_title('Preview Settings')
+        self.preview_type_group.add(self.preview_time_position_row)
+        self.preview_type_group.add(self.preview_type_combo_row)
+
+    def _setup_preview_time_position_row(self):
+        # Instantiates the preview time position setting widgets.
+        self._setup_preview_time_position_title_label()
+        self._setup_preview_time_position_value_label()
+        self._setup_preview_time_position_scale()
+
+        titles_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        titles_vertical_box.append(self.preview_time_position_title_label)
+        titles_vertical_box.append(self.preview_time_position_value_label)
+
+        contents_horizontal_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        contents_horizontal_box.append(titles_vertical_box)
+        contents_horizontal_box.append(self.preview_time_position_scale)
+        contents_horizontal_box.set_margin_top(10)
+        contents_horizontal_box.set_margin_bottom(10)
+        contents_horizontal_box.set_margin_start(10)
+        contents_horizontal_box.set_margin_end(10)
+
+        self.preview_time_position_row = Adw.ActionRow()
+        self.preview_time_position_row.set_child(contents_horizontal_box)
+
+    def _setup_preview_time_position_title_label(self):
+        # Instantiates the preview time position title label widget.
+        self.preview_time_position_title_label = Gtk.Label(label='Video Position')
+        self.preview_time_position_title_label.set_vexpand(True)
+        self.preview_time_position_title_label.set_valign(Gtk.Align.END)
+        self.preview_time_position_title_label.set_hexpand(False)
+        self.preview_time_position_title_label.set_halign(Gtk.Align.START)
+
+    def _setup_preview_time_position_value_label(self):
+        # Instantiates the preview time position value label widget.
+        self.preview_time_position_value_label = Gtk.Label(label='##:##:##')
+        self.preview_time_position_value_label.add_css_class('dim-label')
+        self.preview_time_position_value_label.add_css_class('caption')
+        self.preview_time_position_value_label.set_vexpand(True)
+        self.preview_time_position_value_label.set_valign(Gtk.Align.START)
+        self.preview_time_position_value_label.set_hexpand(False)
+        self.preview_time_position_value_label.set_halign(Gtk.Align.START)
+
+    def _setup_preview_time_position_scale(self):
+        # Instantiates the preview time position scale widget.
+        self.preview_time_position_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
+                                                                    min=0.0,
+                                                                    max=1.0,
+                                                                    step=0.1)
+        self.preview_time_position_scale.set_value(0.0)
+        self.preview_time_position_scale.set_digits(1)
+        self.preview_time_position_scale.set_draw_value(False)
+        self.preview_time_position_scale.set_hexpand(True)
+        self.preview_time_position_scale.connect('value-changed', self.on_preview_time_position_scale_value_changed)
+
+    def _setup_preview_type_row(self):
+        # Instantiates the preview controls and preview type widgets.
+        self._setup_start_stop_stack()
+
+        self.preview_durations_string_list = Gtk.StringList.new(self.PREVIEW_DURATIONS_UI)
+
+        self.preview_type_combo_row = Adw.ComboRow()
+        self.preview_type_combo_row.set_title('Preview Duration')
+        self.preview_type_combo_row.set_subtitle('Duration to use at the current video position')
+        self.preview_type_combo_row.set_model(self.preview_durations_string_list)
+        self.preview_type_combo_row.add_suffix(self.start_stop_stack)
+
+    def _setup_start_stop_stack(self):
+        # Instantiates the start/stop button stack widget.
+        self._setup_start_button()
+        self._setup_stop_button()
+
+        self.start_stop_stack = Gtk.Stack()
+        self.start_stop_stack.add_named(self.start_button, 'start')
+        self.start_stop_stack.add_named(self.stop_button, 'stop')
+        self.start_stop_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+    def _setup_start_button(self):
+        # Instantiates the start button widget.
+        self.start_button = Gtk.Button.new_from_icon_name('media-playback-start-symbolic')
+        self.start_button.add_css_class('suggested-action')
+        self.start_button.set_vexpand(False)
+        self.start_button.set_valign(Gtk.Align.CENTER)
+        self.start_button.connect('clicked', self.on_start_button_clicked)
+
+    def _setup_stop_button(self):
+        # Instantiates the stop button widget.
+        self.stop_button = Gtk.Button.new_from_icon_name('media-playback-stop-symbolic')
+        self.stop_button.add_css_class('destructive-action')
+        self.stop_button.set_vexpand(False)
+        self.stop_button.set_valign(Gtk.Align.CENTER)
+        self.stop_button.connect('clicked', self.on_stop_button_clicked)
+
+    def set_live_preview_state(self):
+        """Sets the preview page's widgets for the live preview state."""
+        self.preview_stack.set_visible_child_name(self.LIVE_PREVIEW_PAGE)
+        self.preview_picture.set_opacity(1.0)
+        self.start_stop_stack.set_visible_child_name('start')
+        self.preview_type_group.set_sensitive(True)
+
+    def set_updating_live_preview_state(self):
+        """Sets the preview page's widgets for the updating live preview state."""
+        self.preview_picture.set_opacity(0.5)
+
+    def set_audio_preview_state(self):
+        """Sets the preview page's widgets for the audio preview state."""
+        self.preview_stack.set_visible_child_name(self.AUDIO_PREVIEW_PAGE)
+        self.start_stop_stack.set_visible_child_name('start')
+        self.preview_type_group.set_sensitive(True)
+
+    def set_generating_preview_state(self):
+        """Sets the preview page's widgets for the generating preview state."""
+        self.preview_stack.set_visible_child_name(self.GENERATING_PREVIEW_PAGE)
+        self.start_stop_stack.set_visible_child_name('stop')
+
+    def set_preview_not_available_state(self):
+        """Sets the preview page's widgets for the preview not available state."""
+        self.preview_stack.set_visible_child_name(self.NOT_AVAILABLE_PAGE)
+        self.preview_type_group.set_sensitive(False)
+
+    def set_preview_progress_bar_fraction(self, progress_fraction: float):
+        """
+        Sets the preview progress bar's percent complete using a decimal (0.0 - 1.0).
+
+        Parameters:
+            progress_fraction: Float the represents the percent complete as a decimal (0.0 - 1.0).
+        """
+        if progress_fraction is not None:
+            self.preview_progress_bar.set_fraction(progress_fraction)
+
+    def update_live_preview(self):
+        """Re-sets the preview picture widget's file to the encoding task's settings preview file."""
+        self.preview_picture.set_filename(self.encoding_task.temp_output_file.settings_preview_file_path)
+
+    def update_encoding_task_preview(self):
+        """For updating the preview when the encoding task's settings have changed."""
+        self.encoding_task.video_preview_duration = None
+        self.preview_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def setup_encoding_task(self, encoding_task: encoding.Task):
+        """
+        Sets a new encoding task to be used for the preview page.
+        The preview page is then updated to show the new encoding task.
+
+        Parameters:
+            encoding_task: New encoding task to use for the preview page.
+        """
+        if encoding_task is self.encoding_task:
+            return
+
+        self.encoding_task = encoding_task
+
+        GLib.idle_add(self._set_widgets_setting_up, True)
+        GLib.idle_add(self._update_preview_position_range)
+        GLib.idle_add(self.update_live_preview)
+        GLib.idle_add(self.set_live_preview_state)
+        GLib.idle_add(self._set_widgets_setting_up, False)
+
+    def _set_widgets_setting_up(self, is_widgets_setting_up: bool):
+        # Sets whether the preview page's widgets are being set up.
+        self.is_widgets_setting_up = is_widgets_setting_up
+
+    def _update_preview_position_range(self):
+        # Updates the preview time position scale for a new encoding task.
+        video_duration = self.encoding_task.input_file.duration
+        video_duration_half = video_duration / 2.0
+
+        self.preview_time_position_scale.set_range(min=0.0, max=video_duration)
+        self.preview_time_position_scale.set_value(video_duration_half)
+        self.preview_time_position_value_label.set_label(format_converter.get_timecode_from_seconds(video_duration_half))
+
+    def on_preview_time_position_scale_value_changed(self, scale):
+        """
+        Signal callback function for the preview time position scale's 'value-changed' signal.
+        Sets the preview time position value label and generates a new preview.
+
+        Parameters:
+            scale: Gtk.Scale that emitted the signal.
+        """
+        self.preview_time_position_value_label.set_label(format_converter.get_timecode_from_seconds(scale.get_value()))
+
+        self.encoding_task.video_preview_duration = None
+        self.preview_previewer.add_preview_task(self.encoding_task, scale.get_value())
+
+    def on_start_button_clicked(self, button):
+        """
+        Signal callback function for the start button's 'clicked' signal.
+        Sets the encoding task's preview duration based on the preview type combo row's selection
+        and generates a new preview.
+
+        Parameters:
+            button: Gtk.Button that emitted the signal.
+        """
+        preview_duration = self.PREVIEW_DURATIONS[self.preview_type_combo_row.get_selected()]
+        self.encoding_task.video_preview_duration = preview_duration
+
+        self.preview_previewer.add_preview_task(self.encoding_task, self.preview_time_position_scale.get_value())
+
+    def on_stop_button_clicked(self, button):
+        """
+        Signal callback function for the stop button's 'clicked' signal.
+        Sets the encoding task's stop video preview state in order to stop the currently running preview generation.
+
+        Parameters:
+            button: Gtk.Button that emitted the signal.
+        """
+        self.encoding_task.is_video_preview_stopped = True
+
+    class PreviewPreviewer:
+        """Class that manages the preview queue and generates a new preview for each request."""
+
+        PROGRESS_UPDATE_INTERVAL_IN_SECONDS = 1.0
+
+        def __init__(self, preview_page, preview_generator: preview.PreviewGenerator):
+            """
+            Initializes the PreviewPreviewer class with the necessary variables for managing the preview previewer.
+
+            Parameters:
+                preview_page: The preview page to manage previews for.
+                preview_generator: preview.PreviewGenerator to send preview requests to.
+            """
+            self._preview_page = preview_page
+            self._preview_generator = preview_generator
+            self._preview_queue = queue.Queue()
+
+            threading.Thread(target=self._preview_queue_loop, args=()).start()
+
+        def _preview_queue_loop(self):
+            # The loop that consumes the preview queue in order to process preview requests.
+            while True:
+                encoding_task, time_position = self._preview_queue.get()
+
+                if not encoding_task:
+                    break
+
+                encoding_task, time_position = self._wait_for_empty_queue(encoding_task, time_position)
+
+                self._generate_preview(encoding_task, time_position)
+
+        def _wait_for_empty_queue(self, encoding_task: encoding.Task, time_position: float | int):
+            # Consumes the queue until it's empty and stays empty for some time.
+            time.sleep(0.1)
+
+            while not self._preview_queue.empty():
+                with self._preview_queue.mutex:
+                    encoding_task, time_position = self._preview_queue.queue[-1]
+
+                    self._preview_queue.queue.clear()
+
+                time.sleep(0.1)
+
+            return encoding_task, time_position
+
+        def _generate_preview(self, encoding_task: encoding.Task, time_position: float | int):
+            # Uses the preview generator to generate a new preview.
+            if encoding_task.video_preview_duration:
+                self._generate_video_preview(encoding_task, time_position)
+            else:
+                self._generate_settings_preview(encoding_task, time_position)
+
+            GLib.idle_add(self._preview_page.update_live_preview)
+
+        def _generate_video_preview(self, encoding_task: encoding.Task, time_position: float | int):
+            # Uses the preview generator to generate a new video preview.
+            GLib.idle_add(self._preview_page.set_generating_preview_state)
+
+            threading.Thread(target=self._update_video_preview_progress_loop, args=(encoding_task,)).start()
+
+            self._preview_generator.generate_video_preview(encoding_task, time_position)
+            self._wait_for_video_preview_generator(encoding_task)
+
+            if encoding_task.temp_output_file.video_preview_file_path or encoding_task.is_video_preview_stopped:
+                GLib.idle_add(self._preview_page.set_live_preview_state)
+            else:
+                GLib.idle_add(self._preview_page.set_preview_not_available_state)
+
+        def _update_video_preview_progress_loop(self, encoding_task: encoding.Task):
+            # Loop that updates the progress of generating a video preview.
+            encoding_task.is_video_preview_done = False
+            encoding_task.is_video_preview_stopped = False
+            encoding_task.video_preview_progress = 0.0
+
+            while not (encoding_task.is_video_preview_done or encoding_task.is_video_preview_stopped):
+                GLib.idle_add(self._preview_page.set_preview_progress_bar_fraction,
+                              encoding_task.video_preview_progress)
+
+                time.sleep(self.PROGRESS_UPDATE_INTERVAL_IN_SECONDS)
+
+            GLib.idle_add(self._preview_page.set_preview_progress_bar_fraction, 1.0)
+
+        @staticmethod
+        def _wait_for_video_preview_generator(encoding_task: encoding.Task):
+            # Suspends the thread until the video preview generator is done.
+            if encoding_task.video_preview_threading_event.is_set():
+                encoding_task.video_preview_threading_event.clear()
+
+            encoding_task.video_preview_threading_event.wait()
+            encoding_task.is_video_preview_done = True
+
+        def _generate_settings_preview(self, encoding_task: encoding.Task, time_position: float | int):
+            # Uses the preview generator to generate a new static preview of the encoding task's settings.
+            GLib.idle_add(self._preview_page.set_updating_live_preview_state)
+
+            self._preview_generator.generate_settings_preview(encoding_task, time_position)
+            self._wait_for_settings_preview_generator(encoding_task)
+
+            if encoding_task.temp_output_file.settings_preview_file_path:
+                GLib.idle_add(self._preview_page.set_live_preview_state)
+            else:
+                GLib.idle_add(self._preview_page.set_preview_not_available_state)
+
+        @staticmethod
+        def _wait_for_settings_preview_generator(encoding_task: encoding.Task):
+            # Suspends the thread until the preview generator is done.
+            if encoding_task.temp_output_file.settings_preview_threading_event.is_set():
+                encoding_task.temp_output_file.settings_preview_threading_event.clear()
+
+            encoding_task.temp_output_file.settings_preview_threading_event.wait()
+
+        def add_preview_task(self, encoding_task: encoding.Task, time_position: int | float):
+            """
+            Adds a new encoding task and the preview time position to the preview queue.
+
+            Parameters:
+                encoding_task: Encoding task to generate a preview for.
+                time_position: Time position to generate the preview at.
+            """
+            self._preview_queue.put((encoding_task, time_position))
+
+        def kill(self):
+            """Empties the preview queue and adds a stop task."""
+            while not self._preview_queue.empty():
+                self._preview_queue.get()
+
+            self._preview_queue.put((False, False))
 
 
 class CropPage(Gtk.Box):
@@ -87,7 +548,7 @@ class CropPage(Gtk.Box):
     def _setup_preview_widgets(self):
         # Instantiates the preview widgets.
         self._setup_preview_picture()
-        self._setup_preview_not_available_label()
+        self._setup_preview_not_available_status_page()
         self._setup_preview_stack()
         self._setup_time_position_settings()
 
@@ -102,20 +563,23 @@ class CropPage(Gtk.Box):
         self.preview_picture.set_can_shrink(True)
         self.preview_picture.set_keep_aspect_ratio(True)
 
-    def _setup_preview_not_available_label(self):
-        # Instantiates the preview not available label widget.
-        self.preview_not_available_label = Gtk.Label(label='Preview Not Available')
-        self.preview_not_available_label.add_css_class('dim-label')
-        self.preview_not_available_label.set_vexpand(True)
-        self.preview_not_available_label.set_valign(Gtk.Align.CENTER)
-        self.preview_not_available_label.set_hexpand(True)
-        self.preview_not_available_label.set_halign(Gtk.Align.CENTER)
+    def _setup_preview_not_available_status_page(self):
+        self.preview_not_available_status_page = Adw.StatusPage.new()
+        self.preview_not_available_status_page.set_title('Preview Not Available')
+        self.preview_not_available_status_page.set_description('Current settings can\'t be used for previews')
+        self.preview_not_available_status_page.set_icon_name('action-unavailable-symbolic')
+        self.preview_not_available_status_page.set_sensitive(False)
 
     def _setup_preview_stack(self):
         # Instantiates the preview stack widget.
+        spacing_label = Gtk.Label.new()
+        spacing_label.set_vexpand(True)
+        spacing_label.set_hexpand(True)
+
         self.preview_stack = Gtk.Stack()
-        self.preview_stack.add_named(self.preview_not_available_label, 'not_available')
+        self.preview_stack.add_named(self.preview_not_available_status_page, 'not_available')
         self.preview_stack.add_named(self.preview_picture, 'preview')
+        self.preview_stack.add_named(spacing_label, 'spacing')
         self.preview_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
 
     def _setup_time_position_settings(self):
@@ -917,13 +1381,18 @@ class TrimPage(Gtk.Box):
     def _setup_preview_widgets(self):
         # Instantiates the widgets for the previewer on the trim page.
         self._setup_preview_picture()
-        self._setup_preview_placeholder_icon()
-        self._setup_preview_not_available_label()
+        self._setup_audio_preview_status_page()
+        self._setup_preview_not_available_status_page()
+
+        spacing_label = Gtk.Label.new()
+        spacing_label.set_vexpand(True)
+        spacing_label.set_hexpand(True)
 
         self.preview_stack = Gtk.Stack()
-        self.preview_stack.add_named(self.audio_icon, 'audio')
-        self.preview_stack.add_named(self.preview_not_available_label, 'not_available')
+        self.preview_stack.add_named(self.audio_preview_status_page, 'audio')
+        self.preview_stack.add_named(self.preview_not_available_status_page, 'not_available')
         self.preview_stack.add_named(self.preview_picture, 'preview')
+        self.preview_stack.add_named(spacing_label, 'spacing')
         self.preview_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
 
     def _setup_preview_picture(self):
@@ -933,24 +1402,19 @@ class TrimPage(Gtk.Box):
         self.preview_picture.set_can_shrink(True)
         self.preview_picture.set_keep_aspect_ratio(True)
 
-    def _setup_preview_placeholder_icon(self):
-        # Instantiates the preview placeholder widget.
-        self.audio_icon = Gtk.Image.new_from_icon_name('audio-x-generic-symbolic')
-        self.audio_icon.set_pixel_size(128)
-        self.audio_icon.add_css_class('dim-label')
-        self.audio_icon.set_vexpand(True)
-        self.audio_icon.set_valign(Gtk.Align.CENTER)
-        self.audio_icon.set_hexpand(True)
-        self.audio_icon.set_halign(Gtk.Align.CENTER)
+    def _setup_audio_preview_status_page(self):
+        self.audio_preview_status_page = Adw.StatusPage.new()
+        self.audio_preview_status_page.set_title('Audio Only')
+        self.audio_preview_status_page.set_description('Preview not available for audio inputs')
+        self.audio_preview_status_page.set_icon_name('audio-x-generic-symbolic')
+        self.audio_preview_status_page.set_sensitive(False)
 
-    def _setup_preview_not_available_label(self):
-        # Instantiates the preview not available widget.
-        self.preview_not_available_label = Gtk.Label(label='Preview Not Available')
-        self.preview_not_available_label.add_css_class('dim-label')
-        self.preview_not_available_label.set_vexpand(True)
-        self.preview_not_available_label.set_valign(Gtk.Align.CENTER)
-        self.preview_not_available_label.set_hexpand(True)
-        self.preview_not_available_label.set_halign(Gtk.Align.CENTER)
+    def _setup_preview_not_available_status_page(self):
+        self.preview_not_available_status_page = Adw.StatusPage.new()
+        self.preview_not_available_status_page.set_title('Preview Not Available')
+        self.preview_not_available_status_page.set_description('Current settings can\'t be used for previews')
+        self.preview_not_available_status_page.set_icon_name('action-unavailable-symbolic')
+        self.preview_not_available_status_page.set_sensitive(False)
 
     def _setup_trim_settings_widgets(self):
         # Instantiates the trim widgets on the trim page.
@@ -1428,9 +1892,6 @@ class BenchmarkPage(Gtk.Box):
 
         self._setup_benchmark_page_contents()
 
-        self.set_vexpand(True)
-        self.set_valign(Gtk.Align.CENTER)
-
         self.set_margin_top(10)
         self.set_margin_bottom(20)
         self.set_margin_start(20)
@@ -1460,22 +1921,62 @@ class BenchmarkPage(Gtk.Box):
 
     def _setup_benchmark_page_contents(self):
         # Instantiates all the widgets needed for the benchmark page.
-        self._setup_benchmark_results_widgets()
+        self._setup_benchmark_status_page()
         self._setup_benchmark_settings_widgets()
 
-        self.append(self.results_group)
+        self.append(self.benchmark_status_stack)
         self.append(self.benchmark_settings_vertical_box)
+
+    def _setup_benchmark_status_page(self):
+        self._setup_benchmark_idle_status_page()
+        self._setup_benchmark_complete_status_page()
+        self._setup_benchmark_running_status_page()
+
+        spacing_label = Gtk.Label.new()
+        spacing_label.set_vexpand(True)
+        spacing_label.set_hexpand(True)
+
+        self.benchmark_status_stack = Gtk.Stack.new()
+        self.benchmark_status_stack.add_named(self.benchmark_idle_status_page, 'idle')
+        self.benchmark_status_stack.add_named(self.benchmark_running_status_page, 'running')
+        self.benchmark_status_stack.add_named(self.benchmark_complete_status_page, 'complete')
+        self.benchmark_status_stack.add_named(spacing_label, 'spacing')
+        self.benchmark_status_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+
+    def _setup_benchmark_idle_status_page(self):
+        self.benchmark_idle_status_page = Adw.StatusPage.new()
+        self.benchmark_idle_status_page.set_title('Benchmark Idle')
+        self.benchmark_idle_status_page.set_description('Waiting to start a benchmark')
+        self.benchmark_idle_status_page.set_icon_name('content-loading-symbolic')
+
+    def _setup_benchmark_complete_status_page(self):
+        self.benchmark_complete_status_page = Adw.StatusPage.new()
+        self.benchmark_complete_status_page.set_title('Benchmark Complete')
+        self.benchmark_complete_status_page.set_description('Check out the results')
+        self.benchmark_complete_status_page.set_icon_name('emblem-ok-symbolic')
+
+    def _setup_benchmark_running_status_page(self):
+        self._setup_benchmark_progress_bar()
+
+        self.benchmark_running_status_page = Adw.StatusPage.new()
+        self.benchmark_running_status_page.set_title('Running Benchmark')
+        self.benchmark_running_status_page.set_icon_name('system-run-symbolic')
+        self.benchmark_running_status_page.set_child(self.benchmark_progress_bar)
+
+    def _setup_benchmark_progress_bar(self):
+        self.benchmark_progress_bar = Gtk.ProgressBar()
+        self.benchmark_progress_bar.set_hexpand(True)
+        self.benchmark_progress_bar.set_margin_start(40)
+        self.benchmark_progress_bar.set_margin_end(40)
 
     def _setup_benchmark_results_widgets(self):
         # Instantiates the benchmark results widgets.
         self._setup_results_grid()
         self._setup_results_row()
-        self._setup_progress_row()
 
         self.results_group = Adw.PreferencesGroup()
         self.results_group.set_title('Results')
         self.results_group.add(self.results_row)
-        self.results_group.add(self.progress_row)
 
     def _setup_results_grid(self):
         # Instantiates the grid widget that contains the results.
@@ -1560,22 +2061,17 @@ class BenchmarkPage(Gtk.Box):
         self.results_row = Adw.ActionRow()
         self.results_row.set_child(self.results_grid)
 
-    def _setup_progress_row(self):
-        # Instantiates the progress row widgets.
-        self.benchmark_progress_bar = Gtk.ProgressBar()
-        self.benchmark_progress_bar.set_hexpand(True)
-        self.benchmark_progress_bar.set_margin_top(20)
-        self.benchmark_progress_bar.set_margin_bottom(20)
-        self.benchmark_progress_bar.set_margin_start(40)
-        self.benchmark_progress_bar.set_margin_end(40)
-
-        self.progress_row = Adw.ActionRow()
-        self.progress_row.set_child(self.benchmark_progress_bar)
-
     def _setup_benchmark_settings_widgets(self):
         # Instantiates the benchmark settings widgets.
+        self._setup_results_grid()
+        self._setup_results_row()
         self._setup_benchmark_type_row()
         self._setup_start_stop_button()
+
+        self.benchmark_type_group = Adw.PreferencesGroup()
+        self.benchmark_type_group.set_title('Settings')
+        self.benchmark_type_group.add(self.results_row)
+        self.benchmark_type_group.add(self.benchmark_type_combo_row)
 
         self.benchmark_settings_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         self.benchmark_settings_vertical_box.append(self.benchmark_type_group)
@@ -1589,10 +2085,6 @@ class BenchmarkPage(Gtk.Box):
         self.benchmark_type_combo_row.set_title('Type')
         self.benchmark_type_combo_row.set_subtitle('Choose how long the benchmark should be')
         self.benchmark_type_combo_row.set_model(self.benchmark_type_string_list)
-
-        self.benchmark_type_group = Adw.PreferencesGroup()
-        self.benchmark_type_group.set_title('Settings')
-        self.benchmark_type_group.add(self.benchmark_type_combo_row)
 
     def _setup_benchmark_type_string_list(self):
         # Instantiates the benchmark types as a string list.
@@ -1641,6 +2133,7 @@ class BenchmarkPage(Gtk.Box):
 
     def reset_state(self):
         """Resets the state of the benchmark widgets."""
+        self.benchmark_status_stack.set_visible_child_name('idle')
         self.reset_results()
         self.start_stop_button_stack.set_visible_child_name('start')
 
@@ -1662,6 +2155,7 @@ class BenchmarkPage(Gtk.Box):
         Starts a benchmark for the encoding task. Adds the encoding task to the benchmark generator
         and waits for the benchmark to complete. This needs to be run in a thread otherwise it will block.
         """
+        GLib.idle_add(self.benchmark_status_stack.set_visible_child_name, 'running')
         GLib.idle_add(self.reset_results)
 
         if self.encoding_task:
@@ -1669,6 +2163,7 @@ class BenchmarkPage(Gtk.Box):
                                                         long_benchmark=bool(self.benchmark_type_combo_row.get_selected()))
             self._wait_until_benchmark_is_done()
 
+        GLib.idle_add(self.benchmark_status_stack.set_visible_child_name, 'complete')
         GLib.idle_add(self.start_stop_button_stack.set_visible_child_name, 'start')
 
     def _wait_until_benchmark_is_done(self):

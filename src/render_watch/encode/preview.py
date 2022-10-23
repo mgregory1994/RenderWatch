@@ -17,12 +17,16 @@
 
 
 import logging
+import os
 import queue
+import signal
 import subprocess
 import threading
+import re
 
+from render_watch.ui import Gtk, GLib, Gdk
 from render_watch.ffmpeg import encoding, trim
-from render_watch.helpers import ffmpeg_helper
+from render_watch.helpers import ffmpeg_helper, format_converter
 from render_watch import app_preferences
 
 
@@ -42,6 +46,7 @@ class PreviewGenerator:
         self._trim_preview = _TrimPreview(self, app_settings)
         self._settings_preview = _SettingsPreview(self, app_settings)
         self._video_preview = _VideoPreview(self, app_settings)
+        self.main_window = None
 
     def generate_previews(self, encoding_task: encoding.Task):
         """
@@ -116,6 +121,10 @@ class PreviewGenerator:
         if encoding_task.video_codec:
             self._video_preview.add_video_task(encoding_task, time_position)
 
+    def open_preview_file(self, file_path: str):
+        file_uri = ''.join(['file://', file_path])
+        Gtk.show_uri(self.main_window, file_uri, Gdk.CURRENT_TIME)
+
     def kill(self):
         """
         Empties all preview queues and then adds a stop task to each preview queue.
@@ -141,23 +150,27 @@ class PreviewGenerator:
         self._video_preview.add_stop_task()
 
     @staticmethod
-    def run_preview_subprocess(encoding_task: encoding.Task, subprocess_args_list: list):
+    def run_preview_subprocess(encoding_task: encoding.Task, subprocess_args_list: list, video_preview=False):
         """
         Runs a subprocess for each args list contained in subprocess_args_list.
 
         Parameters:
             encoding_task: Encoding task that's being used to make a preview.
             subprocess_args_list: List that contains lists of subprocess args.
+            video_preview: Boolean that represents whether a video preview is being processed.
 
         Returns:
             Subprocess' return code as an integer.
         """
-        for args_list in subprocess_args_list:
+        for encode_pass, args_list in enumerate(subprocess_args_list):
             with subprocess.Popen(args_list,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT,
                                   universal_newlines=True,
                                   bufsize=1) as preview_process:
+                if video_preview:
+                    PreviewGenerator.process_video_preview_subprocess(preview_process, encoding_task, encode_pass)
+
                 process_return_code = preview_process.wait()
 
             if process_return_code:
@@ -169,6 +182,68 @@ class PreviewGenerator:
                 break
 
         return process_return_code
+
+    @staticmethod
+    def process_video_preview_subprocess(video_preview_process: subprocess.Popen,
+                                         encoding_task: encoding.Task,
+                                         encode_pass: int):
+        stdout_last_line = ''
+
+        while True:
+            if encoding_task.is_video_preview_stopped and video_preview_process.poll() is None:
+                os.kill(video_preview_process.pid, signal.SIGKILL)
+
+                break
+
+            stdout = video_preview_process.stdout.readline().strip()
+            if stdout == '' and video_preview_process.poll() is not None:
+                break
+
+            stdout_last_line = stdout
+
+            PreviewGenerator._update_video_preview_current_position(encoding_task, stdout)
+            PreviewGenerator._update_video_preview_progress(encoding_task, encode_pass)
+
+        PreviewGenerator._log_video_preview_process_state(video_preview_process, encoding_task, stdout_last_line)
+
+    @staticmethod
+    def _update_video_preview_current_position(encoding_task: encoding.Task, stdout: str):
+        try:
+            current_position_timecode = re.search(r'time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
+                                                  stdout).group().split('=')[1]
+            current_position_in_seconds = format_converter.get_seconds_from_timecode(current_position_timecode)
+            encoding_task.video_preview_current_position = current_position_in_seconds
+        except (AttributeError, TypeError):
+            pass
+
+    @staticmethod
+    def _update_video_preview_progress(encoding_task: encoding.Task, encode_pass: int):
+        try:
+            if encoding_task.is_video_2_pass():
+                encode_passes = 2
+            else:
+                encode_passes = 1
+
+            if encode_pass == 0:
+                progress = (encoding_task.video_preview_current_position / encoding_task.video_preview_duration) / encode_passes
+            else:
+                progress = 0.5 + ((encoding_task.video_preview_current_position / encoding_task.video_preview_duration) / encode_passes)
+
+            encoding_task.video_preview_progress = round(progress, 4)
+        except (AttributeError, TypeError, ZeroDivisionError):
+            pass
+
+    @staticmethod
+    def _log_video_preview_process_state(video_preview_process: subprocess.Popen,
+                                         encoding_task: encoding.Task,
+                                         stdout_last_line: str):
+        if encoding_task.is_video_preview_stopped:
+            logging.info(''.join(['--- VIDEO PREVIEW PROCESS STOPPED: ', encoding_task.output_file.file_path, ' ---']))
+        elif video_preview_process.wait():
+            logging.error(''.join(['--- VIDEO PREVIEW PROCESS FAILED: ',
+                                   encoding_task.output_file.file_path,
+                                   ' ---\n',
+                                   stdout_last_line]))
 
 
 class _CropPreview:
@@ -533,6 +608,7 @@ class _VideoPreview:
 
                     self._setup_encoding_task(encoding_task_copy, time_position)
                     self._process_video_preview_task(encoding_task, encoding_task_copy)
+                    self.preview_generator.open_preview_file(encoding_task.temp_output_file.video_preview_file_path)
                 except:
                     logging.exception(''.join(['--- VIDEO PREVIEW TASK FAILED ---\n',
                                                encoding_task_copy.input_file.file_path]))
@@ -563,7 +639,7 @@ class _VideoPreview:
         # Creates a preview file for the video preview task.
         video_preview_args = encoding.FFmpegArgs.get_args(encoding_task_copy)
 
-        if self.preview_generator.run_preview_subprocess(encoding_task_copy, video_preview_args):
+        if self.preview_generator.run_preview_subprocess(encoding_task, video_preview_args, video_preview=True):
             encoding_task.temp_output_file.video_preview_file_path = None
 
             raise Exception

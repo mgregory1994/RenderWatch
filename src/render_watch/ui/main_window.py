@@ -19,7 +19,7 @@
 import threading
 
 
-from render_watch.ui import Gtk, Gdk, Gio, Adw
+from render_watch.ui import Gtk, Gdk, Gio, GLib, Adw
 from render_watch.ui import inputs_page, active_page, completed_page
 from render_watch.encode import encoder_queue, preview, benchmark
 from render_watch import app_preferences
@@ -27,6 +27,9 @@ from render_watch import app_preferences
 
 class MainWindowWidgets:
     """Class that contains the widgets that make up the application's main window."""
+
+    WINDOW_MIN_WIDTH = 1000
+    WINDOW_MIN_HEIGHT = 690
 
     def __init__(self,
                  application: Adw.Application,
@@ -56,11 +59,13 @@ class MainWindowWidgets:
 
         self._setup_main_window()
 
+        self.preview_generator.main_window = self.main_window
+
     def _setup_main_window(self):
         # Initializes all widgets for the main window and sets the state of the main window.
         self._setup_main_window_contents()
 
-        self.main_window.set_size_request(1000, 600)
+        self.main_window.set_size_request(self.WINDOW_MIN_WIDTH, self.WINDOW_MIN_HEIGHT)
         self.main_window.set_default_size(self.app_settings.window_width, self.app_settings.window_height)
 
         if self.app_settings.is_window_maximized:

@@ -70,6 +70,7 @@ class Task:
         self._current_position = None
         self._progress = None
         self._video_preview_progress = None
+        self._video_preview_current_position = None
         self.video_preview_duration = None
         self._benchmark_bitrate = None
         self._benchmark_speed = None
@@ -83,6 +84,7 @@ class Task:
         self._time_left_lock = threading.Lock()
         self._current_position_lock = threading.Lock()
         self._progress_lock = threading.Lock()
+        self._video_preview_current_position_lock = threading.Lock()
         self._video_preview_progress_lock = threading.Lock()
         self._benchmark_bitrate_lock = threading.Lock()
         self._benchmark_speed_lock = threading.Lock()
@@ -103,6 +105,8 @@ class Task:
         self._has_failed = False
         self._has_benchmark_started = False
         self._is_benchmark_stopped = False
+        self._is_video_preview_stopped = False
+        self._is_video_preview_done = False
         self.paused_threading_event = threading.Event()
         self.video_preview_threading_event = threading.Event()
         self.duration = 0
@@ -272,6 +276,28 @@ class Task:
         """
         with self._progress_lock:
             self._progress = task_progress
+
+    @property
+    def video_preview_current_position(self) -> int:
+        """
+        Returns the preview task's current position. This property is thread safe.
+
+        Returns:
+            Integer that represents the preview task's current position in seconds.
+        """
+        with self._video_preview_current_position_lock:
+            return self._video_preview_current_position
+
+    @video_preview_current_position.setter
+    def video_preview_current_position(self, current_position_value: int):
+        """
+        Sets the video preview task's current position. This property is thread safe.
+
+        Parameters:
+            current_position_value: Video preview task's current position in seconds.
+        """
+        with self._video_preview_current_position_lock:
+            self._video_preview_current_position = current_position_value
 
     @property
     def video_preview_progress(self) -> float:
@@ -658,6 +684,50 @@ class Task:
             self._is_benchmark_stopped = is_stopped
 
     @property
+    def is_video_preview_done(self) -> bool:
+        """
+        Returns whether the video preview task has finished. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the video preview task has finished.
+        """
+        with self._task_thread_lock:
+            return self._is_video_preview_done
+
+    @is_video_preview_done.setter
+    def is_video_preview_done(self, is_done: bool):
+        """
+        Sets whether the video preview task has finished. This property is thread safe.
+
+        Parameters:
+            is_done: Boolean that represents whether the video preview task has finished.
+        """
+        with self._task_thread_lock:
+            self._is_video_preview_done = is_done
+
+    @property
+    def is_video_preview_stopped(self) -> bool:
+        """
+        Returns whether the video preview task has stopped. This property is thread safe.
+
+        Returns:
+            Boolean that represents whether the video preview task has stopped.
+        """
+        with self._task_thread_lock:
+            return self._is_video_preview_stopped
+
+    @is_video_preview_stopped.setter
+    def is_video_preview_stopped(self, is_stopped: bool):
+        """
+        Sets whether the video preview task has stopped. This property is thread safe.
+
+        Parameters:
+            is_stopped: Boolean that represents whether the video preview task has stopped.
+        """
+        with self._task_thread_lock:
+            self._is_video_preview_stopped = is_stopped
+
+    @property
     def is_watch_folder(self) -> bool:
         """
         Returns whether this task is a watch folder task.
@@ -900,9 +970,11 @@ class Task:
         try:
             task_copy.video_stream = self.video_stream
             task_copy.audio_streams = self.audio_streams
+            task_copy.is_no_video = self.is_no_video
             task_copy.is_no_audio = self.is_no_audio
             task_copy.filter = copy.deepcopy(self.filter)
             task_copy.audio_streams = copy.deepcopy(self.audio_streams)
+            task_copy.video_preview_duration = self.video_preview_duration
 
             if self.general_settings:
                 task_copy.general_settings = copy.deepcopy(self.general_settings)

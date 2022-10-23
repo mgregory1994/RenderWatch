@@ -26,14 +26,22 @@ class CompletedPageWidgets:
         self._setup_completed_page_widgets()
 
     def _setup_completed_page_widgets(self):
+        self._setup_no_completed_tasks_status_page()
         self._setup_completed_tasks_list_placeholder_widgets()
         self._setup_options_popover_widgets()
 
-        self.main_widget.set_placeholder(self.placeholder_vertical_box)
+        self.main_widget.set_placeholder(self.no_completed_tasks_status_page)
         self.main_widget.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.main_widget.set_show_separators(True)
         self.main_widget.set_vexpand(True)
         self.main_widget.set_hexpand(True)
+
+    def _setup_no_completed_tasks_status_page(self):
+        self.no_completed_tasks_status_page = Adw.StatusPage.new()
+        self.no_completed_tasks_status_page.set_title('No Completed Tasks')
+        self.no_completed_tasks_status_page.set_description('Tasks that have finished processing will show up here')
+        self.no_completed_tasks_status_page.set_icon_name('action-unavailable-symbolic')
+        self.no_completed_tasks_status_page.set_sensitive(False)
 
     def _setup_completed_tasks_list_placeholder_widgets(self):
         placeholder_icon = Gtk.Image.new_from_icon_name('action-unavailable-symbolic')

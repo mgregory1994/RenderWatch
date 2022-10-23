@@ -64,7 +64,7 @@ class SettingsSidebarWidgets:
     def _setup_general_settings_page(self):
         self.general_settings_page = self.GeneralSettingsPage(self.inputs_page)
         self.general_settings_page.extension_combo_row.connect('notify::selected-item',
-                                                               self.on_general_page_extension_combo_row_activated)
+                                                               self.on_general_page_extension_combo_row_selected_item)
 
     def _setup_video_codec_settings_page(self):
         self.video_codec_settings_page = self.VideoCodecSettingsPage(self.inputs_page)
@@ -127,11 +127,11 @@ class SettingsSidebarWidgets:
         self.subtitle_settings_page.apply_settings_to_widgets(encoding_task)
         GLib.idle_add(self.set_widgets_setting_up, False)
 
-    def on_general_page_extension_combo_row_activated(self, combo_row, parameter):
+    def on_general_page_extension_combo_row_selected_item(self, combo_row, parameter):
         if self.is_widgets_setting_up:
             return
 
-        self.general_settings_page.on_extension_combobox_changed()
+        self.general_settings_page.on_extension_combo_row_selected_item()
         self.video_codec_settings_page.update_video_codec_settings_from_extension(self.general_settings_page)
         self.audio_codec_settings_page.update_audio_streams_from_extension(self.general_settings_page)
 
@@ -332,13 +332,15 @@ class SettingsSidebarWidgets:
                 encoding_task.output_file.extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
                 encoding_task.general_settings = copy.deepcopy(task_general_settings)
 
+            self.inputs_page.update_preview_page_encoding_task()
+
         def on_widget_changed_clicked_set(self, *args, **kwargs):
             if self.is_widgets_setting_up:
                 return
 
             threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
 
-        def on_extension_combobox_changed(self):
+        def on_extension_combo_row_selected_item(self):
             if self.is_widgets_setting_up:
                 return
 
@@ -513,6 +515,8 @@ class SettingsSidebarWidgets:
             self._apply_video_stream_setting_from_widgets(encoding_task)
             self._apply_video_codec_settings_from_widgets(encoding_task)
 
+            self.inputs_page.update_preview_page_encoding_task()
+
         def _apply_video_stream_setting_from_widgets(self, encoding_task: encoding.Task):
             selected_video_stream = encoding_task.input_file.video_streams[self.video_stream_combobox.get_active()]
             encoding_task.video_stream = selected_video_stream
@@ -590,80 +594,40 @@ class SettingsSidebarWidgets:
                 self.codec_settings_group.add(self.rate_type_settings_row)
 
             def _setup_preset_row(self):
-                self._setup_preset_combobox()
+                self.preset_string_list = Gtk.StringList.new(x264.X264.PRESET)
 
-                self.preset_row = Adw.ActionRow()
+                self.preset_row = Adw.ComboRow()
                 self.preset_row.set_title('Preset')
                 self.preset_row.set_subtitle('Encoding preset')
-                self.preset_row.add_suffix(self.preset_combobox)
-
-            def _setup_preset_combobox(self):
-                self.preset_combobox = Gtk.ComboBoxText()
-                self.preset_combobox.set_vexpand(False)
-                self.preset_combobox.set_valign(Gtk.Align.CENTER)
-
-                for preset_setting in x264.X264.PRESET:
-                    self.preset_combobox.append_text(preset_setting)
-
-                self.preset_combobox.set_active(0)
-                self.preset_combobox.connect('changed', self.on_widget_changed_clicked_set)
+                self.preset_row.set_model(self.preset_string_list)
+                self.preset_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_profile_row(self):
-                self._setup_profile_combobox()
+                self.profile_string_list = Gtk.StringList.new(x264.X264.PROFILE)
 
-                self.profile_row = Adw.ActionRow()
+                self.profile_row = Adw.ComboRow()
                 self.profile_row.set_title('Profile')
                 self.profile_row.set_subtitle('Profile restrictions')
-                self.profile_row.add_suffix(self.profile_combobox)
-
-            def _setup_profile_combobox(self):
-                self.profile_combobox = Gtk.ComboBoxText()
-                self.profile_combobox.set_vexpand(False)
-                self.profile_combobox.set_valign(Gtk.Align.CENTER)
-
-                for profile_setting in x264.X264.PROFILE:
-                    self.profile_combobox.append_text(profile_setting)
-
-                self.profile_combobox.set_active(0)
-                self.profile_combobox.connect('changed', self.on_widget_changed_clicked_set)
+                self.profile_row.set_model(self.profile_string_list)
+                self.profile_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_level_row(self):
-                self._setup_level_combobox()
+                self.level_string_list = Gtk.StringList.new(x264.X264.LEVEL)
 
-                self.level_row = Adw.ActionRow()
+                self.level_row = Adw.ComboRow()
                 self.level_row.set_title('Level')
                 self.level_row.set_subtitle('Specified level')
-                self.level_row.add_suffix(self.level_combobox)
-
-            def _setup_level_combobox(self):
-                self.level_combobox = Gtk.ComboBoxText()
-                self.level_combobox.set_vexpand(False)
-                self.level_combobox.set_valign(Gtk.Align.CENTER)
-
-                for level_setting in x264.X264.LEVEL:
-                    self.level_combobox.append_text(level_setting)
-
-                self.level_combobox.set_active(0)
-                self.level_combobox.connect('changed', self.on_widget_changed_clicked_set)
+                self.level_row.set_model(self.level_string_list)
+                self.level_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_tune_row(self):
-                self._setup_tune_combobox()
+                self.tune_string_list = Gtk.StringList.new(x264.X264.TUNE)
 
-                self.tune_row = Adw.ActionRow()
+                self.tune_row = Adw.ComboRow()
                 self.tune_row.set_title('Tune')
                 self.tune_row.set_subtitle('Tune encoder parameters')
-                self.tune_row.add_suffix(self.tune_combobox)
-
-            def _setup_tune_combobox(self):
-                self.tune_combobox = Gtk.ComboBoxText()
-                self.tune_combobox.set_vexpand(False)
-                self.tune_combobox.set_valign(Gtk.Align.CENTER)
-
-                for tune_setting in x264.X264.TUNE:
-                    self.tune_combobox.append_text(tune_setting)
-
-                self.tune_combobox.set_active(0)
-                self.tune_combobox.connect('changed', self.on_widget_changed_clicked_set)
+                self.tune_row.set_model(self.tune_string_list)
+                self.tune_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_rate_type_row(self):
                 self._setup_rate_type_radio_buttons()
@@ -1475,16 +1439,16 @@ class SettingsSidebarWidgets:
                 GLib.idle_add(self.set_widgets_setting_up, False)
 
             def _apply_preset_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.preset_combobox.set_active, encoding_task.video_codec.preset)
+                GLib.idle_add(self.preset_row.set_selected, encoding_task.video_codec.preset)
 
             def _apply_profile_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.profile_combobox.set_active, encoding_task.video_codec.profile)
+                GLib.idle_add(self.profile_row.set_selected, encoding_task.video_codec.profile)
 
             def _apply_level_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.level_combobox.set_active, encoding_task.video_codec.level)
+                GLib.idle_add(self.level_row.set_selected, encoding_task.video_codec.level)
 
             def _apply_tune_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.tune_combobox.set_active, encoding_task.video_codec.tune)
+                GLib.idle_add(self.tune_row.set_selected, encoding_task.video_codec.tune)
 
             def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
                 if encoding_task.video_codec.is_crf_enabled:
@@ -1655,10 +1619,10 @@ class SettingsSidebarWidgets:
 
             def apply_settings_from_widgets(self):
                 x264_settings = x264.X264()
-                x264_settings.preset = self.preset_combobox.get_active()
-                x264_settings.profile = self.profile_combobox.get_active()
-                x264_settings.level = self.level_combobox.get_active()
-                x264_settings.tune = self.tune_combobox.get_active()
+                x264_settings.preset = self.preset_row.get_selected()
+                x264_settings.profile = self.profile_row.get_selected()
+                x264_settings.level = self.level_row.get_selected()
+                x264_settings.tune = self.tune_row.get_selected()
                 x264_settings.is_advanced_enabled = self.advanced_settings_switch.get_active()
 
                 self._apply_rate_type_settings_from_widgets(x264_settings)
@@ -1702,6 +1666,8 @@ class SettingsSidebarWidgets:
                         encoding_task.video_codec.stats = stats_file_path
 
                     print(encoding_task.get_info())
+
+                self.inputs_page.update_preview_page_encoding_task()
 
             def _apply_rate_type_settings_from_widgets(self, x264_settings: x264.X264):
                 if self.crf_check_button.get_active():
@@ -1977,7 +1943,7 @@ class SettingsSidebarWidgets:
 
                 self.rate_type_row = Adw.ActionRow()
                 self.rate_type_row.set_title('Rate Type')
-                self.rate_type_row.set_subtitle('COdec rate type method')
+                self.rate_type_row.set_subtitle('Codec rate type method')
                 self.rate_type_row.add_suffix(self.rate_type_horizontal_box)
 
             def _setup_rate_type_radio_buttons(self):
@@ -3143,6 +3109,8 @@ class SettingsSidebarWidgets:
 
                     print(encoding_task.get_info())
 
+                self.inputs_page.update_preview_page_encoding_task()
+
             def _apply_rate_type_settings_from_widgets(self, x265_settings: x265.X265):
                 if self.crf_check_button.get_active():
                     x265_settings.crf = self.crf_scale.get_value()
@@ -3675,6 +3643,8 @@ class SettingsSidebarWidgets:
                         encoding_task.video_codec.stats = stats_file_path
 
                     print(encoding_task.get_info())
+
+                self.inputs_page.update_preview_page_encoding_task()
 
             def _apply_rate_type_settings_from_widgets(self, vp9_settings: vp9.VP9):
                 if self.crf_check_button.get_active():
@@ -4708,6 +4678,8 @@ class SettingsSidebarWidgets:
                 if is_compatibilty_check_enabled:
                     GLib.idle_add(self.show_settings_not_compatible_message, is_settings_compatible)
 
+                self.inputs_page.update_preview_page_encoding_task()
+
             def _apply_rate_type_settings_from_widgets(self,
                                                        nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
                 if self.qp_check_button.get_active():
@@ -5251,6 +5223,8 @@ class SettingsSidebarWidgets:
 
         def apply_settings_from_widgets(self):
             self._apply_deinterlace_settings_from_widgets()
+
+            self.inputs_page.update_preview_page_encoding_task()
 
         def _apply_deinterlace_settings_from_widgets(self):
             if self.deinterlace_enabled_switch.get_active():

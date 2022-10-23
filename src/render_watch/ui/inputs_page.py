@@ -446,14 +446,14 @@ class InputsPageWidgets:
         self._setup_options_popover_widgets()
 
         self.main_widget.add_named(self.inputs_page_flap, 'edit_inputs')
-        self.main_widget.add_named(self.adding_inputs_vertical_box, 'adding_inputs')
+        self.main_widget.add_named(self.adding_inputs_status_page, 'adding_inputs')
         self.main_widget.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
 
     def _setup_inputs_list(self):
         self._setup_inputs_list_placeholder_widget()
 
         self.inputs_list_box = Gtk.ListBox()
-        self.inputs_list_box.set_placeholder(self.placeholder_vertical_box)
+        self.inputs_list_box.set_placeholder(self.placeholder_icon_stack)
         self.inputs_list_box.set_show_separators(True)
         self.inputs_list_box.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
         self.inputs_list_box.set_activate_on_single_click(False)
@@ -472,57 +472,40 @@ class InputsPageWidgets:
         self.inputs_scrolled_window.set_child(self.inputs_list_box)
 
     def _setup_inputs_list_placeholder_widget(self):
-        placeholder_add_file_icon = Gtk.Image.new_from_icon_name('document-new-symbolic')
-        placeholder_add_file_icon.set_pixel_size(128)
-        placeholder_add_file_icon.add_css_class('dim-label')
-        placeholder_add_file_icon.set_vexpand(True)
-        placeholder_add_file_icon.set_valign(Gtk.Align.END)
-        placeholder_add_file_icon.set_hexpand(True)
-        placeholder_add_file_icon.set_halign(Gtk.Align.CENTER)
-
-        placeholder_add_folder_icon = Gtk.Image.new_from_icon_name('folder-new-symbolic')
-        placeholder_add_folder_icon.set_pixel_size(128)
-        placeholder_add_folder_icon.add_css_class('dim-label')
-        placeholder_add_folder_icon.set_vexpand(True)
-        placeholder_add_folder_icon.set_valign(Gtk.Align.END)
-        placeholder_add_folder_icon.set_hexpand(True)
-        placeholder_add_folder_icon.set_halign(Gtk.Align.CENTER)
+        self._setup_adding_files_status_page()
+        self._setup_adding_folders_status_page()
 
         self.placeholder_icon_stack = Gtk.Stack()
-        self.placeholder_icon_stack.add_named(placeholder_add_file_icon, 'files')
-        self.placeholder_icon_stack.add_named(placeholder_add_folder_icon, 'folders')
+        self.placeholder_icon_stack.add_named(self.adding_files_status_page, 'files')
+        self.placeholder_icon_stack.add_named(self.adding_folders_status_page, 'folders')
         self.placeholder_icon_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
 
-        placeholder_label = Gtk.Label(label='Add or Drop a New Input')
-        placeholder_label.set_vexpand(True)
-        placeholder_label.set_valign(Gtk.Align.START)
-        placeholder_label.set_sensitive(False)
+    def _setup_adding_files_status_page(self):
+        self.adding_files_status_page = Adw.StatusPage.new()
+        self.adding_files_status_page.set_title('Add or Drop a New Input')
+        self.adding_files_status_page.set_icon_name('document-new-symbolic')
+        self.adding_files_status_page.set_sensitive(False)
 
-        self.placeholder_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=40)
-        self.placeholder_vertical_box.append(self.placeholder_icon_stack)
-        self.placeholder_vertical_box.append(placeholder_label)
+    def _setup_adding_folders_status_page(self):
+        self.adding_folders_status_page = Adw.StatusPage.new()
+        self.adding_folders_status_page.set_title('Add or Drop a New Input')
+        self.adding_folders_status_page.set_icon_name('folder-new-symbolic')
+        self.adding_folders_status_page.set_sensitive(False)
 
     def _setup_adding_inputs_widgets(self):
-        adding_inputs_label = Gtk.Label(label='Adding Inputs...')
-        adding_inputs_label.set_vexpand(True)
-        adding_inputs_label.set_valign(Gtk.Align.END)
-        attr_size = Pango.AttrSize.new(32 * Pango.SCALE)
-        attr_list = Pango.AttrList.new()
-        attr_list.insert(attr_size)
-        adding_inputs_label.set_attributes(attr_list)
+        self._setup_adding_inputs_progress_bar()
 
-        self.adding_inputs_current_file_path = Gtk.Label()
+        self.adding_inputs_status_page = Adw.StatusPage.new()
+        self.adding_inputs_status_page.set_title('Adding Inputs...')
+        self.adding_inputs_status_page.set_icon_name('emblem-documents-symbolic')
+        self.adding_inputs_status_page.set_child(self.adding_inputs_progress_bar)
 
+    def _setup_adding_inputs_progress_bar(self):
         self.adding_inputs_progress_bar = Gtk.ProgressBar()
         self.adding_inputs_progress_bar.set_vexpand(True)
         self.adding_inputs_progress_bar.set_margin_top(20)
         self.adding_inputs_progress_bar.set_margin_start(80)
         self.adding_inputs_progress_bar.set_margin_end(80)
-
-        self.adding_inputs_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
-        self.adding_inputs_vertical_box.append(adding_inputs_label)
-        self.adding_inputs_vertical_box.append(self.adding_inputs_current_file_path)
-        self.adding_inputs_vertical_box.append(self.adding_inputs_progress_bar)
 
     def _setup_settings_sidebar_widgets(self):
         self.settings_sidebar_widgets = settings_sidebar.SettingsSidebarWidgets(self, self.app_settings)
@@ -561,7 +544,7 @@ class InputsPageWidgets:
         self.trim_page = additional_task_settings_pages.TrimPage(self.preview_generator)
 
     def _setup_preview_page_widgets(self):
-        self.preview_page = additional_task_settings_pages.PreviewPage()
+        self.preview_page = additional_task_settings_pages.PreviewPage(self.preview_generator, self.app_settings)
 
     def _setup_benchmark_page_widgets(self):
         self.benchmark_page = additional_task_settings_pages.BenchmarkPage(self.benchmark_generator, self.app_settings)
@@ -669,10 +652,18 @@ class InputsPageWidgets:
         self.task_chunks_horizontal_box.append(self.task_chunks_switch)
         self.task_chunks_horizontal_box.set_sensitive(self.app_settings.is_encoding_parallel_tasks)
 
+    def update_preview_page_encoding_task(self):
+        is_additional_tasks_visible = self.inputs_page_stack.get_visible_child_name() == 'additional_task_settings_page'
+        is_preview_page_visible = self.additional_task_settings_stack.get_visible_child_name() == 'preview_page'
+
+        if is_additional_tasks_visible and is_preview_page_visible:
+            self.preview_page.update_encoding_task_preview()
+
     def get_selected_rows(self):
         return self.inputs_list_box.get_selected_rows()
 
     def kill_preview_queues(self):
+        self.preview_page.preview_previewer.kill()
         self.trim_page.trim_previewer.kill()
         self.crop_page.crop_previewer.kill()
 
@@ -747,7 +738,7 @@ class InputsPageWidgets:
         GLib.idle_add(self.main_widget.set_visible_child_name, 'adding_inputs')
 
         for index, file in enumerate(input_files):
-            GLib.idle_add(self.adding_inputs_current_file_path.set_label, file.get_path())
+            GLib.idle_add(self.adding_inputs_status_page.set_description, file.get_path())
             self._set_adding_inputs_progress(index, len(input_files))
 
             encoding_task = self._create_encoding_task(file)
@@ -839,6 +830,9 @@ class InputsPageWidgets:
     def on_settings_preview_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('preview_page')
+
+        encoding_task = self.get_selected_rows()[-1].encoding_task
+        self.preview_page.setup_encoding_task(encoding_task)
 
     def on_crop_preview_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')

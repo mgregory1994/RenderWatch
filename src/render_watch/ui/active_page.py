@@ -26,30 +26,21 @@ class ActivePageWidgets:
         self._setup_active_page_widgets()
 
     def _setup_active_page_widgets(self):
-        self._setup_active_tasks_list_placeholder_widgets()
+        self._setup_no_active_tasks_status_page()
         self._setup_options_popover_widgets()
 
-        self.main_widget.set_placeholder(self.placeholder_vertical_box)
+        self.main_widget.set_placeholder(self.no_active_tasks_status_page)
         self.main_widget.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.main_widget.set_show_separators(True)
         self.main_widget.set_vexpand(True)
         self.main_widget.set_hexpand(True)
 
-    def _setup_active_tasks_list_placeholder_widgets(self):
-        placeholder_icon = Gtk.Image.new_from_icon_name('action-unavailable-symbolic')
-        placeholder_icon.set_pixel_size(128)
-        placeholder_icon.set_opacity(0.5)
-        placeholder_icon.set_vexpand(True)
-        placeholder_icon.set_valign(Gtk.Align.END)
-
-        placeholder_label = Gtk.Label(label='No Active Tasks')
-        placeholder_label.set_vexpand(True)
-        placeholder_label.set_valign(Gtk.Align.START)
-        placeholder_label.set_sensitive(False)
-
-        self.placeholder_vertical_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=40)
-        self.placeholder_vertical_box.append(placeholder_icon)
-        self.placeholder_vertical_box.append(placeholder_label)
+    def _setup_no_active_tasks_status_page(self):
+        self.no_active_tasks_status_page = Adw.StatusPage.new()
+        self.no_active_tasks_status_page.set_title('No Active Tasks')
+        self.no_active_tasks_status_page.set_description('Use the inputs page to start a new task')
+        self.no_active_tasks_status_page.set_icon_name('action-unavailable-symbolic')
+        self.no_active_tasks_status_page.set_sensitive(False)
 
     def _setup_options_popover_widgets(self):
         self._setup_task_preview_widgets()

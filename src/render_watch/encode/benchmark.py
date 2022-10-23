@@ -215,7 +215,6 @@ class BenchmarkGenerator:
         # Updates the benchmark task's progress status.
         try:
             current_time_position = encoding_task.benchmark_current_position
-            # input_file_duration = encoding_task.input_file.duration
 
             if encoding_task.is_video_2_pass():
                 encode_passes = 2
