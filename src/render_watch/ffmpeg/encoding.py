@@ -71,7 +71,7 @@ class Task:
         self._progress = None
         self._video_preview_progress = None
         self._video_preview_current_position = None
-        self.video_preview_duration = None
+        self._video_preview_duration = None
         self._benchmark_bitrate = None
         self._benchmark_speed = None
         self._benchmark_current_position = None
@@ -84,6 +84,7 @@ class Task:
         self._time_left_lock = threading.Lock()
         self._current_position_lock = threading.Lock()
         self._progress_lock = threading.Lock()
+        self._video_preview_duration_lock = threading.Lock()
         self._video_preview_current_position_lock = threading.Lock()
         self._video_preview_progress_lock = threading.Lock()
         self._benchmark_bitrate_lock = threading.Lock()
@@ -278,9 +279,31 @@ class Task:
             self._progress = task_progress
 
     @property
+    def video_preview_duration(self) -> int:
+        """
+        Returns the video preview task's duration. This property is thread safe.
+
+        Returns:
+            Integer that represents the preview task's duration.
+        """
+        with self._video_preview_duration_lock:
+            return self._video_preview_duration
+
+    @video_preview_duration.setter
+    def video_preview_duration(self, duration: int):
+        """
+        Sets the video preview task's duration. This property is thread safe.
+
+        Parameters:
+            duration: Duration for the video preview task.
+        """
+        with self._video_preview_duration_lock:
+            self._video_preview_duration = duration
+
+    @property
     def video_preview_current_position(self) -> int:
         """
-        Returns the preview task's current position. This property is thread safe.
+        Returns the video preview task's current position. This property is thread safe.
 
         Returns:
             Integer that represents the preview task's current position in seconds.

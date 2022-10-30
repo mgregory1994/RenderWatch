@@ -20,6 +20,7 @@ import copy
 import os.path
 import queue
 import threading
+import time
 
 from collections import OrderedDict
 
@@ -675,28 +676,61 @@ class SettingsSidebarWidgets:
                 self.rate_type_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
 
             def _setup_crf_page(self):
+                self._setup_crf_gesture_click()
+                self._setup_crf_event_controller_key()
+                self._setup_crf_event_controller_scroll()
+
                 self.crf_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
                                                           min=x264.X264.CRF_MIN,
                                                           max=x264.X264.CRF_MAX,
-                                                          step=1.0)
-                self.crf_scale.set_value(20)
-                self.crf_scale.set_digits(0)
+                                                          step=0.1)
+                self.crf_scale.set_increments(step=0.1, page=1.0)
+                self.crf_scale.set_value(x264.X264.CRF_DEFAULT)
+                self.crf_scale.set_digits(1)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
-                self.crf_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
+                self.crf_scale.add_controller(self.crf_gesture_click)
+                self.crf_scale.add_controller(self.crf_event_controller_key)
+                self.crf_scale.add_controller(self.crf_event_controller_scroll)
+
+            def _setup_crf_gesture_click(self):
+                self.crf_gesture_click = Gtk.GestureClick.new()
+                self.crf_gesture_click.connect('stopped', self.on_scale_gesture_stopped, self.crf_gesture_click)
+                self.crf_gesture_click.connect('unpaired-release', self.on_widget_changed_clicked_set)
+
+            def _setup_crf_event_controller_key(self):
+                self.crf_event_controller_key = Gtk.EventControllerKey.new()
+                self.crf_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
+
+            def _setup_crf_event_controller_scroll(self):
+                self.crf_event_controller_scroll = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
+                self.crf_event_controller_scroll.connect('scroll', self.on_widget_changed_clicked_set)
 
             def _setup_qp_page(self):
+                self._setup_qp_gesture_click()
+                self._setup_qp_event_controller_key()
+
                 self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
                                                          min=x264.X264.QP_MIN,
                                                          max=x264.X264.QP_MAX,
                                                          step=1.0)
-                self.qp_scale.set_value(20)
-                self.qp_scale.set_digits(0)
+                self.qp_scale.set_value(x264.X264.CRF_DEFAULT)
+                self.qp_scale.set_digits(1)
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
-                self.qp_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
+                self.qp_scale.add_controller(self.qp_gesture_click)
+                self.qp_scale.add_controller(self.qp_event_controller_key)
+
+            def _setup_qp_gesture_click(self):
+                self.qp_gesture_click = Gtk.GestureClick.new()
+                self.qp_gesture_click.connect('stopped', self.on_scale_gesture_stopped, self.qp_gesture_click)
+                self.qp_gesture_click.connect('unpaired-release', self.on_widget_changed_clicked_set)
+
+            def _setup_qp_event_controller_key(self):
+                self.qp_event_controller_key = Gtk.EventControllerKey.new()
+                self.qp_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
 
             def _setup_bitrate_page(self):
                 self._setup_bitrate_spin_button()
@@ -1617,7 +1651,10 @@ class SettingsSidebarWidgets:
             def _apply_weight_p_setting_to_widgets(self, encoding_task: encoding.Task):
                 GLib.idle_add(self.weight_p_switch.set_active, encoding_task.video_codec.weightp)
 
-            def apply_settings_from_widgets(self):
+            def apply_settings_from_widgets(self, is_delay_enabled: bool):
+                if is_delay_enabled:
+                    time.sleep(0.25)
+
                 x264_settings = x264.X264()
                 x264_settings.preset = self.preset_row.get_selected()
                 x264_settings.profile = self.profile_row.get_selected()
@@ -1671,9 +1708,9 @@ class SettingsSidebarWidgets:
 
             def _apply_rate_type_settings_from_widgets(self, x264_settings: x264.X264):
                 if self.crf_check_button.get_active():
-                    x264_settings.crf = int(self.crf_scale.get_value())
+                    x264_settings.crf = self.crf_scale.get_value()
                 elif self.qp_check_button.get_active():
-                    x264_settings.qp = int(self.qp_scale.get_value())
+                    x264_settings.qp = self.qp_scale.get_value()
                 else:
                     x264_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
 
@@ -1740,13 +1777,21 @@ class SettingsSidebarWidgets:
                 if self.is_widgets_setting_up:
                     return
 
-                threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
+                is_delay_enabled = (self.crf_event_controller_scroll in args)
+
+                threading.Thread(target=self.apply_settings_from_widgets, args=(is_delay_enabled,)).start()
+
+            def on_scale_gesture_stopped(self, user_data, gesture_click):
+                if gesture_click.get_device():
+                    return
+
+                self.on_widget_changed_clicked_set(self.crf_scale)
 
             def on_crf_check_button_toggled(self, check_button):
                 if check_button.get_active():
                     self.rate_type_stack.set_visible_child_name('crf_page')
                     self.rate_type_settings_row.set_title('CRF')
-                    self.rate_type_settings_row.set_subtitle('Constant Ratefactor')
+                    self.rate_type_settings_row.set_subtitle('Constant Rate Factor')
 
                     self.on_widget_changed_clicked_set(check_button)
 
@@ -1767,13 +1812,6 @@ class SettingsSidebarWidgets:
                     self.rate_type_settings_row.set_subtitle('Target video bitrate in kbps')
 
                     self.on_widget_changed_clicked_set(check_button)
-
-            def on_scale_adjust_bounds(self, scale, value):
-                if self.is_widgets_setting_up:
-                    return
-
-                if int(value) != int(scale.get_value()):
-                    self.on_widget_changed_clicked_set(scale)
 
             def on_advanced_settings_switch_state_set(self, switch, user_data):
                 is_state_enabled = switch.get_active()

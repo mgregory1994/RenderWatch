@@ -473,7 +473,7 @@ class _SettingsPreview:
 
                 try:
                     if time_position is None:
-                        time_position = round(encoding_task_copy.input_file.duration / 4, 2)
+                        time_position = round(encoding_task_copy.input_file.duration / 2, 2)
 
                     self._setup_encoding_task(encoding_task_copy, time_position)
                     self._process_settings_preview_task(encoding_task, encoding_task_copy)
