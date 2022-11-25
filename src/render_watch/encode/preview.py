@@ -16,7 +16,6 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import logging
 import os
 import queue
 import signal
@@ -25,9 +24,9 @@ import threading
 import re
 
 from render_watch.ui import Gtk, GLib, Gdk
-from render_watch.ffmpeg import encoding, trim
+from render_watch.ffmpeg import task, video_codec
 from render_watch.helpers import ffmpeg_helper, format_converter
-from render_watch import app_preferences
+from render_watch import app_preferences, logger
 
 
 class PreviewGenerator:
@@ -48,78 +47,53 @@ class PreviewGenerator:
         self._video_preview = _VideoPreview(self, app_settings)
         self.main_window = None
 
-    def generate_previews(self, encoding_task: encoding.Task):
-        """
-        Adds the given encoding task to the crop preview, trim preview, and settings preview queues.
-
-        Parameters:
-            encoding_task: Encoding task to send to the preview queues.
-
-        Returns:
-            None
-        """
-        if not encoding_task.input_file.is_video:
-            return
-
-        self._crop_preview.add_crop_task(encoding_task)
-        self._trim_preview.add_trim_task(encoding_task)
-
-        if encoding_task.video_codec:
-            self._settings_preview.add_settings_task(encoding_task)
-
-    def generate_crop_preview(self, encoding_task: encoding.Task, time_position: int | float):
+    def generate_crop_preview(self, crop_preview_task: task.CropPreview):
         """
         Adds the given encoding task to the crop preview queue and creates the preview at the given time position.
 
         Parameters:
-            encoding_task: Encoding task to send to the crop preview queue.
-            time_position: Time position in the video to create the preview.
+            crop_preview_task: Crop preview task to send to the crop preview queue.
 
         Returns:
             None
         """
-        self._crop_preview.add_crop_task(encoding_task, time_position)
+        self._crop_preview.add_crop_task(crop_preview_task)
 
-    def generate_trim_preview(self, encoding_task: encoding.Task, time_position: int | float):
+    def generate_trim_preview(self, trim_preview_task: task.TrimPreview):
         """
         Adds the given encoding task to the trim preview queue and creates the preview at the given time position.
 
         Parameters:
-            encoding_task: Encoding task to send to the trim preview queue.
-            time_position: Time position in the video to create the preview.
+            trim_preview_task: Trim preview task to send to the trim preview queue.
 
         Returns:
             None
         """
-        self._trim_preview.add_trim_task(encoding_task, time_position)
+        self._trim_preview.add_trim_preview_task(trim_preview_task)
 
-    def generate_settings_preview(self, encoding_task: encoding.Task, time_position: int | float):
+    def generate_settings_preview(self, settings_preview_task: task.SettingsPreview):
         """
         Adds the given encoding task to the settings preview queue and creates the preview at the given time position.
 
         Parameters:
-            encoding_task: Encoding task to send to the settings preview queue.
-            time_position: Time position in the video to create the preview.
+            settings_preview_task: Settings preview task to send to the settings preview queue.
 
         Returns:
             None
         """
-        if encoding_task.video_codec:
-            self._settings_preview.add_settings_task(encoding_task, time_position)
+        self._settings_preview.add_settings_task(settings_preview_task)
 
-    def generate_video_preview(self, encoding_task: encoding.Task, time_position: int | float):
+    def generate_video_preview(self, video_preview_task: task.VideoPreview):
         """
         Adds the given encoding task to the video preview queue and creates the preview at the given time position.
 
         Parameters:
-            encoding_task: Encoding task to send to the settings preview queue.
-            time_position: Time position in the video to create the preview.
+            video_preview_task: Video preview task to send to the settings preview queue.
 
         Returns:
             None
         """
-        if encoding_task.video_codec:
-            self._video_preview.add_video_task(encoding_task, time_position)
+        self._video_preview.add_video_task(video_preview_task)
 
     def open_preview_file(self, file_path: str):
         file_uri = ''.join(['file://', file_path])
@@ -150,14 +124,14 @@ class PreviewGenerator:
         self._video_preview.add_stop_task()
 
     @staticmethod
-    def run_preview_subprocess(encoding_task: encoding.Task, subprocess_args_list: list, video_preview=False):
+    def run_preview_subprocess(preview_task: task.TrimPreview | task.CropPreview | task.SettingsPreview | task.VideoPreview,
+                               subprocess_args_list: list):
         """
         Runs a subprocess for each args list contained in subprocess_args_list.
 
         Parameters:
-            encoding_task: Encoding task that's being used to make a preview.
+            preview_task: Preview task that's being used to make a preview.
             subprocess_args_list: List that contains lists of subprocess args.
-            video_preview: Boolean that represents whether a video preview is being processed.
 
         Returns:
             Subprocess' return code as an integer.
@@ -168,16 +142,13 @@ class PreviewGenerator:
                                   stderr=subprocess.STDOUT,
                                   universal_newlines=True,
                                   bufsize=1) as preview_process:
-                if video_preview:
-                    PreviewGenerator.process_video_preview_subprocess(preview_process, encoding_task, encode_pass)
+                if isinstance(preview_task, task.VideoPreview):
+                    PreviewGenerator.process_video_preview_subprocess(preview_process, preview_task, encode_pass)
 
                 process_return_code = preview_process.wait()
 
             if process_return_code:
-                logging.exception(''.join(['--- PREVIEW SUBPROCESS FAILED:',
-                                           encoding_task.temp_output_file.file_path,
-                                           ' ---\n',
-                                           str(args_list)]))
+                logger.log_preview_subprocess_failed(preview_task.encode_task.temp_file.file_path, subprocess_args_list)
 
                 break
 
@@ -185,12 +156,12 @@ class PreviewGenerator:
 
     @staticmethod
     def process_video_preview_subprocess(video_preview_process: subprocess.Popen,
-                                         encoding_task: encoding.Task,
+                                         video_preview_task: task.VideoPreview,
                                          encode_pass: int):
         stdout_last_line = ''
 
         while True:
-            if encoding_task.is_video_preview_stopped and video_preview_process.poll() is None:
+            if video_preview_task.is_preview_stopped and video_preview_process.poll() is None:
                 os.kill(video_preview_process.pid, signal.SIGKILL)
 
                 break
@@ -201,49 +172,47 @@ class PreviewGenerator:
 
             stdout_last_line = stdout
 
-            PreviewGenerator._update_video_preview_current_position(encoding_task, stdout)
-            PreviewGenerator._update_video_preview_progress(encoding_task, encode_pass)
+            PreviewGenerator._update_video_preview_current_position(video_preview_task, stdout)
+            PreviewGenerator._update_video_preview_progress(video_preview_task, encode_pass)
 
-        PreviewGenerator._log_video_preview_process_state(video_preview_process, encoding_task, stdout_last_line)
+        PreviewGenerator._log_video_preview_process_state(video_preview_process, video_preview_task, stdout_last_line)
 
     @staticmethod
-    def _update_video_preview_current_position(encoding_task: encoding.Task, stdout: str):
+    def _update_video_preview_current_position(video_preview_task: task.VideoPreview, stdout: str):
         try:
             current_position_timecode = re.search(r'time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
                                                   stdout).group().split('=')[1]
             current_position_in_seconds = format_converter.get_seconds_from_timecode(current_position_timecode)
-            encoding_task.video_preview_current_position = current_position_in_seconds
+            video_preview_task.current_time_position = current_position_in_seconds
         except (AttributeError, TypeError):
             pass
 
     @staticmethod
-    def _update_video_preview_progress(encoding_task: encoding.Task, encode_pass: int):
+    def _update_video_preview_progress(video_preview_task: task.VideoPreview, encode_pass: int):
         try:
-            if encoding_task.is_video_2_pass():
+            if video_codec.is_codec_2_pass(video_preview_task.encode_task):
                 encode_passes = 2
             else:
                 encode_passes = 1
 
             if encode_pass == 0:
-                progress = (encoding_task.video_preview_current_position / encoding_task.video_preview_duration) / encode_passes
+                progress = (video_preview_task.current_time_position / video_preview_task.preview_duration) / encode_passes
             else:
-                progress = 0.5 + ((encoding_task.video_preview_current_position / encoding_task.video_preview_duration) / encode_passes)
+                progress = 0.5 + ((video_preview_task.current_time_position / video_preview_task.preview_duration) / encode_passes)
 
-            encoding_task.video_preview_progress = round(progress, 4)
+            video_preview_task.progress = round(progress, 4)
         except (AttributeError, TypeError, ZeroDivisionError):
             pass
 
     @staticmethod
     def _log_video_preview_process_state(video_preview_process: subprocess.Popen,
-                                         encoding_task: encoding.Task,
+                                         video_preview_task: task.VideoPreview,
                                          stdout_last_line: str):
-        if encoding_task.is_video_preview_stopped:
-            logging.info(''.join(['--- VIDEO PREVIEW PROCESS STOPPED: ', encoding_task.output_file.file_path, ' ---']))
+        if video_preview_task.is_preview_stopped:
+            logger.log_video_preview_process_stopped(video_preview_task.encode_task.output_file.file_path)
         elif video_preview_process.wait():
-            logging.error(''.join(['--- VIDEO PREVIEW PROCESS FAILED: ',
-                                   encoding_task.output_file.file_path,
-                                   ' ---\n',
-                                   stdout_last_line]))
+            logger.log_video_preview_process_failed(video_preview_task.encode_task.output_file.file_path,
+                                                    stdout_last_line)
 
 
 class _CropPreview:
@@ -268,59 +237,42 @@ class _CropPreview:
         # Loop that creates a preview file for each queued crop preview task.
         try:
             while True:
-                encoding_task, time_position = self._crop_tasks_queue.get()
+                crop_preview_task = self._crop_tasks_queue.get()
 
-                if encoding_task:
-                    encoding_task_copy = encoding_task.get_copy()
-                else:
-                    logging.info('--- STOPPING CROP PREVIEW QUEUE LOOP ---')
+                if not crop_preview_task:
+                    logger.log_stopping_crop_preview_queue_loop()
 
                     break
 
                 try:
-                    if time_position is None:
-                        time_position = round(encoding_task_copy.input_file.duration / 2, 2)
-
-                    encoding_task_copy.temp_output_file.name = ''.join([encoding_task_copy.temp_output_file.name,
-                                                                        '_crop_preview'])
-                    encoding_task_copy.temp_output_file.extension = '.png'
-                    encoding_task_copy.is_using_temp_output_file = True
-
-                    self._process_crop_preview_task(encoding_task, encoding_task_copy, time_position)
+                    self._process_crop_preview_task(crop_preview_task)
                 except:
-                    logging.exception(''.join(['--- CROP PREVIEW TASK FAILED ---\n',
-                                               encoding_task_copy.input_file.file_path]))
+                    logger.log_crop_preview_task_failed(crop_preview_task.encode_task.input_file.file_path)
                 finally:
-                    encoding_task.temp_output_file.crop_preview_threading_event.set()
+                    crop_preview_task.preview_threading_event.set()
         except:
-            logging.exception('--- CROP PREVIEW QUEUE LOOP FAILED ---')
+            logger.log_crop_preview_queue_loop_failed()
 
-    def _process_crop_preview_task(self,
-                                   encoding_task: encoding.Task,
-                                   encoding_task_copy: encoding.Task,
-                                   time_position: int | float):
+    def _process_crop_preview_task(self, crop_preview_task: task.CropPreview):
         # Creates a preview file for the crop preview task.
-        crop_preview_args = _get_preview_subprocess_args(encoding_task_copy, time_position)
+        crop_preview_args = _get_preview_subprocess_args(crop_preview_task)
 
-        if self.preview_generator.run_preview_subprocess(encoding_task_copy, [crop_preview_args]):
-            encoding_task.temp_output_file.crop_preview_file_path = None
-
+        if self.preview_generator.run_preview_subprocess(crop_preview_task, [crop_preview_args]):
             raise Exception
         else:
-            encoding_task.temp_output_file.crop_preview_file_path = encoding_task_copy.temp_output_file.file_path
+            crop_preview_task.apply_trim_preview_file_path()
 
-    def add_crop_task(self, encoding_task: encoding.Task, time_position=None):
+    def add_crop_task(self, crop_preview_task: task.CropPreview):
         """
         Adds the given encoding task to the crop preview queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the crop tasks queue.
-            time_position: Time position in the video to create the preview.
+            crop_preview_task: Crop preview task to add to the crop tasks queue.
 
         Returns:
             None
         """
-        self._crop_tasks_queue.put((encoding_task, time_position))
+        self._crop_tasks_queue.put(crop_preview_task)
 
     def add_stop_task(self):
         """
@@ -329,7 +281,7 @@ class _CropPreview:
         Returns:
             None
         """
-        self._crop_tasks_queue.put((False, None))
+        self._crop_tasks_queue.put(False)
 
     def empty_queue(self):
         """
@@ -364,59 +316,42 @@ class _TrimPreview:
         # Loop that creates a preview file for each queued trim preview task.
         try:
             while True:
-                encoding_task, time_position = self._trim_tasks_queue.get()
+                trim_preview_task = self._trim_tasks_queue.get()
 
-                if encoding_task:
-                    encoding_task_copy = encoding_task.get_copy()
-                else:
-                    logging.info('--- STOPPING TRIM PREVIEW QUEUE LOOP ---')
+                if not trim_preview_task:
+                    logger.log_stopping_trim_preview_queue_loop()
 
                     break
 
                 try:
-                    if time_position is None:
-                        time_position = 0
-
-                    encoding_task_copy.temp_output_file.name = ''.join([encoding_task_copy.temp_output_file.name,
-                                                                        '_trim_preview'])
-                    encoding_task_copy.temp_output_file.extension = '.png'
-                    encoding_task_copy.is_using_temp_output_file = True
-
-                    self._process_trim_preview_task(encoding_task, encoding_task_copy, time_position)
+                    self._process_trim_preview_task(trim_preview_task)
                 except:
-                    logging.exception(''.join(['--- TRIM PREVIEW TASK FAILED ---\n',
-                                               encoding_task_copy.input_file.file_path]))
+                    logger.log_trim_preview_task_failed(trim_preview_task.encode_task.input_file.file_path)
                 finally:
-                    encoding_task.temp_output_file.trim_preview_threading_event.set()
+                    trim_preview_task.preview_threading_event.set()
         except:
-            logging.exception('--- TRIM PREVIEW QUEUE LOOP FAILED ---')
+            logger.log_trim_preview_queue_loop_failed()
 
-    def _process_trim_preview_task(self,
-                                   encoding_task: encoding.Task,
-                                   encoding_task_copy: encoding.Task,
-                                   time_position: int | float):
+    def _process_trim_preview_task(self, trim_preview_task: task.TrimPreview):
         # Creates a preview file for the trim preview task.
-        trim_preview_args = _get_preview_subprocess_args(encoding_task_copy, time_position)
+        trim_preview_args = _get_preview_subprocess_args(trim_preview_task)
 
-        if self.preview_generator.run_preview_subprocess(encoding_task_copy, [trim_preview_args]):
-            encoding_task.temp_output_file.trim_preview_file_path = None
-
+        if self.preview_generator.run_preview_subprocess(trim_preview_task, [trim_preview_args]):
             raise Exception
         else:
-            encoding_task.temp_output_file.trim_preview_file_path = encoding_task_copy.temp_output_file.file_path
+            trim_preview_task.apply_trim_preview_file_path()
 
-    def add_trim_task(self, encoding_task: encoding.Task, time_position=None):
+    def add_trim_preview_task(self, trim_preview_task: task.TrimPreview):
         """
         Adds the given encoding task to the trim preview queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the trim tasks queue.
-            time_position: Time position in the video to create the preview.
+            trim_preview_task: Encoding task to add to the trim tasks queue.
 
         Returns:
             None
         """
-        self._trim_tasks_queue.put((encoding_task, time_position))
+        self._trim_tasks_queue.put(trim_preview_task)
 
     def add_stop_task(self):
         """
@@ -425,7 +360,7 @@ class _TrimPreview:
         Returns:
             None
         """
-        self._trim_tasks_queue.put((False, None))
+        self._trim_tasks_queue.put(False)
 
     def empty_queue(self):
         """
@@ -462,94 +397,65 @@ class _SettingsPreview:
         # Loop that creates a preview file for each queued settings preview task.
         try:
             while True:
-                encoding_task, time_position = self._settings_tasks_queue.get()
+                settings_preview_task = self._settings_tasks_queue.get()
 
-                if encoding_task:
-                    encoding_task_copy = encoding_task.get_copy()
-                else:
-                    logging.info('--- STOPPING SETTINGS PREVIEW QUEUE LOOP ---')
+                if not settings_preview_task:
+                    logger.log_stopping_settings_preview_queue_loop()
 
                     break
 
                 try:
-                    if time_position is None:
-                        time_position = round(encoding_task_copy.input_file.duration / 2, 2)
-
-                    self._setup_encoding_task(encoding_task_copy, time_position)
-                    self._process_settings_preview_task(encoding_task, encoding_task_copy)
+                    self._process_settings_preview_task(settings_preview_task)
                 except:
-                    logging.exception(''.join(['--- SETTINGS PREVIEW TASK FAILED ---\n',
-                                               encoding_task_copy.input_file.file_path]))
+                    logger.log_settings_preview_task_failed(settings_preview_task.encode_task.input_file.file_path)
                 finally:
-                    encoding_task.temp_output_file.settings_preview_threading_event.set()
+                    settings_preview_task.preview_threading_event.set()
         except:
-            logging.exception('--- SETTINGS PREVIEW QUEUE LOOP FAILED ---')
+            logger.log_settings_preview_queue_loop_failed()
 
-    def _setup_encoding_task(self, encoding_task: encoding.Task, time_position: float | int):
-        # Sets the encoding task's settings for generating a settings preview file.
-        encoding_task.temp_output_file.name = encoding_task.temp_output_file.name + '_preview'
-        encoding_task.temp_output_file.extension = encoding_task.output_file.extension
-        encoding_task.is_using_temp_output_file = True
-        self._setup_encoding_task_trim_settings(encoding_task, time_position)
-
-    def _setup_encoding_task_trim_settings(self, encoding_task: encoding.Task, time_position: float | int):
-        # Sets the encoding task's trim settings for generating a settings preview file.
-        if time_position > (encoding_task.input_file.duration - 1):
-            time_position -= 1
-
-        trim_settings = trim.TrimSettings()
-        trim_settings.start_time = time_position
-        trim_settings.trim_duration = self.ENCODE_DURATION
-        encoding_task.trim = trim_settings
-
-    def _process_settings_preview_task(self,
-                                       encoding_task: encoding.Task,
-                                       encoding_task_copy: encoding.Task):
+    def _process_settings_preview_task(self, settings_preview_task: task.SettingsPreview):
         # Creates a preview file for the settings preview task.
-        settings_preview_args = self._get_preview_subprocess_args(encoding_task_copy)
+        settings_preview_args_list = self._get_preview_subprocess_args(settings_preview_task)
 
-        if self.preview_generator.run_preview_subprocess(encoding_task_copy, settings_preview_args):
-            encoding_task.temp_output_file.settings_preview_file_path = None
-
+        if self.preview_generator.run_preview_subprocess(settings_preview_task, settings_preview_args_list):
             raise Exception
         else:
-            encoding_task.temp_output_file.settings_preview_file_path = encoding_task_copy.temp_output_file.file_path
+            settings_preview_task.apply_settings_preview_file_path()
 
-    def _get_preview_subprocess_args(self, encoding_task: encoding.Task) -> list:
+    def _get_preview_subprocess_args(self, settings_preview_task: task.SettingsPreview) -> list:
         # Returns a list that contains lists of subprocess args for the settings preview task.
-        settings_preview_args = encoding.FFmpegArgs.get_args(encoding_task)
-        settings_preview_args.append(self._get_single_image_preview_subprocess_args(encoding_task))
+        settings_preview_args = ffmpeg_helper.Args.get_args(settings_preview_task.encode_task)
+        settings_preview_args.append(self._get_single_image_preview_subprocess_args(settings_preview_task))
 
         return settings_preview_args
 
     @staticmethod
-    def _get_single_image_preview_subprocess_args(encoding_task: encoding.Task) -> list:
+    def _get_single_image_preview_subprocess_args(settings_preview_task: task.SettingsPreview) -> list:
         # Returns a list that contains the subprocess args for generating a single image of the settings preview file.
         single_image_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
         single_image_args.append('-i')
-        single_image_args.append(encoding_task.temp_output_file.file_path)
-        encoding_task.temp_output_file.extension = '.png'
+        single_image_args.append(settings_preview_task.encode_task.temp_file.file_path)
+        settings_preview_task.encode_task.temp_file.extension = '.png'
         single_image_args.append('-f')
         single_image_args.append('image2')
         single_image_args.append('-an')
         single_image_args.append('-update')
         single_image_args.append('1')
-        single_image_args.append(encoding_task.temp_output_file.file_path)
+        single_image_args.append(settings_preview_task.encode_task.temp_file.file_path)
 
         return single_image_args
 
-    def add_settings_task(self, encoding_task: encoding.Task, time_position=None):
+    def add_settings_task(self, settings_preview_task: task.SettingsPreview):
         """
         Adds the given encoding task to the settings preview queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the settings tasks queue.
-            time_position: Time position in the video to create the preview.
+            settings_preview_task: Settings preview task to add to the settings tasks queue.
 
         Returns:
             None
         """
-        self._settings_tasks_queue.put((encoding_task, time_position))
+        self._settings_tasks_queue.put(settings_preview_task)
 
     def add_stop_task(self):
         """
@@ -558,7 +464,7 @@ class _SettingsPreview:
         Returns:
             None
         """
-        self._settings_tasks_queue.put((False, None))
+        self._settings_tasks_queue.put(False)
 
     def empty_queue(self):
         """
@@ -593,71 +499,43 @@ class _VideoPreview:
         # Loop that creates a preview file for each queued video preview task.
         try:
             while True:
-                encoding_task, time_position = self._video_preview_queue.get()
+                video_preview_task = self._video_preview_queue.get()
 
-                if encoding_task:
-                    encoding_task_copy = encoding_task.get_copy()
-                else:
-                    logging.info('--- STOPPING VIDEO PREVIEW QUEUE LOOP ---')
+                if not video_preview_task:
+                    logger.log_stopping_video_preview_queue_loop()
 
                     break
 
                 try:
-                    if time_position is None:
-                        time_position = round(encoding_task_copy.input_file.duration / 4, 2)
-
-                    self._setup_encoding_task(encoding_task_copy, time_position)
-                    self._process_video_preview_task(encoding_task, encoding_task_copy)
-                    self.preview_generator.open_preview_file(encoding_task.temp_output_file.video_preview_file_path)
+                    self._process_video_preview_task(video_preview_task)
+                    self.preview_generator.open_preview_file(video_preview_task.preview_file_path)
                 except:
-                    logging.exception(''.join(['--- VIDEO PREVIEW TASK FAILED ---\n',
-                                               encoding_task_copy.input_file.file_path]))
+                    logger.log_video_preview_task_failed(video_preview_task.encode_task.input_file.file_path)
                 finally:
-                    encoding_task.video_preview_threading_event.set()
+                    video_preview_task.preview_threading_event.set()
         except:
-            logging.exception('--- VIDEO PREVIEW QUEUE LOOP FAILED ---')
+            logger.log_video_preview_queue_loop_failed()
 
-    def _setup_encoding_task(self, encoding_task: encoding.Task, time_position: float | int):
+    def _process_video_preview_task(self, video_preview_task: task.VideoPreview):
         # Creates a preview file for the video preview task.
-        encoding_task.temp_output_file.name = encoding_task.temp_output_file.name + '_preview'
-        encoding_task.temp_output_file.extension = encoding_task.output_file.extension
-        encoding_task.is_using_temp_output_file = True
-        self._setup_encoding_task_trim_settings(encoding_task, time_position)
+        video_preview_args = ffmpeg_helper.Args.get_args(video_preview_task.encode_task)
 
-    @staticmethod
-    def _setup_encoding_task_trim_settings(encoding_task: encoding.Task, time_position: float | int):
-        # Sets the encoding task's settings for generating a video preview file.
-        if time_position > (encoding_task.input_file.duration - encoding_task.video_preview_duration):
-            time_position -= encoding_task.video_preview_duration
-
-        trim_settings = trim.TrimSettings()
-        trim_settings.start_time = time_position
-        trim_settings.trim_duration = encoding_task.video_preview_duration
-        encoding_task.trim = trim_settings
-
-    def _process_video_preview_task(self, encoding_task: encoding.Task, encoding_task_copy: encoding.Task):
-        # Creates a preview file for the video preview task.
-        video_preview_args = encoding.FFmpegArgs.get_args(encoding_task_copy)
-
-        if self.preview_generator.run_preview_subprocess(encoding_task, video_preview_args, video_preview=True):
-            encoding_task.temp_output_file.video_preview_file_path = None
-
+        if self.preview_generator.run_preview_subprocess(video_preview_task, video_preview_args):
             raise Exception
         else:
-            encoding_task.temp_output_file.video_preview_file_path = encoding_task_copy.temp_output_file.file_path
+            video_preview_task.apply_video_preview_file_path()
 
-    def add_video_task(self, encoding_task: encoding.Task, time_position=None):
+    def add_video_task(self, video_preview_task: task.VideoPreview):
         """
         Adds the given encoding task to the video preview queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the video tasks queue.
-            time_position: Time position in the video to create the preview.
+            video_preview_task: Video preview task to add to the video tasks queue.
 
         Returns:
             None
         """
-        self._video_preview_queue.put((encoding_task, time_position))
+        self._video_preview_queue.put(video_preview_task)
 
     def add_stop_task(self):
         """
@@ -666,7 +544,7 @@ class _VideoPreview:
         Returns:
             None
         """
-        self._video_preview_queue.put((False, None))
+        self._video_preview_queue.put(False)
 
     def empty_queue(self):
         """
@@ -679,21 +557,21 @@ class _VideoPreview:
             self._video_preview_queue.get()
 
 
-def _get_preview_subprocess_args(encoding_task: encoding.Task, time_position: float | int) -> list:
+def _get_preview_subprocess_args(preview_task: task.TrimPreview | task.CropPreview) -> list[str]:
     # Returns a list of subprocess args for generating a single image with crop for the preview task.
     subprocess_args = ffmpeg_helper.FFMPEG_INIT_ARGS.copy()
     subprocess_args.append('-ss')
-    subprocess_args.append(str(time_position))
+    subprocess_args.append(str(preview_task.time_position))
     subprocess_args.append('-i')
-    subprocess_args.append(encoding_task.input_file.file_path)
+    subprocess_args.append(preview_task.encode_task.input_file.file_path)
     subprocess_args.append('-vframes')
     subprocess_args.append('1')
 
-    if encoding_task.filter.ffmpeg_args['-filter_complex'] is not None:
+    if preview_task.encode_task.filters.ffmpeg_args['-filter_complex'] is not None:
         subprocess_args.append('-filter_complex')
-        subprocess_args.append(encoding_task.filter.ffmpeg_args['-filter_complex'])
+        subprocess_args.append(preview_task.encode_task.filters.ffmpeg_args['-filter_complex'])
 
     subprocess_args.append('-an')
-    subprocess_args.append(encoding_task.temp_output_file.file_path)
+    subprocess_args.append(preview_task.encode_task.temp_file.file_path)
 
     return subprocess_args

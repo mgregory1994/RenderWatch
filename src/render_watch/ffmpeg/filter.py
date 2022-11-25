@@ -20,19 +20,20 @@ import logging
 import re
 import subprocess
 
-from render_watch.ffmpeg import input
-from render_watch.helpers import ffmpeg_helper
+from render_watch.ffmpeg import media_file, stream
 from render_watch import app_preferences
 
 
 class Crop:
     """Class that configures all necessary crop options for Render Watch."""
 
+    FFMPEG_INIT_AUTO_CROP_ARGS = ['ffmpeg', '-hide_banner', '-y']
+
     AUTO_CROP_SEGMENTS = 3
     AUTO_CROP_LENGTH = 15
     AUTO_CROP_THRESHOLD = 10
 
-    def __init__(self, encoding_task, app_settings: app_preferences.Settings, autocrop=True):
+    def __init__(self, encode_task, app_settings: app_preferences.Settings, autocrop=True):
         """
         Initializes the Crop class with all necessary variables for the crop option.
 
@@ -44,7 +45,7 @@ class Crop:
         self.ffmpeg_args = None
 
         if self.auto_crop_enabled and autocrop:
-            self.process_auto_crop(encoding_task)
+            self.process_auto_crop(encode_task)
 
     @property
     def dimensions(self) -> tuple:
@@ -79,51 +80,51 @@ class Crop:
             crop_arg = 'crop=' + str(width) + ':' + str(height) + ':' + str(x_pad) + ':' + str(y_pad)
             self.ffmpeg_args = crop_arg
 
-    def process_auto_crop(self, encoding_task) -> bool:
+    def process_auto_crop(self, encode_task) -> bool:
         """
         Detects letterboxing for the video stream in the encoding task's video stream and removes it by
         automatically setting the crop dimensions.
 
         Parameters:
-            encoding_task: Encoding task to use for the auto cropper.
+            encode_task: Encoding task to use for the auto cropper.
 
         Returns:
             Boolean that represents whether the auto cropper was able to set the crop dimensions.
         """
         if self._auto_crop_dimensions is None:
             self._auto_crop_dimensions = [0] * self.AUTO_CROP_SEGMENTS
-            subprocess_args_list = self._get_auto_crop_subprocess_args_list(encoding_task)
+            subprocess_args_list = self._get_auto_crop_subprocess_args_list(encode_task)
 
             if self._run_auto_crop_subprocess(subprocess_args_list):
                 return False
 
-        if self._is_auto_crop_dimensions_valid(encoding_task):
+        if self._is_auto_crop_dimensions_valid(encode_task):
             self.dimensions = self._auto_crop_dimensions
 
             return True
         return False
 
-    def _get_auto_crop_subprocess_args_list(self, encoding_task) -> list:
+    def _get_auto_crop_subprocess_args_list(self, encode_task) -> list:
         # Returns a list of subprocess args for each split of the encoding task.
         subprocess_args_list = []
 
         for index in range(1, self.AUTO_CROP_SEGMENTS + 1):
-            subprocess_args = self._get_auto_crop_subprocess_args(encoding_task, index)
+            subprocess_args = self._get_auto_crop_subprocess_args(encode_task, index)
             subprocess_args_list.append(subprocess_args)
 
         return subprocess_args_list
 
-    def _get_auto_crop_subprocess_args(self, encoding_task, segment_count: int):
+    def _get_auto_crop_subprocess_args(self, encode_task, segment_count: int):
         # Returns subprocess args for detecting letterboxing in the encoding task's video stream.
-        start_time = self._get_auto_crop_subprocess_start_time(encoding_task, segment_count)
+        start_time = self._get_auto_crop_subprocess_start_time(encode_task, segment_count)
 
-        subprocess_args = ffmpeg_helper.FFMPEG_INIT_AUTO_CROP_ARGS.copy()
+        subprocess_args = self.FFMPEG_INIT_AUTO_CROP_ARGS.copy()
         subprocess_args.append('-ss')
         subprocess_args.append(str(start_time))
         subprocess_args.append('-i')
-        subprocess_args.append(encoding_task.input_file.file_path)
+        subprocess_args.append(encode_task.input_file.file_path)
         subprocess_args.append('-map')
-        subprocess_args.append('0:' + str(encoding_task.video_stream.index))
+        subprocess_args.append('0:' + str(encode_task.get_video_stream().index))
         subprocess_args.append('-an')
         subprocess_args.append('-vframes')
         subprocess_args.append(str(self.AUTO_CROP_LENGTH))
@@ -135,8 +136,8 @@ class Crop:
 
         return subprocess_args
 
-    def _get_auto_crop_subprocess_start_time(self, encoding_task, segment_count: int):
-        time_split_length = encoding_task.input_file.duration / (self.AUTO_CROP_SEGMENTS + 1)
+    def _get_auto_crop_subprocess_start_time(self, encode_task, segment_count: int):
+        time_split_length = encode_task.input_file.duration / (self.AUTO_CROP_SEGMENTS + 1)
 
         return round(time_split_length * segment_count, 2)
 
@@ -194,13 +195,13 @@ class Crop:
         # Uses the highest auto crop dimensions in the tuple of auto crop dimensions.
         self._auto_crop_dimensions = max(self._auto_crop_dimensions)
 
-    def _is_auto_crop_dimensions_valid(self, encoding_task) -> bool:
+    def _is_auto_crop_dimensions_valid(self, encode_task) -> bool:
         # Determines whether the auto crop dimensions can be used for the crop dimensions.
         width, height, x_pad, y_pad = self._auto_crop_dimensions
 
         try:
-            is_width_valid = ((int(width) + self.AUTO_CROP_THRESHOLD) < encoding_task.video_stream.width)
-            is_height_valid = ((int(height) + self.AUTO_CROP_THRESHOLD) < encoding_task.video_stream.height)
+            is_width_valid = ((int(width) + self.AUTO_CROP_THRESHOLD) < encode_task.get_video_stream().width)
+            is_height_valid = ((int(height) + self.AUTO_CROP_THRESHOLD) < encode_task.get_video_stream().height)
 
             return is_width_valid or is_height_valid
         except (TypeError, ValueError):
@@ -264,7 +265,7 @@ class Scale:
 class Subtitles:
     """Class that configures all necessary subtitle options for Render Watch."""
 
-    def __init__(self, input_file: input.InputFile):
+    def __init__(self, input_file: media_file.InputFile):
         """Initializes the Subtitles class with all necessary variables for the subtitles option."""
         self.subtitle_streams = input_file.subtitle_streams
         self.streams_available = []
@@ -273,7 +274,7 @@ class Subtitles:
         self._subtitle_args = {}
         self.burn_in_stream_index = None
 
-    def use_stream(self, subtitle_stream: input.SubtitleStream):
+    def use_stream(self, subtitle_stream: stream.SubtitleStream):
         """
         Adds the subtitle stream to the list of streams to use and removes it from the list of available streams.
 
@@ -283,7 +284,7 @@ class Subtitles:
         self.streams_available.remove(subtitle_stream)
         self.streams_in_use.append(subtitle_stream)
 
-    def remove_stream(self, subtitle_stream: input.SubtitleStream):
+    def remove_stream(self, subtitle_stream: stream.SubtitleStream):
         """
         Removes the subtitle stream from the list of streams to use and adds it to the list of available streams.
 
@@ -296,7 +297,7 @@ class Subtitles:
         if self.burn_in_stream_index == subtitle_stream.index:
             self.burn_in_stream_index = None
 
-    def set_stream_method_burn_in(self, subtitle_stream: input.SubtitleStream):
+    def set_stream_method_burn_in(self, subtitle_stream: stream.SubtitleStream):
         """
         Sets the burn in subtitle stream index as the subtitle stream's index.
 
@@ -403,7 +404,7 @@ class Deinterlace:
         return self.DEINT_FILTERS[self.method]
 
 
-class Filter:
+class Filters:
     """Class that configures all necessary filter options for Render Watch."""
 
     CROP_TAG = '[crop]'
@@ -411,7 +412,7 @@ class Filter:
     DEINT_TAG = '[deint]'
     SUBTITLE_TAG = '[sub]'
 
-    def __init__(self, input_file: input.InputFile):
+    def __init__(self, input_file: media_file.InputFile):
         """Initializes the Filter class with all necessary variables for the filter options."""
         self._crop = None
         self._scale = None

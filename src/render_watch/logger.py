@@ -58,3 +58,140 @@ def _get_logging_type() -> int:
             break
 
     return logging_type
+
+
+def log_subprocess_error(input_file_name: str, subprocess_args: list | tuple, stdout_log: str):
+    logging.error(''.join(['--- FAILED TO RUN PROCESS FOR: ',
+                           input_file_name,
+                           ' ---\n',
+                           str(subprocess_args),
+                           '\n',
+                           stdout_log]))
+
+
+def log_preview_subprocess_failed(temp_file_path: str, subprocess_args_list: list[str]):
+    logging.exception(''.join(['--- PREVIEW SUBPROCESS FAILED: ', temp_file_path, ' ---\n', str(subprocess_args_list)]))
+
+
+def log_nvenc_max_workers_set(max_workers: int):
+    logging.info(' '.join(['--- NVENC MAX WORKERS SET TO:', str(max_workers), '---']))
+
+
+def log_video_chunk_concatenation_error(input_file_name: str):
+    logging.error(' '.join(['--- FAILED TO CONCAT VIDEO CHUNKS:', input_file_name, '---']))
+
+
+def log_stopping_trim_preview_queue_loop():
+    logging.info('--- STOPPING TRIM PREVIEW QUEUE LOOP ---')
+
+
+def log_trim_preview_task_failed(input_file_path: str):
+    logging.exception(''.join(['--- TRIM PREVIEW TASK FAILED ---\n', input_file_path]))
+
+
+def log_trim_preview_queue_loop_failed():
+    logging.exception('--- TRIM PREVIEW QUEUE LOOP FAILED ---')
+
+
+def log_stopping_crop_preview_queue_loop():
+    logging.info('--- STOPPING CROP PREVIEW QUEUE LOOP ---')
+
+
+def log_crop_preview_task_failed(input_file_path: str):
+    logging.exception(''.join(['--- CROP PREVIEW TASK FAILED ---\n', input_file_path]))
+
+
+def log_crop_preview_queue_loop_failed():
+    logging.exception('--- CROP PREVIEW QUEUE LOOP FAILED ---')
+
+
+def log_stopping_settings_preview_queue_loop():
+    logging.info('--- STOPPING SETTINGS PREVIEW QUEUE LOOP ---')
+
+
+def log_settings_preview_task_failed(input_file_path: str):
+    logging.exception(''.join(['--- SETTINGS PREVIEW TASK FAILED ---\n', input_file_path]))
+
+
+def log_settings_preview_queue_loop_failed():
+    logging.exception('--- SETTINGS PREVIEW QUEUE LOOP FAILED ---')
+
+
+def log_stopping_video_preview_queue_loop():
+    logging.info('--- STOPPING VIDEO PREVIEW QUEUE LOOP ---')
+
+
+def log_video_preview_task_failed(input_file: str):
+    logging.exception(''.join(['--- VIDEO PREVIEW TASK FAILED ---\n', input_file]))
+
+
+def log_video_preview_queue_loop_failed():
+    logging.exception('--- VIDEO PREVIEW QUEUE LOOP FAILED ---')
+
+
+def log_video_preview_process_stopped(output_file_path: str):
+    logging.info(' '.join(['--- VIDEO PREVIEW PROCESS STOPPED:', output_file_path, '---']))
+
+
+def log_video_preview_process_failed(output_file_path: str, stdout_last_line: str):
+    logging.error(''.join(['--- VIDEO PREVIEW PROCESS FAILED: ', output_file_path, ' ---\n', stdout_last_line]))
+
+
+def log_stopping_benchmark_queue_loop():
+    logging.info('--- STOPPING BENCHMARK QUEUE LOOP ---')
+
+
+def log_benchmark_task_failed(input_file_path: str):
+    logging.exception(''.join(['--- BENCHMARK TASK FAILED ---\n', input_file_path]))
+
+
+def log_benchmark_process_stopped(input_file_path: str):
+    logging.info(' '.join(['--- BENCHMARK PROCESS STOPPED:', input_file_path, '---']))
+
+
+def log_benchmark_process_failed(input_file_path: str, stdout_last_line: str):
+    logging.error(''.join(['--- BENCHMARK PROCESS FAILED: ', input_file_path, ' ---\n', stdout_last_line]))
+
+
+def log_task_not_in_running_tasks_list(output_file_path: str):
+    logging.exception('--- TASK NOT IN RUNNING TASKS LIST ---\n' + output_file_path)
+
+
+def log_failed_to_run_standard_encoding_task(output_file_path: str):
+    logging.exception(''.join(['--- FAILED TO RUN STANDARD ENCODING TASK ---\n', output_file_path]))
+
+
+def log_standard_tasks_queue_loop_failed():
+    logging.exception('--- STANDARD TASKS QUEUE LOOP FAILED ---')
+
+
+def log_parallel_nvenc_queue_loop_disabled():
+    logging.info('--- PARALLEL NVENC QUEUE LOOP DISABLED ---')
+
+
+def log_failed_to_run_encoding_task(codec_name: str):
+    logging.exception(''.join(['--- FAILED TO RUN ', codec_name, ' ENCODING TASK ---']))
+
+
+def log_codec_queue_loop_instance_failed(codec_name: str):
+    logging.exception(''.join(['--- ', codec_name, ' CODEC QUEUE LOOP INSTANCE FAILED ---']))
+
+
+def log_watch_folder_queue_loop_failed():
+    logging.exception('--- WATCH FOLDER QUEUE LOOP FAILED ---')
+
+
+def log_watch_folder_next_encode_task_failed(output_file_path: str):
+    logging.exception(''.join(['--- WATCH FOLDER CHILD ENCODING TASK FAILED ---\n', output_file_path]))
+
+
+def log_watch_folder_encoding_task_loop_failed(output_file_path: str):
+    logging.exception('--- WATCH FOLDER ENCODING TASK LOOP FAILED ---\n', output_file_path)
+
+
+def log_encode_process_stopped(output_file_path: str):
+    logging.info(' '.join(['--- ENCODE PROCESS STOPPED:', output_file_path, '---']))
+
+
+def log_encode_process_failed(output_file_path: str, stdout_last_line: str):
+    logging.error(''.join(['--- ENCODE PROCESS FAILED: ', output_file_path, ' ---\n', stdout_last_line]))

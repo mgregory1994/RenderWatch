@@ -25,13 +25,12 @@ import time
 from collections import OrderedDict
 
 from render_watch.ui import Gtk, GLib, Adw
-from render_watch.ffmpeg import encoding, general_settings, filters, x264, x265, vp9, h264_nvenc, hevc_nvenc, aac, opus
-from render_watch.helpers import nvidia_helper
+from render_watch.ffmpeg import task, media_file, filter, stream, video_codec, audio_codec
+from render_watch.helpers import ffmpeg_helper
 from render_watch import app_preferences
 
 
 class SettingsSidebarWidgets:
-
     SIDEBAR_WIDTH = 450
 
     def __init__(self, inputs_page, app_settings: app_preferences.Settings):
@@ -69,6 +68,10 @@ class SettingsSidebarWidgets:
 
     def _setup_video_codec_settings_page(self):
         self.video_codec_settings_page = self.VideoCodecSettingsPage(self.inputs_page)
+        self.video_codec_settings_page.video_codec_row.connect(
+            'notify::selected-item',
+            self.on_video_codec_settings_page_video_codec_combo_row_selected_item
+        )
 
     def _setup_audio_codec_settings_page(self):
         self.audio_codec_settings_page = self.AudioCodecSettingsPage(self.inputs_page)
@@ -118,14 +121,13 @@ class SettingsSidebarWidgets:
     def set_widgets_setting_up(self, is_widgets_setting_up: bool):
         self.is_widgets_setting_up = is_widgets_setting_up
 
-    def apply_settings_to_widgets(self, encoding_task: encoding.Task):
-        print('UPDATE')
+    def apply_settings_to_widgets(self, encode_task: task.Encode):
         GLib.idle_add(self.set_widgets_setting_up, True)
-        self.general_settings_page.apply_settings_to_widgets(encoding_task)
-        self.video_codec_settings_page.apply_settings_to_widgets(encoding_task)
-        self.audio_codec_settings_page.apply_settings_to_widgets(encoding_task)
-        self.filter_settings_page.apply_settings_to_widgets(encoding_task)
-        self.subtitle_settings_page.apply_settings_to_widgets(encoding_task)
+        self.general_settings_page.apply_settings_to_widgets(encode_task)
+        self.video_codec_settings_page.apply_settings_to_widgets(encode_task)
+        self.audio_codec_settings_page.apply_settings_to_widgets(encode_task)
+        self.filter_settings_page.apply_settings_to_widgets(encode_task)
+        self.subtitle_settings_page.apply_settings_to_widgets(encode_task)
         GLib.idle_add(self.set_widgets_setting_up, False)
 
     def on_general_page_extension_combo_row_selected_item(self, combo_row, parameter):
@@ -133,8 +135,23 @@ class SettingsSidebarWidgets:
             return
 
         self.general_settings_page.on_extension_combo_row_selected_item()
+
         self.video_codec_settings_page.update_video_codec_settings_from_extension(self.general_settings_page)
         self.audio_codec_settings_page.update_audio_streams_from_extension(self.general_settings_page)
+
+    def on_video_codec_settings_page_video_codec_combo_row_selected_item(self, combo_row, parameter):
+        if self.is_widgets_setting_up:
+            return
+
+        self.video_codec_settings_page.on_widget_changed_clicked_set(combo_row)
+
+        if combo_row.get_selected() == 0:
+            self.general_settings_page.set_custom_frame_rate_unavailable_state()
+            self.filter_settings_page.set_filters_not_available_state()
+            self.subtitle_settings_page.set_video_copy_state()
+        else:
+            self.general_settings_page.set_custom_frame_rate_available_state()
+            self.filter_settings_page.set_filters_available_state()
 
     class SettingsGroup(Adw.PreferencesGroup):
         def __init__(self):
@@ -215,7 +232,7 @@ class SettingsSidebarWidgets:
             self.extension_combo_row.set_model(self.extension_string_list)
 
         def _setup_extension_string_list(self):
-            self.extension_string_list = Gtk.StringList.new(encoding.output.CONTAINERS)
+            self.extension_string_list = Gtk.StringList.new(media_file.OUTPUT_EXTENSIONS)
 
         def _setup_fast_start_row(self):
             self._setup_fast_start_switch()
@@ -245,95 +262,135 @@ class SettingsSidebarWidgets:
             self.frame_rate_settings_group.add(self.custom_frame_rate_row)
 
         def _setup_custom_frame_rate_row(self):
-            self._setup_custom_frame_rate_combobox()
+            self._setup_custom_frame_rate_string_list()
 
-            self.custom_frame_rate_row = Adw.ActionRow()
+            self.custom_frame_rate_row = Adw.ComboRow()
             self.custom_frame_rate_row.set_title('Frames Per Second')
             self.custom_frame_rate_row.set_subtitle('Output\'s frame rate')
-            self.custom_frame_rate_row.add_suffix(self.custom_frame_rate_combobox)
+            self.custom_frame_rate_row.set_model(self.custom_frame_rate_string_list)
+            self.custom_frame_rate_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
             self.custom_frame_rate_row.set_sensitive(False)
 
-        def _setup_custom_frame_rate_combobox(self):
-            self.custom_frame_rate_combobox = Gtk.ComboBoxText()
-            self.custom_frame_rate_combobox.set_vexpand(False)
-            self.custom_frame_rate_combobox.set_valign(Gtk.Align.CENTER)
+        def _setup_custom_frame_rate_string_list(self):
+            self.custom_frame_rate_string_list = Gtk.StringList.new(task.GeneralSettings.FRAME_RATE)
 
-            for frame_rate in general_settings.GeneralSettings.FRAME_RATE:
-                self.custom_frame_rate_combobox.append_text(frame_rate)
-
-            self.custom_frame_rate_combobox.set_active(0)
-            self.custom_frame_rate_combobox.connect('changed', self.on_widget_changed_clicked_set)
-
-        def get_video_codecs_list(self) -> list:
-            extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
-
-            if extension == '.mp4':
-                video_codecs_list = encoding.Task.VIDEO_CODECS_MP4_UI
-            elif extension == '.mkv':
-                video_codecs_list = encoding.Task.VIDEO_CODECS_MKV_UI
-            elif extension == '.ts':
-                video_codecs_list = encoding.Task.VIDEO_CODECS_TS_UI
+        def update_fast_start_available_state(self):
+            if self.get_selected_extension() in media_file.VALID_FAST_START_EXTENSION:
+                self.fast_start_row.set_sensitive(True)
             else:
-                video_codecs_list = encoding.Task.VIDEO_CODECS_WEBM_UI
+                self.fast_start_switch.set_active(False)
+                self.fast_start_row.set_sensitive(False)
 
-            return video_codecs_list
+        def get_selected_extension(self) -> str:
+            return self.extension_combo_row.get_selected_item().get_string()
 
-        def get_audio_codecs_list(self) -> list:
-            extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
+        def is_video_extension(self) -> bool:
+            return self.get_selected_extension() in media_file.VIDEO_OUTPUT_EXTENSIONS
 
-            if extension == '.mp4':
-                audio_codecs_list = encoding.Task.AUDIO_CODECS_MP4_UI
-            elif extension == '.mkv':
-                audio_codecs_list = encoding.Task.AUDIO_CODECS_MKV_UI
-            elif extension == '.ts':
-                audio_codecs_list = encoding.Task.AUDIO_CODECS_TS_UI
-            else:
-                audio_codecs_list = encoding.Task.AUDIO_CODECS_WEBM_UI
+        def is_audio_extension(self) -> bool:
+            return self.get_selected_extension() in media_file.AUDIO_OUTPUT_EXTENSIONS
 
-            return audio_codecs_list
+        def set_audio_state(self):
+            self.update_fast_start_available_state()
+            self.set_custom_frame_rate_unavailable_state()
+
+        def set_custom_frame_rate_unavailable_state(self):
+            self.frame_rate_settings_group.set_sensitive(False)
+            self.custom_frame_rate_switch.set_active(False)
+
+            custom_frame_rate_string_list = Gtk.StringList.new(['N/A'])
+            self.custom_frame_rate_row.set_model(custom_frame_rate_string_list)
+
+        def set_custom_frame_rate_available_state(self):
+            self.frame_rate_settings_group.set_sensitive(True)
+
+            custom_frame_rate_string_list = Gtk.StringList.new(task.GeneralSettings.FRAME_RATE)
+            self.custom_frame_rate_row.set_model(custom_frame_rate_string_list)
+            self.custom_frame_rate_row.set_sensitive(self.custom_frame_rate_switch.get_active())
+
+        def set_audio_extensions(self, selected_extension=None):
+            audio_extensions_string_list = Gtk.StringList.new(media_file.AUDIO_OUTPUT_EXTENSIONS)
+            self.extension_combo_row.set_model(audio_extensions_string_list)
+
+            if selected_extension:
+                extension_index = media_file.AUDIO_OUTPUT_EXTENSIONS.index(selected_extension)
+                self.extension_combo_row.set_selected(extension_index)
+
+        def set_video_extensions(self, selected_extension=None):
+            video_extensions_string_list = Gtk.StringList.new(media_file.VIDEO_OUTPUT_EXTENSIONS)
+            self.extension_combo_row.set_model(video_extensions_string_list)
+
+            if selected_extension:
+                extension_index = media_file.VIDEO_OUTPUT_EXTENSIONS.index(selected_extension)
+                self.extension_combo_row.set_selected(extension_index)
+
+        def set_all_extensions(self, selected_extension=None):
+            all_extensions_string_list = Gtk.StringList.new(media_file.OUTPUT_EXTENSIONS)
+            self.extension_combo_row.set_model(all_extensions_string_list)
+
+            if selected_extension:
+                extension_index = media_file.OUTPUT_EXTENSIONS.index(selected_extension)
+                self.extension_combo_row.set_selected(extension_index)
+
+        def set_video_state(self):
+            self.update_fast_start_available_state()
+            self.set_custom_frame_rate_available_state()
 
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
 
-        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        def apply_settings_to_widgets(self, encode_task: task.Encode):
             GLib.idle_add(self.set_widgets_setting_up, True)
-            self._apply_extension_setting_to_widgets(encoding_task)
-            self._apply_fast_start_setting_to_widgets(encoding_task)
-            self._apply_frame_rate_setting_to_widgets(encoding_task)
+
+            if encode_task.input_file.is_video:
+                self._apply_fast_start_setting_to_widgets(encode_task)
+                self._apply_frame_rate_setting_to_widgets(encode_task)
+
+            GLib.idle_add(self._apply_extension_setting_to_widgets, encode_task)
             GLib.idle_add(self.set_widgets_setting_up, False)
 
-        def _apply_extension_setting_to_widgets(self, encoding_task: encoding.Task):
-            extension_index = encoding.output.CONTAINERS.index(encoding_task.output_file.extension)
-            GLib.idle_add(self.extension_combo_row.set_selected, extension_index)
+        def _apply_extension_setting_to_widgets(self, encode_task: task.Encode):
+            if encode_task.input_file.is_folder or (encode_task.input_file.is_video and encode_task.input_file.is_audio):
+                self.set_all_extensions(encode_task.output_file.extension)
+                self.set_video_state()
+            elif encode_task.input_file.is_video:
+                self.set_video_extensions(encode_task.output_file.extension)
+                self.set_video_state()
+            else:
+                self.set_audio_extensions(encode_task.output_file.extension)
+                self.set_audio_state()
 
-        def _apply_fast_start_setting_to_widgets(self, encoding_task: encoding.Task):
-            GLib.idle_add(self.fast_start_switch.set_active, encoding_task.general_settings.fast_start)
+        def _apply_fast_start_setting_to_widgets(self, encode_task: task.Encode):
+            GLib.idle_add(self.fast_start_switch.set_active, encode_task.general_settings.fast_start)
 
-        def _apply_frame_rate_setting_to_widgets(self, encoding_task: encoding.Task):
-            frame_rate_index = encoding_task.general_settings.frame_rate
+        def _apply_frame_rate_setting_to_widgets(self, encode_task: task.Encode):
+            frame_rate_index = encode_task.general_settings.frame_rate
 
             if frame_rate_index is not None:
                 GLib.idle_add(self.custom_frame_rate_switch.set_active, True)
-                GLib.idle_add(self.custom_frame_rate_combobox.set_active, frame_rate_index)
+                GLib.idle_add(self.custom_frame_rate_row.set_selected, frame_rate_index)
             else:
                 GLib.idle_add(self.custom_frame_rate_switch.set_active, False)
-                GLib.idle_add(self.custom_frame_rate_combobox.set_active, 0)
+                GLib.idle_add(self.custom_frame_rate_row.set_selected, 0)
+
+            GLib.idle_add(self.on_custom_frame_rate_switch_state_set, self.custom_frame_rate_switch, None)
 
         def apply_settings_from_widgets(self):
-            task_general_settings = general_settings.GeneralSettings()
+            task_general_settings = task.GeneralSettings()
 
             if self.custom_frame_rate_switch.get_active():
-                task_general_settings.frame_rate = self.custom_frame_rate_combobox.get_active()
+                task_general_settings.frame_rate = self.custom_frame_rate_row.get_selected()
 
             if self.fast_start_row.get_sensitive():
                 task_general_settings.fast_start = self.fast_start_switch.get_active()
 
             for input_row in self.inputs_page.get_selected_rows():
-                encoding_task = input_row.encoding_task
-                encoding_task.output_file.extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
-                encoding_task.general_settings = copy.deepcopy(task_general_settings)
+                encode_task = input_row.encode_task
+                encode_task.output_file.extension = media_file.OUTPUT_EXTENSIONS[self.extension_combo_row.get_selected()]
+                encode_task.general_settings = copy.deepcopy(task_general_settings)
+                print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
-            self.inputs_page.update_preview_page_encoding_task()
+            self.inputs_page.update_preview_page_encode_task()
 
         def on_widget_changed_clicked_set(self, *args, **kwargs):
             if self.is_widgets_setting_up:
@@ -343,20 +400,38 @@ class SettingsSidebarWidgets:
 
         def on_extension_combo_row_selected_item(self):
             if self.is_widgets_setting_up:
+                self.update_fast_start_available_state()
+
                 return
 
-            extension = encoding.output.CONTAINERS[self.extension_combo_row.get_selected()]
-            self.fast_start_row.set_sensitive(extension == '.mp4')
+            GLib.idle_add(self.set_widgets_setting_up, True)
+            GLib.idle_add(self.update_fast_start_available_state)
+
+            if self.is_video_extension():
+                GLib.idle_add(self.set_video_state)
+            else:
+                GLib.idle_add(self.set_audio_state)
+
+            GLib.idle_add(self.set_widgets_setting_up, False)
+
             self.on_widget_changed_clicked_set()
 
         def on_custom_frame_rate_switch_state_set(self, switch, user_data):
+            self.custom_frame_rate_row.set_sensitive(switch.get_active())
+
             if self.is_widgets_setting_up:
                 return
 
-            self.custom_frame_rate_row.set_sensitive(switch.get_active())
             self.on_widget_changed_clicked_set()
 
     class VideoCodecSettingsPage(Gtk.ScrolledWindow):
+
+        X264_PAGE = 'x264'
+        X265_page = 'x265'
+        NVENC_PAGE = 'nvenc'
+        VP9_PAGE = 'vp9'
+        UNAVAILABLE_PAGE = 'unavailable'
+
         def __init__(self, inputs_page):
             super().__init__()
 
@@ -387,32 +462,15 @@ class SettingsSidebarWidgets:
             self.video_stream_settings_group.add(self.video_codec_row)
 
         def _setup_video_stream_row(self):
-            self._setup_video_stream_combobox()
-
-            self.video_stream_row = Adw.ActionRow()
+            self.video_stream_row = Adw.ComboRow()
             self.video_stream_row.set_title('Selected Stream')
-            self.video_stream_row.set_subtitle('Video stream to use for the codec settings')
-            self.video_stream_row.add_suffix(self.video_stream_combobox)
-
-        def _setup_video_stream_combobox(self):
-            self.video_stream_combobox = Gtk.ComboBoxText()
-            self.video_stream_combobox.set_vexpand(False)
-            self.video_stream_combobox.set_valign(Gtk.Align.CENTER)
-            self.video_stream_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            self.video_stream_row.set_use_subtitle(True)
+            self.video_stream_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
         def _setup_video_codec_row(self):
-            self._setup_video_codec_combobox()
-
-            self.video_codec_row = Adw.ActionRow()
+            self.video_codec_row = Adw.ComboRow()
             self.video_codec_row.set_title('Video Codec')
             self.video_codec_row.set_subtitle('Codec to encode the video stream')
-            self.video_codec_row.add_suffix(self.video_codec_combobox)
-
-        def _setup_video_codec_combobox(self):
-            self.video_codec_combobox = Gtk.ComboBoxText()
-            self.video_codec_combobox.set_vexpand(False)
-            self.video_codec_combobox.set_valign(Gtk.Align.CENTER)
-            self.video_codec_combobox.connect('changed', self.on_widget_changed_clicked_set)
 
         def _setup_video_codec_settings_pages(self):
             self.x264_page = self.X264StackPage(self.inputs_page)
@@ -422,140 +480,182 @@ class SettingsSidebarWidgets:
             codec_settings_no_avail_page = self.CodecSettingsNoAvailPage()
 
             self.video_codec_settings_stack = Gtk.Stack()
-            self.video_codec_settings_stack.add_named(self.x264_page, 'x264_page')
-            self.video_codec_settings_stack.add_named(self.x265_page, 'x265_page')
-            self.video_codec_settings_stack.add_named(self.vp9_page, 'vp9_page')
-            self.video_codec_settings_stack.add_named(self.nvenc_page, 'nvenc_page')
-            self.video_codec_settings_stack.add_named(codec_settings_no_avail_page, 'unavailable_page')
-            self.video_codec_settings_stack.set_visible_child_name('unavailable_page')
+            self.video_codec_settings_stack.add_named(self.x264_page, self.X264_PAGE)
+            self.video_codec_settings_stack.add_named(self.x265_page, self.X265_page)
+            self.video_codec_settings_stack.add_named(self.vp9_page, self.VP9_PAGE)
+            self.video_codec_settings_stack.add_named(self.nvenc_page, self.NVENC_PAGE)
+            self.video_codec_settings_stack.add_named(codec_settings_no_avail_page, self.UNAVAILABLE_PAGE)
+            self.video_codec_settings_stack.set_visible_child_name(self.UNAVAILABLE_PAGE)
             self.video_codec_settings_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT)
             self.video_codec_settings_stack.set_vhomogeneous(False)
 
         def update_video_codec_settings_from_extension(self, general_settings_page):
-            selected_video_codec = self.video_codec_combobox.get_active_text()
-            video_codecs_list = general_settings_page.get_video_codecs_list()
+            selected_video_codec = self.video_codec_row.get_selected_item().get_string()
+            video_codecs_list = self._get_codecs_list_from_extension(general_settings_page.get_selected_extension())
 
             self.is_widgets_setting_up = True
-            self._repopulate_video_codec_combobox(video_codecs_list)
+            self._repopulate_video_codec_row(video_codecs_list)
 
-            if selected_video_codec in video_codecs_list:
-                self.video_codec_combobox.set_active(video_codecs_list.index(selected_video_codec))
+            if general_settings_page.is_video_extension() and selected_video_codec in video_codecs_list:
+                self.video_codec_row.set_selected(video_codecs_list.index(selected_video_codec))
+            elif general_settings_page.is_video_extension():
+                self.video_codec_row.set_selected(1)
             else:
-                self.video_codec_combobox.set_active(1)
+                self.video_codec_row.set_selected(0)
 
             self.is_widgets_setting_up = False
 
             self.on_widget_changed_clicked_set()
 
+        @staticmethod
+        def _get_codecs_list_from_extension(extension: str) -> list[str]:
+            if extension == media_file.MP4_EXTENTION:
+                video_codecs_list = video_codec.VIDEO_CODECS_MP4_UI
+            elif extension == media_file.MKV_EXTENSION:
+                video_codecs_list = video_codec.VIDEO_CODECS_MKV_UI
+            elif extension == media_file.TS_EXTENSION:
+                video_codecs_list = video_codec.VIDEO_CODECS_TS_UI
+            elif extension == media_file.WEBM_EXTENSION:
+                video_codecs_list = video_codec.VIDEO_CODECS_WEBM_UI
+            else:
+                video_codecs_list = ['N/A']
+
+            return video_codecs_list
+
+        def set_not_available_state(self):
+            self._set_video_streams_not_available_state()
+            self._set_video_codec_not_available_state()
+            self.video_codec_settings_stack.set_visible_child_name(self.UNAVAILABLE_PAGE)
+
+        def _set_video_streams_not_available_state(self):
+            video_stream_string_list = Gtk.StringList.new(['N/A'])
+            self.video_stream_row.set_model(video_stream_string_list)
+            self.video_stream_row.set_sensitive(False)
+
+        def _set_video_codec_not_available_state(self):
+            video_codec_string_list = Gtk.StringList.new(['N/A'])
+            self.video_codec_row.set_model(video_codec_string_list)
+            self.video_codec_row.set_sensitive(False)
+
+        def set_available_state(self):
+            self.video_stream_row.set_sensitive(True)
+            self.video_codec_row.set_sensitive(True)
+
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
 
-        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        def apply_settings_to_widgets(self, encode_task: task.Encode):
             GLib.idle_add(self.set_widgets_setting_up, True)
-            self._apply_video_stream_setting_to_widgets(encoding_task)
-            self._apply_video_codec_settings_to_widgets(encoding_task)
+
+            if self._is_encode_task_valid(encode_task):
+                GLib.idle_add(self.set_available_state)
+                self._apply_video_stream_setting_to_widgets(encode_task)
+                self._apply_video_codec_settings_to_widgets(encode_task)
+            else:
+                GLib.idle_add(self.set_not_available_state)
+
             GLib.idle_add(self.set_widgets_setting_up, False)
 
-        def _apply_video_stream_setting_to_widgets(self, encoding_task: encoding.Task):
-            GLib.idle_add(self.video_stream_combobox.remove_all)
+        @staticmethod
+        def _is_encode_task_valid(encode_task: task.Encode) -> bool:
+            return encode_task.input_file.is_video or encode_task.input_file.is_folder
 
-            for video_stream in encoding_task.input_file.video_streams:
-                GLib.idle_add(self.video_stream_combobox.append_text, video_stream.get_info())
+        def _apply_video_stream_setting_to_widgets(self, encode_task: task.Encode):
+            video_stream_string_list = Gtk.StringList.new()
 
-            video_stream_index = encoding_task.input_file.video_streams.index(encoding_task.video_stream)
-            GLib.idle_add(self.video_stream_combobox.set_active, video_stream_index)
+            for video_stream in encode_task.input_file.video_streams:
+                video_stream_string_list.append(video_stream.get_info())
 
-        def _apply_video_codec_settings_to_widgets(self, encoding_task: encoding.Task):
-            if encoding_task.output_file.extension == '.mp4':
-                video_codecs_list = encoding.Task.VIDEO_CODECS_MP4_UI
-            elif encoding_task.output_file.extension == '.mkv':
-                video_codecs_list = encoding.Task.VIDEO_CODECS_MKV_UI
-            elif encoding_task.output_file.extension == '.ts':
-                video_codecs_list = encoding.Task.VIDEO_CODECS_TS_UI
+            GLib.idle_add(self.video_stream_row.set_model, video_stream_string_list)
+
+            video_stream_index = encode_task.input_file.video_streams.index(encode_task.get_video_stream())
+            GLib.idle_add(self.video_stream_row.set_selected, video_stream_index)
+
+        def _apply_video_codec_settings_to_widgets(self, encode_task: task.Encode):
+            video_codecs_list = self._get_codecs_list_from_extension(encode_task.output_file.extension)
+            GLib.idle_add(self._repopulate_video_codec_row, video_codecs_list)
+            self._set_video_codec_row(encode_task, video_codecs_list)
+
+        def _repopulate_video_codec_row(self, video_codecs_list: list[str]):
+            video_codecs_string_list = Gtk.StringList.new(video_codecs_list)
+            self.video_codec_row.set_model(video_codecs_string_list)
+
+        def _set_video_codec_row(self, encode_task: task.Encode, video_codecs_list: list):
+            if video_codec.is_codec_x264(encode_task.get_video_codec()):
+                GLib.idle_add(self.video_codec_row.set_selected, video_codecs_list.index('H264'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.X264_PAGE)
+                self.x264_page.apply_settings_to_widgets(encode_task)
+            elif video_codec.is_codec_x265(encode_task.get_video_codec()):
+                GLib.idle_add(self.video_codec_row.set_selected, video_codecs_list.index('H265'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.X265_page)
+                self.x265_page.apply_settings_to_widgets(encode_task)
+            elif video_codec.is_codec_h264_nvenc(encode_task.get_video_codec()):
+                GLib.idle_add(self.video_codec_row.set_selected, video_codecs_list.index('NVENC H264'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.NVENC_PAGE)
+                self.nvenc_page.apply_settings_to_widgets(encode_task)
+            elif video_codec.is_codec_hevc_nvenc(encode_task.get_video_codec()):
+                GLib.idle_add(self.video_codec_row.set_selected, video_codecs_list.index('NVENC H265'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.NVENC_PAGE)
+                self.nvenc_page.apply_settings_to_widgets(encode_task)
+            elif video_codec.is_codec_vp9(encode_task.get_video_codec()):
+                GLib.idle_add(self.video_codec_row.set_selected, video_codecs_list.index('VP9'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.VP9_PAGE)
+                self.vp9_page.apply_settings_to_widgets(encode_task)
             else:
-                video_codecs_list = encoding.Task.VIDEO_CODECS_WEBM_UI
-
-            GLib.idle_add(self._repopulate_video_codec_combobox, video_codecs_list)
-            self._set_video_codec_combobox(encoding_task, video_codecs_list)
-
-        def _repopulate_video_codec_combobox(self, video_codecs_list: list):
-            self.video_codec_combobox.remove_all()
-
-            for video_codec in video_codecs_list:
-                self.video_codec_combobox.append_text(video_codec)
-
-        def _set_video_codec_combobox(self, encoding_task: encoding.Task, video_codecs_list: list):
-            if encoding_task.is_video_x264():
-                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('H264'))
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x264_page')
-                self.x264_page.apply_settings_to_widgets(encoding_task)
-            elif encoding_task.is_video_x265():
-                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('H265'))
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x265_page')
-                self.x265_page.apply_settings_to_widgets(encoding_task)
-            elif encoding_task.is_video_h264_nvenc():
-                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('NVENC H264'))
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
-                self.nvenc_page.apply_settings_to_widgets(encoding_task)
-            elif encoding_task.is_video_hevc_nvenc():
-                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('NVENC H265'))
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
-                self.nvenc_page.apply_settings_to_widgets(encoding_task)
-            elif encoding_task.is_video_vp9():
-                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('VP9'))
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
-                self.vp9_page.apply_settings_to_widgets(encoding_task)
-            else:
-                GLib.idle_add(self.video_codec_combobox.set_active, video_codecs_list.index('copy'))
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'unavailable_page')
+                GLib.idle_add(self.video_codec_row.set_selected, video_codecs_list.index('copy'))
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.UNAVAILABLE_PAGE)
 
         def apply_settings_from_widgets(self):
             input_row = self.inputs_page.get_selected_rows()[-1]
-            encoding_task = input_row.encoding_task
+            encode_task = input_row.encode_task
 
-            self._apply_video_stream_setting_from_widgets(encoding_task)
-            self._apply_video_codec_settings_from_widgets(encoding_task)
+            if not encode_task.input_file.is_video:
+                return
 
-            self.inputs_page.update_preview_page_encoding_task()
+            self._apply_video_stream_setting_from_widgets(encode_task)
+            self._apply_video_codec_settings_from_widgets(encode_task)
+            print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
-        def _apply_video_stream_setting_from_widgets(self, encoding_task: encoding.Task):
-            selected_video_stream = encoding_task.input_file.video_streams[self.video_stream_combobox.get_active()]
-            encoding_task.video_stream = selected_video_stream
+            self.inputs_page.update_preview_page_encode_task()
 
-        def _apply_video_codec_settings_from_widgets(self, encoding_task: encoding.Task):
-            if self.video_codec_combobox.get_active_text() == 'H264':
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x264_page')
+        def _apply_video_stream_setting_from_widgets(self, encode_task: task.Encode):
+            selected_video_stream = encode_task.input_file.video_streams[self.video_stream_row.get_selected()]
+            encode_task.set_video_stream(selected_video_stream)
 
-                if not encoding_task.is_video_x264():
-                    encoding_task.video_codec = x264.X264()
-                    self.x264_page.apply_settings_to_widgets(encoding_task)
-            elif self.video_codec_combobox.get_active_text() == 'H265':
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'x265_page')
+        def _apply_video_codec_settings_from_widgets(self, encode_task: task.Encode):
+            if self.video_codec_row.get_selected_item().get_string() == 'H264':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.X264_PAGE)
 
-                if not encoding_task.is_video_x265():
-                    encoding_task.video_codec = x265.X265()
-                    self.x265_page.apply_settings_to_widgets(encoding_task)
-            elif self.video_codec_combobox.get_active_text() == 'NVENC H264':
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+                if not video_codec.is_codec_x264(encode_task.get_video_codec()):
+                    encode_task.set_video_codec(video_codec.X264())
+                    self.x264_page.apply_settings_to_widgets(encode_task)
+            elif self.video_codec_row.get_selected_item().get_string() == 'H265':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.X265_page)
 
-                if not encoding_task.is_video_h264_nvenc():
-                    encoding_task.video_codec = h264_nvenc.H264Nvenc()
-                    self.nvenc_page.apply_settings_to_widgets(encoding_task)
-            elif self.video_codec_combobox.get_active_text() == 'NVENC H265':
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'nvenc_page')
+                if not video_codec.is_codec_x265(encode_task.get_video_codec()):
+                    encode_task.set_video_codec(video_codec.X265())
+                    self.x265_page.apply_settings_to_widgets(encode_task)
+            elif self.video_codec_row.get_selected_item().get_string() == 'NVENC H264':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.NVENC_PAGE)
 
-                if not encoding_task.is_video_hevc_nvenc():
-                    encoding_task.video_codec = hevc_nvenc.HevcNvenc()
-                    self.nvenc_page.apply_settings_to_widgets(encoding_task)
-            elif self.video_codec_combobox.get_active_text() == 'VP9':
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'vp9_page')
+                if not video_codec.is_codec_h264_nvenc(encode_task.get_video_codec()):
+                    encode_task.set_video_codec(video_codec.H264Nvenc())
+                    self.nvenc_page.apply_settings_to_widgets(encode_task)
+            elif self.video_codec_row.get_selected_item().get_string() == 'NVENC H265':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.NVENC_PAGE)
 
-                if not encoding_task.is_video_vp9():
-                    encoding_task.video_codec = vp9.VP9()
-                    self.vp9_page.apply_settings_to_widgets(encoding_task)
+                if video_codec.is_codec_hevc_nvenc(encode_task.get_video_codec()):
+                    encode_task.set_video_codec(video_codec.HevcNvenc())
+                    self.nvenc_page.apply_settings_to_widgets(encode_task)
+            elif self.video_codec_row.get_selected_item().get_string() == 'VP9':
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.VP9_PAGE)
+
+                if not video_codec.is_codec_vp9(encode_task.get_video_codec()):
+                    encode_task.set_video_codec(video_codec.VP9())
+                    self.vp9_page.apply_settings_to_widgets(encode_task)
             else:
-                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, 'unavailable_page')
-                encoding_task.video_codec = None
+                GLib.idle_add(self.video_codec_settings_stack.set_visible_child_name, self.UNAVAILABLE_PAGE)
+                encode_task.video_codec = None
 
         def on_widget_changed_clicked_set(self, *args, **kwargs):
             if self.is_widgets_setting_up:
@@ -595,7 +695,7 @@ class SettingsSidebarWidgets:
                 self.codec_settings_group.add(self.rate_type_settings_row)
 
             def _setup_preset_row(self):
-                self.preset_string_list = Gtk.StringList.new(x264.X264.PRESET)
+                self.preset_string_list = Gtk.StringList.new(video_codec.X264.PRESET)
 
                 self.preset_row = Adw.ComboRow()
                 self.preset_row.set_title('Preset')
@@ -604,7 +704,7 @@ class SettingsSidebarWidgets:
                 self.preset_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_profile_row(self):
-                self.profile_string_list = Gtk.StringList.new(x264.X264.PROFILE)
+                self.profile_string_list = Gtk.StringList.new(video_codec.X264.PROFILE)
 
                 self.profile_row = Adw.ComboRow()
                 self.profile_row.set_title('Profile')
@@ -613,7 +713,7 @@ class SettingsSidebarWidgets:
                 self.profile_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_level_row(self):
-                self.level_string_list = Gtk.StringList.new(x264.X264.LEVEL)
+                self.level_string_list = Gtk.StringList.new(video_codec.X264.LEVEL)
 
                 self.level_row = Adw.ComboRow()
                 self.level_row.set_title('Level')
@@ -622,7 +722,7 @@ class SettingsSidebarWidgets:
                 self.level_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
             def _setup_tune_row(self):
-                self.tune_string_list = Gtk.StringList.new(x264.X264.TUNE)
+                self.tune_string_list = Gtk.StringList.new(video_codec.X264.TUNE)
 
                 self.tune_row = Adw.ComboRow()
                 self.tune_row.set_title('Tune')
@@ -681,11 +781,11 @@ class SettingsSidebarWidgets:
                 self._setup_crf_event_controller_scroll()
 
                 self.crf_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                          min=x264.X264.CRF_MIN,
-                                                          max=x264.X264.CRF_MAX,
+                                                          min=video_codec.X264.CRF_MIN,
+                                                          max=video_codec.X264.CRF_MAX,
                                                           step=0.1)
                 self.crf_scale.set_increments(step=0.1, page=1.0)
-                self.crf_scale.set_value(x264.X264.CRF_DEFAULT)
+                self.crf_scale.set_value(video_codec.X264.CRF_DEFAULT)
                 self.crf_scale.set_digits(1)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
@@ -704,18 +804,21 @@ class SettingsSidebarWidgets:
                 self.crf_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
 
             def _setup_crf_event_controller_scroll(self):
-                self.crf_event_controller_scroll = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.BOTH_AXES)
+                self.crf_event_controller_scroll = Gtk.EventControllerScroll.new(
+                    Gtk.EventControllerScrollFlags.BOTH_AXES
+                )
                 self.crf_event_controller_scroll.connect('scroll', self.on_widget_changed_clicked_set)
 
             def _setup_qp_page(self):
                 self._setup_qp_gesture_click()
                 self._setup_qp_event_controller_key()
+                self._setup_qp_event_controller_scroll()
 
                 self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                         min=x264.X264.QP_MIN,
-                                                         max=x264.X264.QP_MAX,
+                                                         min=video_codec.X264.QP_MIN,
+                                                         max=video_codec.X264.QP_MAX,
                                                          step=1.0)
-                self.qp_scale.set_value(x264.X264.CRF_DEFAULT)
+                self.qp_scale.set_value(video_codec.X264.CRF_DEFAULT)
                 self.qp_scale.set_digits(1)
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
@@ -732,6 +835,11 @@ class SettingsSidebarWidgets:
                 self.qp_event_controller_key = Gtk.EventControllerKey.new()
                 self.qp_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
 
+            def _setup_qp_event_controller_scroll(self):
+                self.qp_event_controller_scroll = Gtk.EventControllerScroll.new(
+                    Gtk.EventControllerScrollFlags.BOTH_AXES)
+                self.qp_event_controller_scroll.connect('scroll', self.on_widget_changed_clicked_set)
+
             def _setup_bitrate_page(self):
                 self._setup_bitrate_spin_button()
                 self._setup_bitrate_type_widgets()
@@ -746,7 +854,7 @@ class SettingsSidebarWidgets:
 
             def _setup_bitrate_spin_button(self):
                 self.bitrate_spin_button = Gtk.SpinButton()
-                self.bitrate_spin_button.set_range(x264.X264.BITRATE_MIN, x264.X264.BITRATE_MAX)
+                self.bitrate_spin_button.set_range(video_codec.X264.BITRATE_MIN, video_codec.X264.BITRATE_MAX)
                 self.bitrate_spin_button.set_digits(0)
                 self.bitrate_spin_button.set_increments(100, 500)
                 self.bitrate_spin_button.set_numeric(True)
@@ -853,7 +961,7 @@ class SettingsSidebarWidgets:
 
             def _setup_keyint_spin_button(self):
                 self.keyint_spin_button = Gtk.SpinButton()
-                self.keyint_spin_button.set_range(x264.X264.KEYINT_MIN, x264.X264.KEYINT_MAX)
+                self.keyint_spin_button.set_range(video_codec.X264.KEYINT_MIN, video_codec.X264.KEYINT_MAX)
                 self.keyint_spin_button.set_digits(0)
                 self.keyint_spin_button.set_increments(10, 100)
                 self.keyint_spin_button.set_numeric(True)
@@ -874,7 +982,7 @@ class SettingsSidebarWidgets:
 
             def _setup_min_keyint_spin_button(self):
                 self.min_keyint_spin_button = Gtk.SpinButton()
-                self.min_keyint_spin_button.set_range(x264.X264.KEYINT_MIN, x264.X264.KEYINT_MAX)
+                self.min_keyint_spin_button.set_range(video_codec.X264.KEYINT_MIN, video_codec.X264.KEYINT_MAX)
                 self.min_keyint_spin_button.set_digits(0)
                 self.min_keyint_spin_button.set_increments(10, 100)
                 self.min_keyint_spin_button.set_numeric(True)
@@ -895,7 +1003,7 @@ class SettingsSidebarWidgets:
 
             def _setup_scenecut_spin_button(self):
                 self.scenecut_spin_button = Gtk.SpinButton()
-                self.scenecut_spin_button.set_range(x264.X264.SCENECUT_MIN, x264.X264.SCENECUT_MAX)
+                self.scenecut_spin_button.set_range(video_codec.X264.SCENECUT_MIN, video_codec.X264.SCENECUT_MAX)
                 self.scenecut_spin_button.set_digits(0)
                 self.scenecut_spin_button.set_increments(10, 100)
                 self.scenecut_spin_button.set_numeric(True)
@@ -916,7 +1024,7 @@ class SettingsSidebarWidgets:
 
             def _setup_b_frames_spin_button(self):
                 self.b_frames_spin_button = Gtk.SpinButton()
-                self.b_frames_spin_button.set_range(x264.X264.B_FRAMES_MIN, x264.X264.B_FRAMES_MAX)
+                self.b_frames_spin_button.set_range(video_codec.X264.B_FRAMES_MIN, video_codec.X264.B_FRAMES_MAX)
                 self.b_frames_spin_button.set_digits(0)
                 self.b_frames_spin_button.set_increments(1, 5)
                 self.b_frames_spin_button.set_numeric(True)
@@ -927,44 +1035,30 @@ class SettingsSidebarWidgets:
                 self.b_frames_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_adapt_row(self):
-                self._setup_b_adapt_combobox()
+                self._setup_b_adapt_string_list()
 
-                self.b_adapt_row = Adw.ActionRow()
+                self.b_adapt_row = Adw.ComboRow()
                 self.b_adapt_row.set_title('B-Adapt')
                 self.b_adapt_row.set_subtitle('B-frame placement method')
-                self.b_adapt_row.add_suffix(self.b_adapt_combobox)
+                self.b_adapt_row.set_model(self.b_adapt_string_list)
+                self.b_adapt_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.b_adapt_row.set_sensitive(False)
 
-            def _setup_b_adapt_combobox(self):
-                self.b_adapt_combobox = Gtk.ComboBoxText()
-                self.b_adapt_combobox.set_vexpand(False)
-                self.b_adapt_combobox.set_valign(Gtk.Align.CENTER)
-
-                for b_adapt_setting in x264.X264.B_ADAPT_UI:
-                    self.b_adapt_combobox.append_text(b_adapt_setting)
-
-                self.b_adapt_combobox.set_active(0)
-                self.b_adapt_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_b_adapt_string_list(self):
+                self.b_adapt_string_list = Gtk.StringList.new(video_codec.X264.B_ADAPT_UI)
 
             def _setup_b_pyramid_row(self):
-                self._setup_b_pyramid_combobox()
+                self._setup_b_pyramid_string_list()
 
-                self.b_pyramid_row = Adw.ActionRow()
+                self.b_pyramid_row = Adw.ComboRow()
                 self.b_pyramid_row.set_title('B-Pyramid')
                 self.b_pyramid_row.set_subtitle('Allows B-frames to be referenced by other frames')
-                self.b_pyramid_row.add_suffix(self.b_pyramid_combobox)
+                self.b_pyramid_row.set_model(self.b_pyramid_string_list)
+                self.b_pyramid_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.b_pyramid_row.set_sensitive(False)
 
-            def _setup_b_pyramid_combobox(self):
-                self.b_pyramid_combobox = Gtk.ComboBoxText()
-                self.b_pyramid_combobox.set_vexpand(False)
-                self.b_pyramid_combobox.set_valign(Gtk.Align.CENTER)
-
-                for b_pyramid_setting in x264.X264.B_PYRAMID_UI:
-                    self.b_pyramid_combobox.append_text(b_pyramid_setting)
-
-                self.b_pyramid_combobox.set_active(0)
-                self.b_pyramid_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_b_pyramid_string_list(self):
+                self.b_pyramid_string_list = Gtk.StringList.new(video_codec.X264.B_PYRAMID_UI)
 
             def _setup_no_cabac_row(self):
                 self._setup_no_cabac_switch()
@@ -992,7 +1086,7 @@ class SettingsSidebarWidgets:
 
             def _setup_ref_spin_button(self):
                 self.ref_spin_button = Gtk.SpinButton()
-                self.ref_spin_button.set_range(x264.X264.REF_MIN, x264.X264.REF_MAX)
+                self.ref_spin_button.set_range(video_codec.X264.REF_MIN, video_codec.X264.REF_MAX)
                 self.ref_spin_button.set_digits(0)
                 self.ref_spin_button.set_increments(1, 5)
                 self.ref_spin_button.set_numeric(True)
@@ -1031,7 +1125,7 @@ class SettingsSidebarWidgets:
                 deblock_alpha_label = Gtk.Label(label='Alpha')
 
                 self.deblock_alpha_spin_button = Gtk.SpinButton()
-                self.deblock_alpha_spin_button.set_range(x264.X264.DEBLOCK_MIN, x264.X264.DEBLOCK_MAX)
+                self.deblock_alpha_spin_button.set_range(video_codec.X264.DEBLOCK_MIN, video_codec.X264.DEBLOCK_MAX)
                 self.deblock_alpha_spin_button.set_digits(0)
                 self.deblock_alpha_spin_button.set_increments(1, 5)
                 self.deblock_alpha_spin_button.set_numeric(True)
@@ -1051,7 +1145,7 @@ class SettingsSidebarWidgets:
                 deblock_beta_label = Gtk.Label(label='Beta')
 
                 self.deblock_beta_spin_button = Gtk.SpinButton()
-                self.deblock_beta_spin_button.set_range(x264.X264.DEBLOCK_MIN, x264.X264.DEBLOCK_MAX)
+                self.deblock_beta_spin_button.set_range(video_codec.X264.DEBLOCK_MIN, video_codec.X264.DEBLOCK_MAX)
                 self.deblock_beta_spin_button.set_digits(0)
                 self.deblock_beta_spin_button.set_increments(1, 5)
                 self.deblock_beta_spin_button.set_numeric(True)
@@ -1078,7 +1172,7 @@ class SettingsSidebarWidgets:
 
             def _setup_vbv_maxrate_spin_button(self):
                 self.vbv_maxrate_spin_button = Gtk.SpinButton()
-                self.vbv_maxrate_spin_button.set_range(x264.X264.BITRATE_MIN, x264.X264.BITRATE_MAX)
+                self.vbv_maxrate_spin_button.set_range(video_codec.X264.BITRATE_MIN, video_codec.X264.BITRATE_MAX)
                 self.vbv_maxrate_spin_button.set_digits(0)
                 self.vbv_maxrate_spin_button.set_increments(100, 500)
                 self.vbv_maxrate_spin_button.set_numeric(True)
@@ -1100,7 +1194,7 @@ class SettingsSidebarWidgets:
 
             def _setup_vbv_bufsize_spin_button(self):
                 self.vbv_bufsize_spin_button = Gtk.SpinButton()
-                self.vbv_bufsize_spin_button.set_range(x264.X264.BITRATE_MIN, x264.X264.BITRATE_MAX)
+                self.vbv_bufsize_spin_button.set_range(video_codec.X264.BITRATE_MIN, video_codec.X264.BITRATE_MAX)
                 self.vbv_bufsize_spin_button.set_digits(0)
                 self.vbv_bufsize_spin_button.set_increments(100, 500)
                 self.vbv_bufsize_spin_button.set_numeric(True)
@@ -1112,24 +1206,17 @@ class SettingsSidebarWidgets:
                 self.vbv_bufsize_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_aq_mode_row(self):
-                self._setup_aq_mode_combobox()
+                self._setup_aq_mode_string_list()
 
-                self.aq_mode_row = Adw.ActionRow()
+                self.aq_mode_row = Adw.ComboRow()
                 self.aq_mode_row.set_title('AQ Mode')
                 self.aq_mode_row.set_subtitle('Mode to distribute available bits across all macroblocks')
-                self.aq_mode_row.add_suffix(self.aq_mode_combobox)
+                self.aq_mode_row.set_model(self.aq_mode_string_list)
+                self.aq_mode_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.aq_mode_row.set_sensitive(False)
 
-            def _setup_aq_mode_combobox(self):
-                self.aq_mode_combobox = Gtk.ComboBoxText()
-                self.aq_mode_combobox.set_vexpand(False)
-                self.aq_mode_combobox.set_valign(Gtk.Align.CENTER)
-
-                for aq_mode_setting in x264.X264.AQ_MODE_UI:
-                    self.aq_mode_combobox.append_text(aq_mode_setting)
-
-                self.aq_mode_combobox.set_active(0)
-                self.aq_mode_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_aq_mode_string_list(self):
+                self.aq_mode_string_list = Gtk.StringList.new(video_codec.X264.AQ_MODE_UI)
 
             def _setup_aq_strength_row(self):
                 self._setup_aq_strength_spin_button()
@@ -1142,7 +1229,8 @@ class SettingsSidebarWidgets:
 
             def _setup_aq_strength_spin_button(self):
                 self.aq_strength_spin_button = Gtk.SpinButton()
-                self.aq_strength_spin_button.set_range(x264.X264.AQ_STRENGTH_MIN, x264.X264.AQ_STRENGTH_MAX)
+                self.aq_strength_spin_button.set_range(video_codec.X264.AQ_STRENGTH_MIN,
+                                                       video_codec.X264.AQ_STRENGTH_MAX)
                 self.aq_strength_spin_button.set_digits(1)
                 self.aq_strength_spin_button.set_increments(0.1, 0.5)
                 self.aq_strength_spin_button.set_numeric(True)
@@ -1216,24 +1304,17 @@ class SettingsSidebarWidgets:
                 self.partitions_options_vertical_box.append(self.b8x8_check_button)
 
             def _setup_direct_row(self):
-                self._setup_direct_combobox()
+                self._setup_direct_string_list()
 
-                self.direct_row = Adw.ActionRow()
+                self.direct_row = Adw.ComboRow()
                 self.direct_row.set_title('Direct')
                 self.direct_row.set_subtitle('Sets prediction mode for direct motion vectors')
-                self.direct_row.add_suffix(self.direct_combobox)
+                self.direct_row.set_model(self.direct_string_list)
+                self.direct_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.direct_row.set_sensitive(False)
 
-            def _setup_direct_combobox(self):
-                self.direct_combobox = Gtk.ComboBoxText()
-                self.direct_combobox.set_vexpand(False)
-                self.direct_combobox.set_valign(Gtk.Align.CENTER)
-
-                for direct_setting in x264.X264.DIRECT_UI:
-                    self.direct_combobox.append_text(direct_setting)
-
-                self.direct_combobox.set_active(0)
-                self.direct_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_direct_string_list(self):
+                self.direct_string_list = Gtk.StringList.new(video_codec.X264.DIRECT_UI)
 
             def _setup_weight_b_row(self):
                 self._setup_weight_b_switch()
@@ -1251,24 +1332,17 @@ class SettingsSidebarWidgets:
                 self.weight_b_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_me_row(self):
-                self._setup_me_combobox()
+                self._setup_me_string_list()
 
-                self.me_row = Adw.ActionRow()
+                self.me_row = Adw.ComboRow()
                 self.me_row.set_title('Motion Estimation')
                 self.me_row.set_subtitle('Sets full-pixel motion estimation method')
-                self.me_row.add_suffix(self.me_combobox)
+                self.me_row.set_model(self.me_string_list)
+                self.me_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.me_row.set_sensitive(False)
 
-            def _setup_me_combobox(self):
-                self.me_combobox = Gtk.ComboBoxText()
-                self.me_combobox.set_vexpand(False)
-                self.me_combobox.set_valign(Gtk.Align.CENTER)
-
-                for me_setting in x264.X264.ME:
-                    self.me_combobox.append_text(me_setting)
-
-                self.me_combobox.set_active(0)
-                self.me_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_me_string_list(self):
+                self.me_string_list = Gtk.StringList.new(video_codec.X264.ME)
 
             def _setup_me_range_row(self):
                 self._setup_me_range_spin_button()
@@ -1281,7 +1355,7 @@ class SettingsSidebarWidgets:
 
             def _setup_me_range_spin_button(self):
                 self.me_range_spin_button = Gtk.SpinButton()
-                self.me_range_spin_button.set_range(x264.X264.ME_RANGE_MIN, x264.X264.ME_RANGE_MAX)
+                self.me_range_spin_button.set_range(video_codec.X264.ME_RANGE_MIN, video_codec.X264.ME_RANGE_MAX)
                 self.me_range_spin_button.set_digits(0)
                 self.me_range_spin_button.set_increments(4, 8)
                 self.me_range_spin_button.set_numeric(True)
@@ -1292,24 +1366,17 @@ class SettingsSidebarWidgets:
                 self.me_range_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_subme_row(self):
-                self._setup_subme_combobox()
+                self._setup_subme_string_list()
 
-                self.subme_row = Adw.ActionRow()
+                self.subme_row = Adw.ComboRow()
                 self.subme_row.set_title('SubME')
                 self.subme_row.set_subtitle('Sets sub-pixel estimation complexity')
-                self.subme_row.add_suffix(self.subme_combobox)
+                self.subme_row.set_model(self.subme_string_list)
+                self.subme_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.subme_row.set_sensitive(False)
 
-            def _setup_subme_combobox(self):
-                self.subme_combobox = Gtk.ComboBoxText()
-                self.subme_combobox.set_vexpand(False)
-                self.subme_combobox.set_valign(Gtk.Align.CENTER)
-
-                for subme_setting in x264.X264.SUB_ME_UI:
-                    self.subme_combobox.append_text(subme_setting)
-
-                self.subme_combobox.set_active(0)
-                self.subme_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_subme_string_list(self):
+                self.subme_string_list = Gtk.StringList.new(video_codec.X264.SUB_ME_UI)
 
             def _setup_psy_rd_row(self):
                 self._setup_psyrd_spin_button()
@@ -1329,7 +1396,7 @@ class SettingsSidebarWidgets:
 
             def _setup_psyrd_spin_button(self):
                 self.psyrd_spin_button = Gtk.SpinButton()
-                self.psyrd_spin_button.set_range(x264.X264.PSYRD_MIN, x264.X264.PSYRD_MAX)
+                self.psyrd_spin_button.set_range(video_codec.X264.PSYRD_MIN, video_codec.X264.PSYRD_MAX)
                 self.psyrd_spin_button.set_digits(1)
                 self.psyrd_spin_button.set_increments(0.1, 0.5)
                 self.psyrd_spin_button.set_numeric(True)
@@ -1341,7 +1408,8 @@ class SettingsSidebarWidgets:
 
             def _setup_psyrd_trellis_spin_button(self):
                 self.psyrd_trellis_spin_button = Gtk.SpinButton()
-                self.psyrd_trellis_spin_button.set_range(x264.X264.PSYRD_TRELLIS_MIN, x264.X264.PSYRD_TRELLIS_MAX)
+                self.psyrd_trellis_spin_button.set_range(video_codec.X264.PSYRD_TRELLIS_MIN,
+                                                         video_codec.X264.PSYRD_TRELLIS_MAX)
                 self.psyrd_trellis_spin_button.set_digits(2)
                 self.psyrd_trellis_spin_button.set_increments(0.05, 0.1)
                 self.psyrd_trellis_spin_button.set_numeric(True)
@@ -1382,24 +1450,17 @@ class SettingsSidebarWidgets:
                 self.dct8x8_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_trellis_row(self):
-                self._setup_trellis_combobox()
+                self._setup_trellis_string_list()
 
-                self.trellis_row = Adw.ActionRow()
+                self.trellis_row = Adw.ComboRow()
                 self.trellis_row.set_title('Trellis')
                 self.trellis_row.set_subtitle('Trellis quantization to increase efficiency')
-                self.trellis_row.add_suffix(self.trellis_combobox)
+                self.trellis_row.set_model(self.trellis_string_list)
+                self.trellis_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.trellis_row.set_sensitive(False)
 
-            def _setup_trellis_combobox(self):
-                self.trellis_combobox = Gtk.ComboBoxText()
-                self.trellis_combobox.set_vexpand(False)
-                self.trellis_combobox.set_valign(Gtk.Align.CENTER)
-
-                for trellis_setting in x264.X264.TRELLIS_UI:
-                    self.trellis_combobox.append_text(trellis_setting)
-
-                self.trellis_combobox.set_active(0)
-                self.trellis_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_trellis_string_list(self):
+                self.trellis_string_list = Gtk.StringList.new(video_codec.X264.TRELLIS_UI)
 
             def _setup_no_fast_pskip_row(self):
                 self._setup_no_fast_pskip_switch()
@@ -1458,131 +1519,132 @@ class SettingsSidebarWidgets:
                     self.vbv_maxrate_row.set_sensitive(False)
                     self.vbv_bufsize_row.set_sensitive(False)
 
-            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            def apply_settings_to_widgets(self, encode_task: task.Encode):
                 GLib.idle_add(self.set_widgets_setting_up, True)
-                self._apply_preset_setting_to_widgets(encoding_task)
-                self._apply_profile_setting_to_widgets(encoding_task)
-                self._apply_level_setting_to_widgets(encoding_task)
-                self._apply_tune_setting_to_widgets(encoding_task)
-                self._apply_rate_type_settings_to_widgets(encoding_task)
-                self._apply_crf_setting_to_widgets(encoding_task)
-                self._apply_qp_setting_to_widgets(encoding_task)
-                self._apply_bitrate_setting_to_widgets(encoding_task)
-                self._apply_bitrate_type_settings_to_widgets(encoding_task)
-                self._apply_advanced_settings_to_widgets(encoding_task)
+                self._apply_preset_setting_to_widgets(encode_task)
+                self._apply_profile_setting_to_widgets(encode_task)
+                self._apply_level_setting_to_widgets(encode_task)
+                self._apply_tune_setting_to_widgets(encode_task)
+                self._apply_rate_type_settings_to_widgets(encode_task)
+                self._apply_crf_setting_to_widgets(encode_task)
+                self._apply_qp_setting_to_widgets(encode_task)
+                self._apply_bitrate_setting_to_widgets(encode_task)
+                self._apply_bitrate_type_settings_to_widgets(encode_task)
+                self._apply_advanced_settings_to_widgets(encode_task)
                 GLib.idle_add(self.set_widgets_setting_up, False)
 
-            def _apply_preset_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.preset_row.set_selected, encoding_task.video_codec.preset)
+            def _apply_preset_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.preset_row.set_selected, encode_task.get_video_codec().preset)
 
-            def _apply_profile_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.profile_row.set_selected, encoding_task.video_codec.profile)
+            def _apply_profile_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.profile_row.set_selected, encode_task.get_video_codec().profile)
 
-            def _apply_level_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.level_row.set_selected, encoding_task.video_codec.level)
+            def _apply_level_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.level_row.set_selected, encode_task.get_video_codec().level)
 
-            def _apply_tune_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.tune_row.set_selected, encoding_task.video_codec.tune)
+            def _apply_tune_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.tune_row.set_selected, encode_task.get_video_codec().tune)
 
-            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_crf_enabled:
+            def _apply_rate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_crf_enabled:
                     GLib.idle_add(self.crf_check_button.set_active, True)
-                elif encoding_task.video_codec.is_qp_enabled:
+                elif encode_task.get_video_codec().is_qp_enabled:
                     GLib.idle_add(self.qp_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.bitrate_check_button.set_active, True)
 
-            def _apply_crf_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.crf_scale.set_value, encoding_task.video_codec.crf)
+            def _apply_crf_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.crf_scale.set_value, encode_task.get_video_codec().crf)
 
-            def _apply_qp_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.qp_scale.set_value, encoding_task.video_codec.qp)
+            def _apply_qp_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.qp_scale.set_value, encode_task.get_video_codec().qp)
 
-            def _apply_bitrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+            def _apply_bitrate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.bitrate_spin_button.set_value, encode_task.get_video_codec().bitrate)
 
-            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.constant_bitrate:
+            def _apply_bitrate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().constant_bitrate:
                     GLib.idle_add(self.constant_check_button.set_active, True)
-                elif encoding_task.video_codec.encode_pass:
+                elif encode_task.get_video_codec().encode_pass:
                     GLib.idle_add(self.dual_pass_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.average_check_button.set_active, True)
 
-            def _apply_advanced_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.advanced_settings_switch.set_active, encoding_task.video_codec.is_advanced_enabled)
-                self._apply_keyint_setting_to_widgets(encoding_task)
-                self._apply_min_keyint_setting_to_widgets(encoding_task)
-                self._apply_scenecut_setting_to_widgets(encoding_task)
-                self._apply_b_frames_setting_to_widgets(encoding_task)
-                self._apply_b_adapt_setting_to_widgets(encoding_task)
-                self._apply_b_pyramid_setting_to_widgets(encoding_task)
-                self._apply_no_cabac_setting_to_widgets(encoding_task)
-                self._apply_ref_setting_to_widgets(encoding_task)
-                self._apply_deblock_settings_to_widgets(encoding_task)
-                self._apply_vbv_maxrate_setting_to_widgets(encoding_task)
-                self._apply_vbv_bufsize_setting_to_widgets(encoding_task)
-                self._apply_aq_mode_setting_to_widgets(encoding_task)
-                self._apply_aq_strength_setting_to_widgets(encoding_task)
-                self._apply_partitions_setting_to_widgets(encoding_task)
-                self._apply_direct_setting_to_widgets(encoding_task)
-                self._apply_weight_b_setting_to_widgets(encoding_task)
-                self._apply_me_setting_to_widgets(encoding_task)
-                self._apply_me_range_setting_to_widgets(encoding_task)
-                self._apply_subme_setting_to_widgets(encoding_task)
-                self._apply_psy_rd_setting_to_widgets(encoding_task)
-                self._apply_mixed_refs_to_widgets(encoding_task)
-                self._apply_dct8x8_setting_to_widgets(encoding_task)
-                self._apply_trellis_setting_to_widgets(encoding_task)
-                self._apply_no_fast_p_skip_setting_to_widgets(encoding_task)
-                self._apply_no_dct_decimate_setting_to_widgets(encoding_task)
-                self._apply_weight_p_setting_to_widgets(encoding_task)
+            def _apply_advanced_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.advanced_settings_switch.set_active,
+                              encode_task.get_video_codec().is_advanced_enabled)
+                self._apply_keyint_setting_to_widgets(encode_task)
+                self._apply_min_keyint_setting_to_widgets(encode_task)
+                self._apply_scenecut_setting_to_widgets(encode_task)
+                self._apply_b_frames_setting_to_widgets(encode_task)
+                self._apply_b_adapt_setting_to_widgets(encode_task)
+                self._apply_b_pyramid_setting_to_widgets(encode_task)
+                self._apply_no_cabac_setting_to_widgets(encode_task)
+                self._apply_ref_setting_to_widgets(encode_task)
+                self._apply_deblock_settings_to_widgets(encode_task)
+                self._apply_vbv_maxrate_setting_to_widgets(encode_task)
+                self._apply_vbv_bufsize_setting_to_widgets(encode_task)
+                self._apply_aq_mode_setting_to_widgets(encode_task)
+                self._apply_aq_strength_setting_to_widgets(encode_task)
+                self._apply_partitions_setting_to_widgets(encode_task)
+                self._apply_direct_setting_to_widgets(encode_task)
+                self._apply_weight_b_setting_to_widgets(encode_task)
+                self._apply_me_setting_to_widgets(encode_task)
+                self._apply_me_range_setting_to_widgets(encode_task)
+                self._apply_subme_setting_to_widgets(encode_task)
+                self._apply_psy_rd_setting_to_widgets(encode_task)
+                self._apply_mixed_refs_to_widgets(encode_task)
+                self._apply_dct8x8_setting_to_widgets(encode_task)
+                self._apply_trellis_setting_to_widgets(encode_task)
+                self._apply_no_fast_p_skip_setting_to_widgets(encode_task)
+                self._apply_no_dct_decimate_setting_to_widgets(encode_task)
+                self._apply_weight_p_setting_to_widgets(encode_task)
 
-            def _apply_keyint_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.keyint_spin_button.set_value, encoding_task.video_codec.keyint)
+            def _apply_keyint_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.keyint_spin_button.set_value, encode_task.get_video_codec().keyint)
 
-            def _apply_min_keyint_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.min_keyint_spin_button.set_value, encoding_task.video_codec.min_keyint)
+            def _apply_min_keyint_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.min_keyint_spin_button.set_value, encode_task.get_video_codec().min_keyint)
 
-            def _apply_scenecut_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.scenecut_spin_button.set_value, encoding_task.video_codec.scenecut)
+            def _apply_scenecut_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.scenecut_spin_button.set_value, encode_task.get_video_codec().scenecut)
 
-            def _apply_b_frames_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_frames_spin_button.set_value, encoding_task.video_codec.bframes)
+            def _apply_b_frames_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_frames_spin_button.set_value, encode_task.get_video_codec().bframes)
 
-            def _apply_b_adapt_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_adapt_combobox.set_active, encoding_task.video_codec.b_adapt)
+            def _apply_b_adapt_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_adapt_row.set_selected, encode_task.get_video_codec().b_adapt)
 
-            def _apply_b_pyramid_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_pyramid_combobox.set_active, encoding_task.video_codec.b_pyramid)
+            def _apply_b_pyramid_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_pyramid_row.set_selected, encode_task.get_video_codec().b_pyramid)
 
-            def _apply_no_cabac_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_cabac_switch.set_active, encoding_task.video_codec.no_cabac)
+            def _apply_no_cabac_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_cabac_switch.set_active, encode_task.get_video_codec().no_cabac)
 
-            def _apply_ref_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.ref_spin_button.set_value, encoding_task.video_codec.ref)
+            def _apply_ref_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.ref_spin_button.set_value, encode_task.get_video_codec().ref)
 
-            def _apply_deblock_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_deblock_check_button.set_active, encoding_task.video_codec.no_deblock)
+            def _apply_deblock_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_deblock_check_button.set_active, encode_task.get_video_codec().no_deblock)
 
-                deblock_alpha, deblock_beta = encoding_task.video_codec.deblock
+                deblock_alpha, deblock_beta = encode_task.get_video_codec().deblock
                 GLib.idle_add(self.deblock_alpha_spin_button.set_value, deblock_alpha)
                 GLib.idle_add(self.deblock_beta_spin_button.set_value, deblock_beta)
 
-            def _apply_vbv_maxrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.vbv_maxrate_spin_button.set_value, encoding_task.video_codec.vbv_maxrate)
+            def _apply_vbv_maxrate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.vbv_maxrate_spin_button.set_value, encode_task.get_video_codec().vbv_maxrate)
 
-            def _apply_vbv_bufsize_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.vbv_bufsize_spin_button.set_value, encoding_task.video_codec.vbv_bufsize)
+            def _apply_vbv_bufsize_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.vbv_bufsize_spin_button.set_value, encode_task.get_video_codec().vbv_bufsize)
 
-            def _apply_aq_mode_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.aq_mode_combobox.set_active, encoding_task.video_codec.aq_mode)
+            def _apply_aq_mode_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.aq_mode_row.set_selected, encode_task.get_video_codec().aq_mode)
 
-            def _apply_aq_strength_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.aq_strength_spin_button.set_value, encoding_task.video_codec.aq_strength)
+            def _apply_aq_strength_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.aq_strength_spin_button.set_value, encode_task.get_video_codec().aq_strength)
 
-            def _apply_partitions_setting_to_widgets(self, encoding_task: encoding.Task):
-                partitions_tuple = encoding_task.video_codec.partitions
+            def _apply_partitions_setting_to_widgets(self, encode_task: task.Encode):
+                partitions_tuple = encode_task.get_video_codec().partitions
 
                 if partitions_tuple == 'all':
                     GLib.idle_add(self.partitions_custom_radio_button.set_active, True)
@@ -1613,49 +1675,49 @@ class SettingsSidebarWidgets:
                     GLib.idle_add(self.p8x8_check_button.set_active, False)
                     GLib.idle_add(self.b8x8_check_button.set_active, False)
 
-            def _apply_direct_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.direct_combobox.set_active, encoding_task.video_codec.direct)
+            def _apply_direct_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.direct_row.set_selected, encode_task.get_video_codec().direct)
 
-            def _apply_weight_b_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.weight_b_switch.set_active, encoding_task.video_codec.weightb)
+            def _apply_weight_b_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.weight_b_switch.set_active, encode_task.get_video_codec().weightb)
 
-            def _apply_me_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.me_combobox.set_active, encoding_task.video_codec.me)
+            def _apply_me_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.me_row.set_selected, encode_task.get_video_codec().me)
 
-            def _apply_me_range_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.me_range_spin_button.set_value, encoding_task.video_codec.me_range)
+            def _apply_me_range_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.me_range_spin_button.set_value, encode_task.get_video_codec().me_range)
 
-            def _apply_subme_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.subme_combobox.set_active, encoding_task.video_codec.subme)
+            def _apply_subme_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.subme_row.set_selected, encode_task.get_video_codec().subme)
 
-            def _apply_psy_rd_setting_to_widgets(self, encoding_task: encoding.Task):
-                psyrd, psyrd_trellis = encoding_task.video_codec.psy_rd
+            def _apply_psy_rd_setting_to_widgets(self, encode_task: task.Encode):
+                psyrd, psyrd_trellis = encode_task.get_video_codec().psy_rd
                 GLib.idle_add(self.psyrd_spin_button.set_value, psyrd)
                 GLib.idle_add(self.psyrd_trellis_spin_button.set_value, psyrd_trellis)
 
-            def _apply_mixed_refs_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.mixed_refs_switch.set_active, encoding_task.video_codec.mixed_refs)
+            def _apply_mixed_refs_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.mixed_refs_switch.set_active, encode_task.get_video_codec().mixed_refs)
 
-            def _apply_dct8x8_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.dct8x8_switch.set_active, encoding_task.video_codec.dct8x8)
+            def _apply_dct8x8_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.dct8x8_switch.set_active, encode_task.get_video_codec().dct8x8)
 
-            def _apply_trellis_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.trellis_combobox.set_active, encoding_task.video_codec.trellis)
+            def _apply_trellis_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.trellis_row.set_selected, encode_task.get_video_codec().trellis)
 
-            def _apply_no_fast_p_skip_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_fast_pskip_switch.set_active, encoding_task.video_codec.no_fast_pskip)
+            def _apply_no_fast_p_skip_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_fast_pskip_switch.set_active, encode_task.get_video_codec().no_fast_pskip)
 
-            def _apply_no_dct_decimate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_dct_decimate_switch.set_active, encoding_task.video_codec.no_dct_decimate)
+            def _apply_no_dct_decimate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_dct_decimate_switch.set_active, encode_task.get_video_codec().no_dct_decimate)
 
-            def _apply_weight_p_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.weight_p_switch.set_active, encoding_task.video_codec.weightp)
+            def _apply_weight_p_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.weight_p_switch.set_active, encode_task.get_video_codec().weightp)
 
             def apply_settings_from_widgets(self, is_delay_enabled: bool):
                 if is_delay_enabled:
                     time.sleep(0.25)
 
-                x264_settings = x264.X264()
+                x264_settings = video_codec.X264()
                 x264_settings.preset = self.preset_row.get_selected()
                 x264_settings.profile = self.profile_row.get_selected()
                 x264_settings.level = self.level_row.get_selected()
@@ -1669,22 +1731,22 @@ class SettingsSidebarWidgets:
                     x264_settings.min_keyint = self.min_keyint_spin_button.get_value_as_int()
                     x264_settings.scenecut = self.scenecut_spin_button.get_value_as_int()
                     x264_settings.bframes = self.b_frames_spin_button.get_value_as_int()
-                    x264_settings.b_adapt = self.b_adapt_combobox.get_active()
-                    x264_settings.b_pyramid = self.b_pyramid_combobox.get_active()
+                    x264_settings.b_adapt = self.b_adapt_row.get_selected()
+                    x264_settings.b_pyramid = self.b_pyramid_row.get_selected()
                     x264_settings.no_cabac = self.no_cabac_switch.get_active()
                     x264_settings.ref = self.ref_spin_button.get_value_as_int()
-                    x264_settings.aq_mode = self.aq_mode_combobox.get_active()
+                    x264_settings.aq_mode = self.aq_mode_row.get_selected()
                     x264_settings.aq_strength = self.aq_strength_spin_button.get_value()
-                    x264_settings.direct = self.direct_combobox.get_active()
+                    x264_settings.direct = self.direct_row.get_selected()
                     x264_settings.weightb = self.weight_b_switch.get_active()
-                    x264_settings.me = self.me_combobox.get_active()
+                    x264_settings.me = self.me_row.get_selected()
                     x264_settings.me_range = self.me_range_spin_button.get_value_as_int()
-                    x264_settings.subme = self.subme_combobox.get_active()
+                    x264_settings.subme = self.subme_row.get_selected()
                     x264_settings.psy_rd = (self.psyrd_spin_button.get_value(),
                                             self.psyrd_trellis_spin_button.get_value())
                     x264_settings.mixed_refs = self.mixed_refs_switch.get_active()
                     x264_settings.dct8x8 = self.dct8x8_switch.get_active()
-                    x264_settings.trellis = self.trellis_combobox.get_active()
+                    x264_settings.trellis = self.trellis_row.get_selected()
                     x264_settings.no_fast_pskip = self.no_fast_pskip_switch.get_active()
                     x264_settings.no_dct_decimate = self.no_dct_decimate_switch.get_active()
                     x264_settings.weightp = self.weight_p_switch.get_active()
@@ -1694,19 +1756,19 @@ class SettingsSidebarWidgets:
                     self._apply_partitions_setting_from_widgets(x264_settings)
 
                 for input_row in self.inputs_page.get_selected_rows():
-                    encoding_task = input_row.encoding_task
-                    encoding_task.video_codec = copy.deepcopy(x264_settings)
+                    encode_task = input_row.encode_task
+                    encode_task.set_video_codec(copy.deepcopy(x264_settings))
 
-                    if encoding_task.is_video_2_pass():
-                        stats_file_path = os.path.join(encoding_task.temp_output_file.dir,
-                                                       encoding_task.temp_output_file.name + '.log')
-                        encoding_task.video_codec.stats = stats_file_path
+                    if video_codec.is_codec_2_pass(encode_task.get_video_codec()):
+                        stats_file_path = os.path.join(encode_task.temp_output_file.dir,
+                                                       encode_task.temp_output_file.name + '.log')
+                        encode_task.video_codec.stats = stats_file_path
 
-                    print(encoding_task.get_info())
+                    print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
-                self.inputs_page.update_preview_page_encoding_task()
+                self.inputs_page.update_preview_page_encode_task()
 
-            def _apply_rate_type_settings_from_widgets(self, x264_settings: x264.X264):
+            def _apply_rate_type_settings_from_widgets(self, x264_settings: video_codec.X264):
                 if self.crf_check_button.get_active():
                     x264_settings.crf = self.crf_scale.get_value()
                 elif self.qp_check_button.get_active():
@@ -1719,7 +1781,7 @@ class SettingsSidebarWidgets:
                     elif self.dual_pass_check_button.get_active():
                         x264_settings.encode_pass = 1
 
-            def _apply_deblock_settings_from_widgets(self, x264_settings: x264.X264):
+            def _apply_deblock_settings_from_widgets(self, x264_settings: video_codec.X264):
                 x264_settings.no_deblock = self.no_deblock_check_button.get_active()
 
                 if self.no_deblock_check_button.get_active():
@@ -1728,11 +1790,11 @@ class SettingsSidebarWidgets:
                     x264_settings.deblock = (self.deblock_alpha_spin_button.get_value_as_int(),
                                              self.deblock_beta_spin_button.get_value_as_int())
 
-            def _apply_vbv_settings_from_widgets(self, x264_settings: x264.X264):
+            def _apply_vbv_settings_from_widgets(self, x264_settings: video_codec.X264):
                 x264_settings.vbv_maxrate = self.vbv_maxrate_spin_button.get_value_as_int()
                 x264_settings.vbv_bufsize = self.vbv_bufsize_spin_button.get_value_as_int()
 
-            def _apply_partitions_setting_from_widgets(self, x264_settings: x264.X264):
+            def _apply_partitions_setting_from_widgets(self, x264_settings: video_codec.X264):
                 if self.partitions_auto_radio_button.get_active():
                     x264_settings.partitions = None
 
@@ -1777,7 +1839,7 @@ class SettingsSidebarWidgets:
                 if self.is_widgets_setting_up:
                     return
 
-                is_delay_enabled = (self.crf_event_controller_scroll in args)
+                is_delay_enabled = (self.crf_event_controller_scroll in args or self.qp_event_controller_scroll in args)
 
                 threading.Thread(target=self.apply_settings_from_widgets, args=(is_delay_enabled,)).start()
 
@@ -1785,7 +1847,7 @@ class SettingsSidebarWidgets:
                 if gesture_click.get_device():
                     return
 
-                self.on_widget_changed_clicked_set(self.crf_scale)
+                self.on_widget_changed_clicked_set()
 
             def on_crf_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -1901,80 +1963,52 @@ class SettingsSidebarWidgets:
                 self.codec_settings_group.add(self.rate_type_settings_row)
 
             def _setup_preset_row(self):
-                self._setup_preset_combobox()
+                self._setup_preset_string_list()
 
-                self.preset_row = Adw.ActionRow()
+                self.preset_row = Adw.ComboRow()
                 self.preset_row.set_title('Preset')
                 self.preset_row.set_subtitle('Encoder preset')
-                self.preset_row.add_suffix(self.preset_combobox)
+                self.preset_row.set_model(self.preset_string_list)
+                self.preset_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_preset_combobox(self):
-                self.preset_combobox = Gtk.ComboBoxText()
-                self.preset_combobox.set_vexpand(False)
-                self.preset_combobox.set_valign(Gtk.Align.CENTER)
-
-                for preset_setting in x265.X265.PRESET:
-                    self.preset_combobox.append_text(preset_setting)
-
-                self.preset_combobox.set_active(0)
-                self.preset_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_preset_string_list(self):
+                self.preset_string_list = Gtk.StringList.new(video_codec.X265.PRESET)
 
             def _setup_profile_row(self):
-                self._setup_profile_combobox()
+                self._setup_profile_string_list()
 
-                self.profile_row = Adw.ActionRow()
+                self.profile_row = Adw.ComboRow()
                 self.profile_row.set_title('Profile')
                 self.profile_row.set_subtitle('Encoder profile')
-                self.profile_row.add_suffix(self.profile_combobox)
+                self.profile_row.set_model(self.profile_string_list)
+                self.profile_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_profile_combobox(self):
-                self.profile_combobox = Gtk.ComboBoxText()
-                self.profile_combobox.set_vexpand(False)
-                self.profile_combobox.set_valign(Gtk.Align.CENTER)
-
-                for profile_setting in x265.X265.PROFILE:
-                    self.profile_combobox.append_text(profile_setting)
-
-                self.profile_combobox.set_active(0)
-                self.profile_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_profile_string_list(self):
+                self.profile_string_list = Gtk.StringList.new(video_codec.X265.PROFILE)
 
             def _setup_level_row(self):
-                self._setup_level_combobox()
+                self._setup_level_string_list()
 
-                self.level_row = Adw.ActionRow()
+                self.level_row = Adw.ComboRow()
                 self.level_row.set_title('Level')
                 self.level_row.set_subtitle('Encoder level')
-                self.level_row.add_suffix(self.level_combobox)
+                self.level_row.set_model(self.level_string_list)
+                self.level_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_level_combobox(self):
-                self.level_combobox = Gtk.ComboBoxText()
-                self.level_combobox.set_vexpand(False)
-                self.level_combobox.set_valign(Gtk.Align.CENTER)
-
-                for level_setting in x265.X265.LEVEL:
-                    self.level_combobox.append_text(level_setting)
-
-                self.level_combobox.set_active(0)
-                self.level_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_level_string_list(self):
+                self.level_string_list = Gtk.StringList.new(video_codec.X265.LEVEL)
 
             def _setup_tune_row(self):
-                self._setup_tune_combobox()
+                self._setup_tune_string_list()
 
-                self.tune_row = Adw.ActionRow()
+                self.tune_row = Adw.ComboRow()
                 self.tune_row.set_title('Tune')
                 self.tune_row.set_subtitle('Encoder tune')
-                self.tune_row.add_suffix(self.tune_combobox)
+                self.tune_row.set_model(self.tune_string_list)
+                self.tune_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_tune_combobox(self):
-                self.tune_combobox = Gtk.ComboBoxText()
-                self.tune_combobox.set_vexpand(False)
-                self.tune_combobox.set_valign(Gtk.Align.CENTER)
-
-                for tune_setting in x265.X265.TUNE:
-                    self.tune_combobox.append_text(tune_setting)
-
-                self.tune_combobox.set_active(0)
-                self.tune_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_tune_string_list(self):
+                self.tune_string_list = Gtk.StringList.new(video_codec.X265.TUNE)
 
             def _setup_rate_type_row(self):
                 self._setup_rate_type_radio_buttons()
@@ -2022,28 +2056,68 @@ class SettingsSidebarWidgets:
                 self.rate_type_stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
 
             def _setup_crf_page(self):
+                self._setup_crf_gesture_click()
+                self._setup_crf_event_controller_key()
+                self._setup_crf_event_controller_scroll()
+
                 self.crf_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                          min=x265.X265.CRF_MIN,
-                                                          max=x265.X265.CRF_MAX,
+                                                          min=video_codec.X265.CRF_MIN,
+                                                          max=video_codec.X265.CRF_MAX,
                                                           step=1.0)
                 self.crf_scale.set_value(20)
                 self.crf_scale.set_digits(0)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
-                self.crf_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
+                self.crf_scale.add_controller(self.crf_gesture_click)
+                self.crf_scale.add_controller(self.crf_event_controller_key)
+                self.crf_scale.add_controller(self.crf_event_controller_scroll)
+
+            def _setup_crf_gesture_click(self):
+                self.crf_gesture_click = Gtk.GestureClick.new()
+                self.crf_gesture_click.connect('stopped', self.on_scale_gesture_stopped, self.crf_gesture_click)
+                self.crf_gesture_click.connect('unpaired-release', self.on_widget_changed_clicked_set)
+
+            def _setup_crf_event_controller_key(self):
+                self.crf_event_controller_key = Gtk.EventControllerKey.new()
+                self.crf_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
+
+            def _setup_crf_event_controller_scroll(self):
+                self.crf_event_controller_scroll = Gtk.EventControllerScroll.new(
+                    Gtk.EventControllerScrollFlags.BOTH_AXES)
+                self.crf_event_controller_scroll.connect('scroll', self.on_widget_changed_clicked_set)
 
             def _setup_qp_page(self):
+                self._setup_qp_gesture_click()
+                self._setup_qp_event_controller_key()
+                self._setup_qp_event_controller_scroll()
+
                 self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                         min=x265.X265.QP_MIN,
-                                                         max=x265.X265.QP_MAX,
+                                                         min=video_codec.X265.QP_MIN,
+                                                         max=video_codec.X265.QP_MAX,
                                                          step=1.0)
                 self.qp_scale.set_value(20)
                 self.qp_scale.set_digits(0)
                 self.qp_scale.set_draw_value(True)
                 self.qp_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.qp_scale.set_hexpand(True)
-                self.qp_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
+                self.qp_scale.add_controller(self.qp_gesture_click)
+                self.qp_scale.add_controller(self.qp_event_controller_key)
+                self.qp_scale.add_controller(self.qp_event_controller_scroll)
+
+            def _setup_qp_gesture_click(self):
+                self.qp_gesture_click = Gtk.GestureClick.new()
+                self.qp_gesture_click.connect('stopped', self.on_scale_gesture_stopped, self.qp_gesture_click)
+                self.qp_gesture_click.connect('unpaired-release', self.on_widget_changed_clicked_set)
+
+            def _setup_qp_event_controller_key(self):
+                self.qp_event_controller_key = Gtk.EventControllerKey.new()
+                self.qp_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
+
+            def _setup_qp_event_controller_scroll(self):
+                self.qp_event_controller_scroll = Gtk.EventControllerScroll.new(
+                    Gtk.EventControllerScrollFlags.BOTH_AXES)
+                self.qp_event_controller_scroll.connect('scroll', self.on_widget_changed_clicked_set)
 
             def _setup_bitrate_page(self):
                 self._setup_bitrate_spin_button()
@@ -2059,7 +2133,7 @@ class SettingsSidebarWidgets:
 
             def _setup_bitrate_spin_button(self):
                 self.bitrate_spin_button = Gtk.SpinButton()
-                self.bitrate_spin_button.set_range(x265.X265.BITRATE_MIN, x265.X265.BITRATE_MAX)
+                self.bitrate_spin_button.set_range(video_codec.X265.BITRATE_MIN, video_codec.X265.BITRATE_MAX)
                 self.bitrate_spin_button.set_digits(0)
                 self.bitrate_spin_button.set_increments(100, 500)
                 self.bitrate_spin_button.set_numeric(True)
@@ -2185,7 +2259,7 @@ class SettingsSidebarWidgets:
 
             def _setup_vbv_maxrate_spin_button(self):
                 self.vbv_maxrate_spin_button = Gtk.SpinButton()
-                self.vbv_maxrate_spin_button.set_range(x265.X265.BITRATE_MIN, x265.X265.BITRATE_MAX)
+                self.vbv_maxrate_spin_button.set_range(video_codec.X265.BITRATE_MIN, video_codec.X265.BITRATE_MAX)
                 self.vbv_maxrate_spin_button.set_digits(0)
                 self.vbv_maxrate_spin_button.set_increments(100, 500)
                 self.vbv_maxrate_spin_button.set_numeric(True)
@@ -2207,7 +2281,7 @@ class SettingsSidebarWidgets:
 
             def _setup_vbv_bufsize_spin_button(self):
                 self.vbv_bufsize_spin_button = Gtk.SpinButton()
-                self.vbv_bufsize_spin_button.set_range(x265.X265.BITRATE_MIN, x265.X265.BITRATE_MAX)
+                self.vbv_bufsize_spin_button.set_range(video_codec.X265.BITRATE_MIN, video_codec.X265.BITRATE_MAX)
                 self.vbv_bufsize_spin_button.set_digits(0)
                 self.vbv_bufsize_spin_button.set_increments(100, 500)
                 self.vbv_bufsize_spin_button.set_numeric(True)
@@ -2219,24 +2293,17 @@ class SettingsSidebarWidgets:
                 self.vbv_bufsize_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_aq_mode_row(self):
-                self._setup_aq_mode_combobox()
+                self._setup_aq_mode_string_list()
 
-                self.aq_mode_row = Adw.ActionRow()
+                self.aq_mode_row = Adw.ComboRow()
                 self.aq_mode_row.set_title('AQ Mode')
                 self.aq_mode_row.set_subtitle('Adaptive quantization operating mode')
-                self.aq_mode_row.add_suffix(self.aq_mode_combobox)
+                self.aq_mode_row.set_model(self.aq_mode_string_list)
+                self.aq_mode_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.aq_mode_row.set_sensitive(False)
 
-            def _setup_aq_mode_combobox(self):
-                self.aq_mode_combobox = Gtk.ComboBoxText()
-                self.aq_mode_combobox.set_vexpand(False)
-                self.aq_mode_combobox.set_valign(Gtk.Align.CENTER)
-
-                for aq_mode_setting in x265.X265.AQ_MODE_UI:
-                    self.aq_mode_combobox.append_text(aq_mode_setting)
-
-                self.aq_mode_combobox.set_active(0)
-                self.aq_mode_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_aq_mode_string_list(self):
+                self.aq_mode_string_list = Gtk.StringList.new(video_codec.X265.AQ_MODE_UI)
 
             def _setup_aq_strength_row(self):
                 self._setup_aq_strength_spin_button()
@@ -2249,7 +2316,8 @@ class SettingsSidebarWidgets:
 
             def _setup_aq_strength_spin_button(self):
                 self.aq_strength_spin_button = Gtk.SpinButton()
-                self.aq_strength_spin_button.set_range(x265.X265.AQ_STRENGTH_MIN, x265.X265.AQ_STRENGTH_MAX)
+                self.aq_strength_spin_button.set_range(video_codec.X265.AQ_STRENGTH_MIN,
+                                                       video_codec.X265.AQ_STRENGTH_MAX)
                 self.aq_strength_spin_button.set_digits(1)
                 self.aq_strength_spin_button.set_increments(0.1, 0.5)
                 self.aq_strength_spin_button.set_numeric(True)
@@ -2264,7 +2332,8 @@ class SettingsSidebarWidgets:
 
                 self.hevc_aq_row = Adw.ActionRow()
                 self.hevc_aq_row.set_title('HEVC AQ')
-                self.hevc_aq_row.set_subtitle('Adaptive quantization that scales the quantization step size to spatial activity')
+                self.hevc_aq_row.set_subtitle(
+                    'Adaptive quantization that scales the quantization step size to spatial activity')
                 self.hevc_aq_row.add_suffix(self.hevc_aq_switch)
                 self.hevc_aq_row.set_sensitive(False)
 
@@ -2285,7 +2354,7 @@ class SettingsSidebarWidgets:
 
             def _setup_keyint_spin_button(self):
                 self.keyint_spin_button = Gtk.SpinButton()
-                self.keyint_spin_button.set_range(x265.X265.KEYINT_MIN, x265.X265.KEYINT_MAX)
+                self.keyint_spin_button.set_range(video_codec.X265.KEYINT_MIN, video_codec.X265.KEYINT_MAX)
                 self.keyint_spin_button.set_digits(0)
                 self.keyint_spin_button.set_increments(10, 50)
                 self.keyint_spin_button.set_numeric(True)
@@ -2306,7 +2375,7 @@ class SettingsSidebarWidgets:
 
             def _setup_min_keyint_spin_button(self):
                 self.min_keyint_spin_button = Gtk.SpinButton()
-                self.min_keyint_spin_button.set_range(x265.X265.MIN_KEYINT_MIN, x265.X265.MIN_KEYINT_MAX)
+                self.min_keyint_spin_button.set_range(video_codec.X265.MIN_KEYINT_MIN, video_codec.X265.MIN_KEYINT_MAX)
                 self.min_keyint_spin_button.set_digits(0)
                 self.min_keyint_spin_button.set_increments(10, 50)
                 self.min_keyint_spin_button.set_numeric(True)
@@ -2327,7 +2396,7 @@ class SettingsSidebarWidgets:
 
             def _setup_ref_spin_button(self):
                 self.ref_spin_button = Gtk.SpinButton()
-                self.ref_spin_button.set_range(x265.X265.REFS_MIN, x265.X265.REFS_MAX)
+                self.ref_spin_button.set_range(video_codec.X265.REFS_MIN, video_codec.X265.REFS_MAX)
                 self.ref_spin_button.set_digits(0)
                 self.ref_spin_button.set_increments(1, 5)
                 self.ref_spin_button.set_numeric(True)
@@ -2348,7 +2417,7 @@ class SettingsSidebarWidgets:
 
             def _setup_b_frames_spin_button(self):
                 self.b_frames_spin_button = Gtk.SpinButton()
-                self.b_frames_spin_button.set_range(x265.X265.REFS_MIN, x265.X265.REFS_MAX)
+                self.b_frames_spin_button.set_range(video_codec.X265.REFS_MIN, video_codec.X265.REFS_MAX)
                 self.b_frames_spin_button.set_digits(0)
                 self.b_frames_spin_button.set_increments(1, 5)
                 self.b_frames_spin_button.set_numeric(True)
@@ -2359,24 +2428,17 @@ class SettingsSidebarWidgets:
                 self.b_frames_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_b_adapt_row(self):
-                self._setup_b_adapt_combobox()
+                self._setup_b_adapt_string_list()
 
-                self.b_adapt_row = Adw.ActionRow()
+                self.b_adapt_row = Adw.ComboRow()
                 self.b_adapt_row.set_title('B-adapt')
                 self.b_adapt_row.set_subtitle('Level of optimization to place B-frames')
-                self.b_adapt_row.add_suffix(self.b_adapt_combobox)
+                self.b_adapt_row.set_model(self.b_adapt_string_list)
+                self.b_adapt_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.b_adapt_row.set_sensitive(False)
 
-            def _setup_b_adapt_combobox(self):
-                self.b_adapt_combobox = Gtk.ComboBoxText()
-                self.b_adapt_combobox.set_vexpand(False)
-                self.b_adapt_combobox.set_valign(Gtk.Align.CENTER)
-
-                for b_adapt_setting in x265.X265.B_ADAPT_UI:
-                    self.b_adapt_combobox.append_text(b_adapt_setting)
-
-                self.b_adapt_combobox.set_active(0)
-                self.b_adapt_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_b_adapt_string_list(self):
+                self.b_adapt_string_list = Gtk.StringList.new(video_codec.X265.B_ADAPT_UI)
 
             def _setup_no_b_pyramid_row(self):
                 self._setup_no_b_pyramid_switch()
@@ -2434,7 +2496,8 @@ class SettingsSidebarWidgets:
 
             def _setup_rc_lookahead_spin_button(self):
                 self.rc_lookahead_spin_button = Gtk.SpinButton()
-                self.rc_lookahead_spin_button.set_range(x265.X265.RC_LOOKAHEAD_MIN, x265.X265.RC_LOOKAHEAD_MAX)
+                self.rc_lookahead_spin_button.set_range(video_codec.X265.RC_LOOKAHEAD_MIN,
+                                                        video_codec.X265.RC_LOOKAHEAD_MAX)
                 self.rc_lookahead_spin_button.set_digits(0)
                 self.rc_lookahead_spin_button.set_increments(10, 50)
                 self.rc_lookahead_spin_button.set_numeric(True)
@@ -2485,7 +2548,7 @@ class SettingsSidebarWidgets:
 
             def _setup_psy_rd_spin_button(self):
                 self.psy_rd_spin_button = Gtk.SpinButton()
-                self.psy_rd_spin_button.set_range(x265.X265.PSY_RD_MIN, x265.X265.PSY_RD_MAX)
+                self.psy_rd_spin_button.set_range(video_codec.X265.PSY_RD_MIN, video_codec.X265.PSY_RD_MAX)
                 self.psy_rd_spin_button.set_digits(1)
                 self.psy_rd_spin_button.set_increments(.1, .5)
                 self.psy_rd_spin_button.set_numeric(True)
@@ -2506,7 +2569,7 @@ class SettingsSidebarWidgets:
 
             def _setup_psy_rdoq_spin_button(self):
                 self.psy_rdoq_spin_button = Gtk.SpinButton()
-                self.psy_rdoq_spin_button.set_range(x265.X265.PSY_RDOQ_MIN, x265.X265.PSY_RDOQ_MAX)
+                self.psy_rdoq_spin_button.set_range(video_codec.X265.PSY_RDOQ_MIN, video_codec.X265.PSY_RDOQ_MAX)
                 self.psy_rdoq_spin_button.set_digits(1)
                 self.psy_rdoq_spin_button.set_increments(.1, .5)
                 self.psy_rdoq_spin_button.set_numeric(True)
@@ -2517,24 +2580,17 @@ class SettingsSidebarWidgets:
                 self.psy_rdoq_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_me_row(self):
-                self._setup_me_combobox()
+                self._setup_me_string_list()
 
-                self.me_row = Adw.ActionRow()
+                self.me_row = Adw.ComboRow()
                 self.me_row.set_title('Motion Estimation')
                 self.me_row.set_subtitle('Motion search complexity method to use')
-                self.me_row.add_suffix(self.me_combobox)
+                self.me_row.set_model(self.me_string_list)
+                self.me_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.me_row.set_sensitive(False)
 
-            def _setup_me_combobox(self):
-                self.me_combobox = Gtk.ComboBoxText()
-                self.me_combobox.set_vexpand(False)
-                self.me_combobox.set_valign(Gtk.Align.CENTER)
-
-                for me_setting in x265.X265.ME:
-                    self.me_combobox.append_text(me_setting)
-
-                self.me_combobox.set_active(0)
-                self.me_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_me_string_list(self):
+                self.me_string_list = Gtk.StringList.new(video_codec.X265.ME)
 
             def _setup_subme_row(self):
                 self._setup_subme_spin_button()
@@ -2547,7 +2603,7 @@ class SettingsSidebarWidgets:
 
             def _setup_subme_spin_button(self):
                 self.subme_spin_button = Gtk.SpinButton()
-                self.subme_spin_button.set_range(x265.X265.SUBME_MIN, x265.X265.SUBME_MAX)
+                self.subme_spin_button.set_range(video_codec.X265.SUBME_MIN, video_codec.X265.SUBME_MAX)
                 self.subme_spin_button.set_digits(0)
                 self.subme_spin_button.set_increments(1, 5)
                 self.subme_spin_button.set_numeric(True)
@@ -2609,7 +2665,7 @@ class SettingsSidebarWidgets:
 
             def _setup_deblock_strength_widgets(self):
                 self.deblock_alpha_spin_button = Gtk.SpinButton()
-                self.deblock_alpha_spin_button.set_range(x265.X265.DEBLOCK_MIN, x265.X265.DEBLOCK_MAX)
+                self.deblock_alpha_spin_button.set_range(video_codec.X265.DEBLOCK_MIN, video_codec.X265.DEBLOCK_MAX)
                 self.deblock_alpha_spin_button.set_digits(0)
                 self.deblock_alpha_spin_button.set_increments(1, 5)
                 self.deblock_alpha_spin_button.set_numeric(True)
@@ -2620,7 +2676,7 @@ class SettingsSidebarWidgets:
                 self.deblock_alpha_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
                 self.deblock_beta_spin_button = Gtk.SpinButton()
-                self.deblock_beta_spin_button.set_range(x265.X265.DEBLOCK_MIN, x265.X265.DEBLOCK_MAX)
+                self.deblock_beta_spin_button.set_range(video_codec.X265.DEBLOCK_MIN, video_codec.X265.DEBLOCK_MAX)
                 self.deblock_beta_spin_button.set_digits(0)
                 self.deblock_beta_spin_button.set_increments(1, 5)
                 self.deblock_beta_spin_button.set_numeric(True)
@@ -2690,7 +2746,8 @@ class SettingsSidebarWidgets:
 
             def _setup_selective_sao_spin_button(self):
                 self.selective_sao_spin_button = Gtk.SpinButton()
-                self.selective_sao_spin_button.set_range(x265.X265.SELECTIVE_SAO_MIN, x265.X265.SELECTIVE_SAO_MAX)
+                self.selective_sao_spin_button.set_range(video_codec.X265.SELECTIVE_SAO_MIN,
+                                                         video_codec.X265.SELECTIVE_SAO_MAX)
                 self.selective_sao_spin_button.set_digits(0)
                 self.selective_sao_spin_button.set_increments(1, 5)
                 self.selective_sao_spin_button.set_numeric(True)
@@ -2711,7 +2768,7 @@ class SettingsSidebarWidgets:
 
             def _setup_rd_spin_button(self):
                 self.rd_spin_button = Gtk.SpinButton()
-                self.rd_spin_button.set_range(x265.X265.RD_MIN, x265.X265.RD_MAX)
+                self.rd_spin_button.set_range(video_codec.X265.RD_MIN, video_codec.X265.RD_MAX)
                 self.rd_spin_button.set_digits(0)
                 self.rd_spin_button.set_increments(1, 5)
                 self.rd_spin_button.set_numeric(True)
@@ -2722,24 +2779,17 @@ class SettingsSidebarWidgets:
                 self.rd_spin_button.connect('value-changed', self.on_widget_changed_clicked_set)
 
             def _setup_rdoq_level_row(self):
-                self._setup_rdoq_level_combobox()
+                self._setup_rdoq_level_string_list()
 
-                self.rdoq_level_row = Adw.ActionRow()
+                self.rdoq_level_row = Adw.ComboRow()
                 self.rdoq_level_row.set_title('RDOQ Level')
                 self.rdoq_level_row.set_subtitle('Amount of rate-distortion analysis to use within quantization')
-                self.rdoq_level_row.add_suffix(self.rdoq_level_combobox)
+                self.rdoq_level_row.set_model(self.rdoq_level_string_list)
+                self.rdoq_level_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.rdoq_level_row.set_sensitive(False)
 
-            def _setup_rdoq_level_combobox(self):
-                self.rdoq_level_combobox = Gtk.ComboBoxText()
-                self.rdoq_level_combobox.set_vexpand(False)
-                self.rdoq_level_combobox.set_valign(Gtk.Align.CENTER)
-
-                for rdoq_level_setting in x265.X265.RDOQ_LEVEL_UI:
-                    self.rdoq_level_combobox.append_text(rdoq_level_setting)
-
-                self.rdoq_level_combobox.set_active(0)
-                self.rdoq_level_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_rdoq_level_string_list(self):
+                self.rdoq_level_string_list = Gtk.StringList.new(video_codec.X265.RDOQ_LEVEL_UI)
 
             def _setup_rd_refine_row(self):
                 self._setup_rd_refine_switch()
@@ -2757,44 +2807,30 @@ class SettingsSidebarWidgets:
                 self.rd_refine_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_max_cu_size_row(self):
-                self._setup_max_cu_size_combobox()
+                self._setup_max_cu_size_string_list()
 
-                self.max_cu_size_row = Adw.ActionRow()
+                self.max_cu_size_row = Adw.ComboRow()
                 self.max_cu_size_row.set_title('Max CU Size')
                 self.max_cu_size_row.set_subtitle('Larger CU threshold is considered')
-                self.max_cu_size_row.add_suffix(self.max_cu_size_combobox)
+                self.max_cu_size_row.set_model(self.max_cu_size_string_list)
+                self.max_cu_size_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.max_cu_size_row.set_sensitive(False)
 
-            def _setup_max_cu_size_combobox(self):
-                self.max_cu_size_combobox = Gtk.ComboBoxText()
-                self.max_cu_size_combobox.set_vexpand(False)
-                self.max_cu_size_combobox.set_valign(Gtk.Align.CENTER)
-
-                for max_cu_size_setting in x265.X265.MAX_CU_SIZE:
-                    self.max_cu_size_combobox.append_text(max_cu_size_setting)
-
-                self.max_cu_size_combobox.set_active(0)
-                self.max_cu_size_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_max_cu_size_string_list(self):
+                self.max_cu_size_string_list = Gtk.StringList.new(video_codec.X265.MAX_CU_SIZE)
 
             def _setup_min_cu_size_row(self):
-                self._setup_min_cu_size_combobox()
+                self._setup_min_cu_size_string_list()
 
-                self.min_cu_size_row = Adw.ActionRow()
+                self.min_cu_size_row = Adw.ComboRow()
                 self.min_cu_size_row.set_title('Min CU Size')
                 self.min_cu_size_row.set_subtitle('Cost of CUs below minimum threshold not considered')
-                self.min_cu_size_row.add_suffix(self.min_cu_size_combobox)
+                self.min_cu_size_row.set_model(self.min_cu_size_string_list)
+                self.min_cu_size_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.min_cu_size_row.set_sensitive(False)
 
-            def _setup_min_cu_size_combobox(self):
-                self.min_cu_size_combobox = Gtk.ComboBoxText()
-                self.min_cu_size_combobox.set_vexpand(False)
-                self.min_cu_size_combobox.set_valign(Gtk.Align.CENTER)
-
-                for min_cu_size_setting in x265.X265.MIN_CU_SIZE:
-                    self.min_cu_size_combobox.append_text(min_cu_size_setting)
-
-                self.min_cu_size_combobox.set_active(0)
-                self.min_cu_size_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_min_cu_size_string_list(self):
+                self.min_cu_size_string_list = Gtk.StringList.new(video_codec.X265.MIN_CU_SIZE)
 
             def _setup_rect_row(self):
                 self._setup_rect_switch()
@@ -2897,217 +2933,221 @@ class SettingsSidebarWidgets:
                     self.vbv_maxrate_row.set_sensitive(False)
                     self.vbv_bufsize_row.set_sensitive(False)
 
-            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            def apply_settings_to_widgets(self, encode_task: task.Encode):
                 GLib.idle_add(self.set_widgets_setting_up, True)
-                self._apply_preset_setting_to_widgets(encoding_task)
-                self._apply_profile_setting_to_widgets(encoding_task)
-                self._apply_level_setting_to_widgets(encoding_task)
-                self._apply_tune_setting_to_widgets(encoding_task)
-                self._apply_rate_type_settings_to_widgets(encoding_task)
-                self._apply_crf_setting_to_widgets(encoding_task)
-                self._apply_qp_setting_to_widgets(encoding_task)
-                self._apply_bitrate_type_settings_to_widgets(encoding_task)
-                self._apply_advanced_settings_to_widgets(encoding_task)
+                self._apply_preset_setting_to_widgets(encode_task)
+                self._apply_profile_setting_to_widgets(encode_task)
+                self._apply_level_setting_to_widgets(encode_task)
+                self._apply_tune_setting_to_widgets(encode_task)
+                self._apply_rate_type_settings_to_widgets(encode_task)
+                self._apply_crf_setting_to_widgets(encode_task)
+                self._apply_qp_setting_to_widgets(encode_task)
+                self._apply_bitrate_type_settings_to_widgets(encode_task)
+                self._apply_advanced_settings_to_widgets(encode_task)
                 GLib.idle_add(self.set_widgets_setting_up, False)
 
-            def _apply_preset_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.preset_combobox.set_active, encoding_task.video_codec.preset)
+            def _apply_preset_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.preset_row.set_selected, encode_task.get_video_codec().preset)
 
-            def _apply_profile_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.profile_combobox.set_active, encoding_task.video_codec.profile)
+            def _apply_profile_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.profile_row.set_selected, encode_task.get_video_codec().profile)
 
-            def _apply_level_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.level_combobox.set_active, encoding_task.video_codec.level)
+            def _apply_level_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.level_row.set_selected, encode_task.get_video_codec().level)
 
-            def _apply_tune_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.tune_combobox.set_active, encoding_task.video_codec.tune)
+            def _apply_tune_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.tune_row.set_selected, encode_task.get_video_codec().tune)
 
-            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_crf_enabled:
+            def _apply_rate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_crf_enabled:
                     GLib.idle_add(self.crf_check_button.set_active, True)
-                elif encoding_task.video_codec.is_qp_enabled:
+                elif encode_task.get_video_codec().is_qp_enabled:
                     GLib.idle_add(self.qp_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.bitrate_check_button.set_active, True)
 
-            def _apply_crf_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.crf_scale.set_value, encoding_task.video_codec.crf)
+            def _apply_crf_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.crf_scale.set_value, encode_task.get_video_codec().crf)
 
-            def _apply_qp_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.qp_scale.set_value, encoding_task.video_codec.qp)
+            def _apply_qp_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.qp_scale.set_value, encode_task.get_video_codec().qp)
 
-            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+            def _apply_bitrate_type_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.bitrate_spin_button.set_value, encode_task.get_video_codec().bitrate)
 
-            def _apply_advanced_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.advanced_settings_switch.set_active, encoding_task.video_codec.is_advanced_enabled)
-                self._apply_vbv_maxrate_setting_to_widgets(encoding_task)
-                self._apply_vbv_bufsize_setting_to_widgets(encoding_task)
-                self._apply_aq_mode_setting_to_widgets(encoding_task)
-                self._apply_aq_strength_setting_to_widgets(encoding_task)
-                self._apply_hevc_aq_setting_to_widgets(encoding_task)
-                self._apply_keyint_setting_to_widgets(encoding_task)
-                self._apply_min_keyint_setting_to_widgets(encoding_task)
-                self._apply_ref_setting_to_widgets(encoding_task)
-                self._apply_b_frames_setting_to_widgets(encoding_task)
-                self._apply_b_adapt_setting_to_widgets(encoding_task)
-                self._apply_no_b_pyramid_setting_to_widgets(encoding_task)
-                self._apply_b_intra_setting_to_widgets(encoding_task)
-                self._apply_no_gop_setting_to_widgets(encoding_task)
-                self._apply_rc_lookahead_setting_to_widgets(encoding_task)
-                self._apply_no_scenecut_setting_to_widgets(encoding_task)
-                self._apply_no_high_tier_setting_to_widgets(encoding_task)
-                self._apply_psy_rd_setting_to_widgets(encoding_task)
-                self._apply_psy_rdoq_setting_to_widgets(encoding_task)
-                self._apply_me_setting_to_widgets(encoding_task)
-                self._apply_subme_setting_to_widgets(encoding_task)
-                self._apply_weight_b_setting_to_widgets(encoding_task)
-                self._apply_no_weight_p_setting_to_widgets(encoding_task)
-                self._apply_deblock_settings_to_widgets(encoding_task)
-                self._apply_sao_settings_to_widgets(encoding_task)
-                self._apply_rd_setting_to_widgets(encoding_task)
-                self._apply_rdoq_level_setting_to_widgets(encoding_task)
-                self._apply_rd_refine_setting_to_widgets(encoding_task)
-                self._apply_max_cu_size_setting_to_widgets(encoding_task)
-                self._apply_min_cu_size_setting_to_widgets(encoding_task)
-                self._apply_rect_setting_to_widgets(encoding_task)
-                self._apply_amp_setting_to_widgets(encoding_task)
-                self._apply_wpp_setting_to_widgets(encoding_task)
-                self._apply_pmode_setting_to_widgets(encoding_task)
-                self._apply_pme_setting_to_widgets(encoding_task)
-                self._apply_uhd_bd_setting_to_widgets(encoding_task)
+            def _apply_advanced_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.advanced_settings_switch.set_active,
+                              encode_task.get_video_codec().is_advanced_enabled)
+                self._apply_vbv_maxrate_setting_to_widgets(encode_task)
+                self._apply_vbv_bufsize_setting_to_widgets(encode_task)
+                self._apply_aq_mode_setting_to_widgets(encode_task)
+                self._apply_aq_strength_setting_to_widgets(encode_task)
+                self._apply_hevc_aq_setting_to_widgets(encode_task)
+                self._apply_keyint_setting_to_widgets(encode_task)
+                self._apply_min_keyint_setting_to_widgets(encode_task)
+                self._apply_ref_setting_to_widgets(encode_task)
+                self._apply_b_frames_setting_to_widgets(encode_task)
+                self._apply_b_adapt_setting_to_widgets(encode_task)
+                self._apply_no_b_pyramid_setting_to_widgets(encode_task)
+                self._apply_b_intra_setting_to_widgets(encode_task)
+                self._apply_no_gop_setting_to_widgets(encode_task)
+                self._apply_rc_lookahead_setting_to_widgets(encode_task)
+                self._apply_no_scenecut_setting_to_widgets(encode_task)
+                self._apply_no_high_tier_setting_to_widgets(encode_task)
+                self._apply_psy_rd_setting_to_widgets(encode_task)
+                self._apply_psy_rdoq_setting_to_widgets(encode_task)
+                self._apply_me_setting_to_widgets(encode_task)
+                self._apply_subme_setting_to_widgets(encode_task)
+                self._apply_weight_b_setting_to_widgets(encode_task)
+                self._apply_no_weight_p_setting_to_widgets(encode_task)
+                self._apply_deblock_settings_to_widgets(encode_task)
+                self._apply_sao_settings_to_widgets(encode_task)
+                self._apply_rd_setting_to_widgets(encode_task)
+                self._apply_rdoq_level_setting_to_widgets(encode_task)
+                self._apply_rd_refine_setting_to_widgets(encode_task)
+                self._apply_max_cu_size_setting_to_widgets(encode_task)
+                self._apply_min_cu_size_setting_to_widgets(encode_task)
+                self._apply_rect_setting_to_widgets(encode_task)
+                self._apply_amp_setting_to_widgets(encode_task)
+                self._apply_wpp_setting_to_widgets(encode_task)
+                self._apply_pmode_setting_to_widgets(encode_task)
+                self._apply_pme_setting_to_widgets(encode_task)
+                self._apply_uhd_bd_setting_to_widgets(encode_task)
 
-            def _apply_vbv_maxrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.vbv_maxrate_spin_button.set_value, encoding_task.video_codec.vbv_maxrate)
+            def _apply_vbv_maxrate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.vbv_maxrate_spin_button.set_value, encode_task.get_video_codec().vbv_maxrate)
 
-            def _apply_vbv_bufsize_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.vbv_bufsize_spin_button.set_value, encoding_task.video_codec.vbv_bufsize)
+            def _apply_vbv_bufsize_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.vbv_bufsize_spin_button.set_value, encode_task.get_video_codec().vbv_bufsize)
 
-            def _apply_aq_mode_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.aq_mode_combobox.set_active, encoding_task.video_codec.aq_mode)
+            def _apply_aq_mode_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.aq_mode_row.set_selected, encode_task.get_video_codec().aq_mode)
 
-            def _apply_aq_strength_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.aq_strength_spin_button.set_value, encoding_task.video_codec.aq_strength)
+            def _apply_aq_strength_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.aq_strength_spin_button.set_value, encode_task.get_video_codec().aq_strength)
 
-            def _apply_hevc_aq_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.hevc_aq_switch.set_active, encoding_task.video_codec.hevc_aq)
+            def _apply_hevc_aq_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.hevc_aq_switch.set_active, encode_task.get_video_codec().hevc_aq)
 
-            def _apply_keyint_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.keyint_spin_button.set_value, encoding_task.video_codec.keyint)
+            def _apply_keyint_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.keyint_spin_button.set_value, encode_task.get_video_codec().keyint)
 
-            def _apply_min_keyint_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.min_keyint_spin_button.set_value, encoding_task.video_codec.min_keyint)
+            def _apply_min_keyint_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.min_keyint_spin_button.set_value, encode_task.get_video_codec().min_keyint)
 
-            def _apply_ref_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.ref_spin_button.set_value, encoding_task.video_codec.ref)
+            def _apply_ref_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.ref_spin_button.set_value, encode_task.get_video_codec().ref)
 
-            def _apply_b_frames_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_frames_spin_button.set_value, encoding_task.video_codec.bframes)
+            def _apply_b_frames_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_frames_spin_button.set_value, encode_task.get_video_codec().bframes)
 
-            def _apply_b_adapt_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_adapt_combobox.set_active, encoding_task.video_codec.b_adapt)
+            def _apply_b_adapt_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_adapt_row.set_selected, encode_task.get_video_codec().b_adapt)
 
-            def _apply_no_b_pyramid_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_b_pyramid_switch.set_active, encoding_task.video_codec.no_b_pyramid)
+            def _apply_no_b_pyramid_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_b_pyramid_switch.set_active, encode_task.get_video_codec().no_b_pyramid)
 
-            def _apply_b_intra_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_intra_switch.set_active, encoding_task.video_codec.b_intra)
+            def _apply_b_intra_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_intra_switch.set_active, encode_task.get_video_codec().b_intra)
 
-            def _apply_no_gop_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_gop_switch.set_active, encoding_task.video_codec.no_open_gop)
+            def _apply_no_gop_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_gop_switch.set_active, encode_task.get_video_codec().no_open_gop)
 
-            def _apply_rc_lookahead_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rc_lookahead_spin_button.set_value, encoding_task.video_codec.rc_lookahead)
+            def _apply_rc_lookahead_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rc_lookahead_spin_button.set_value, encode_task.get_video_codec().rc_lookahead)
 
-            def _apply_no_scenecut_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_scenecut_switch.set_active, encoding_task.video_codec.no_scenecut)
+            def _apply_no_scenecut_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_scenecut_switch.set_active, encode_task.get_video_codec().no_scenecut)
 
-            def _apply_no_high_tier_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_high_tier_switch.set_active, encoding_task.video_codec.no_high_tier)
+            def _apply_no_high_tier_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_high_tier_switch.set_active, encode_task.get_video_codec().no_high_tier)
 
-            def _apply_psy_rd_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.psy_rd_spin_button.set_value, encoding_task.video_codec.psy_rd)
+            def _apply_psy_rd_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.psy_rd_spin_button.set_value, encode_task.get_video_codec().psy_rd)
 
-            def _apply_psy_rdoq_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.psy_rdoq_spin_button.set_value, encoding_task.video_codec.psy_rdoq)
+            def _apply_psy_rdoq_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.psy_rdoq_spin_button.set_value, encode_task.get_video_codec().psy_rdoq)
 
-            def _apply_me_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.me_combobox.set_active, encoding_task.video_codec.me)
+            def _apply_me_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.me_row.set_selected, encode_task.get_video_codec().me)
 
-            def _apply_subme_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.subme_spin_button.set_value, encoding_task.video_codec.subme)
+            def _apply_subme_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.subme_spin_button.set_value, encode_task.get_video_codec().subme)
 
-            def _apply_weight_b_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.weight_b_switch.set_active, encoding_task.video_codec.weightb)
+            def _apply_weight_b_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.weight_b_switch.set_active, encode_task.get_video_codec().weightb)
 
-            def _apply_no_weight_p_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_weight_p_switch.set_active, encoding_task.video_codec.no_weightp)
+            def _apply_no_weight_p_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_weight_p_switch.set_active, encode_task.get_video_codec().no_weightp)
 
-            def _apply_deblock_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_deblock_check_button.set_active, encoding_task.video_codec.no_deblock)
+            def _apply_deblock_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_deblock_check_button.set_active, encode_task.get_video_codec().no_deblock)
 
-                deblock_alpha, deblock_beta = encoding_task.video_codec.deblock
+                deblock_alpha, deblock_beta = encode_task.get_video_codec().deblock
                 GLib.idle_add(self.deblock_alpha_spin_button.set_value, deblock_alpha)
                 GLib.idle_add(self.deblock_beta_spin_button.set_value, deblock_beta)
 
-            def _apply_sao_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_sao_switch.set_active, encoding_task.video_codec.no_sao)
-                GLib.idle_add(self.sao_non_deblock_switch.set_active, encoding_task.video_codec.sao_non_deblock)
-                GLib.idle_add(self.selective_sao_spin_button.set_value, encoding_task.video_codec.selective_sao)
-                GLib.idle_add(self.limit_sao_switch.set_active, encoding_task.video_codec.limit_sao)
+            def _apply_sao_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_sao_switch.set_active, encode_task.get_video_codec().no_sao)
+                GLib.idle_add(self.sao_non_deblock_switch.set_active, encode_task.get_video_codec().sao_non_deblock)
+                GLib.idle_add(self.selective_sao_spin_button.set_value, encode_task.get_video_codec().selective_sao)
+                GLib.idle_add(self.limit_sao_switch.set_active, encode_task.get_video_codec().limit_sao)
 
-            def _apply_rd_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rd_spin_button.set_value, encoding_task.video_codec.rd)
+            def _apply_rd_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rd_spin_button.set_value, encode_task.get_video_codec().rd)
 
-            def _apply_rdoq_level_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rdoq_level_combobox.set_active, encoding_task.video_codec.rdoq_level)
+            def _apply_rdoq_level_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rdoq_level_row.set_selected, encode_task.get_video_codec().rdoq_level)
 
-            def _apply_rd_refine_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rd_refine_switch.set_active, encoding_task.video_codec.rd_refine)
+            def _apply_rd_refine_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rd_refine_switch.set_active, encode_task.get_video_codec().rd_refine)
 
-            def _apply_max_cu_size_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.max_cu_size_combobox.set_active, encoding_task.video_codec.ctu)
+            def _apply_max_cu_size_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.max_cu_size_row.set_selected, encode_task.get_video_codec().ctu)
 
-            def _apply_min_cu_size_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.min_cu_size_combobox.set_active, encoding_task.video_codec.min_cu_size)
+            def _apply_min_cu_size_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.min_cu_size_row.set_selected, encode_task.get_video_codec().min_cu_size)
 
-            def _apply_rect_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rect_switch.set_active, encoding_task.video_codec.rect)
+            def _apply_rect_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rect_switch.set_active, encode_task.get_video_codec().rect)
 
-            def _apply_amp_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.amp_switch.set_active, encoding_task.video_codec.amp)
+            def _apply_amp_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.amp_switch.set_active, encode_task.get_video_codec().amp)
 
-            def _apply_wpp_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.wpp_switch.set_active, encoding_task.video_codec.wpp)
+            def _apply_wpp_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.wpp_switch.set_active, encode_task.get_video_codec().wpp)
 
-            def _apply_pmode_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.pmode_switch.set_active, encoding_task.video_codec.pmode)
+            def _apply_pmode_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.pmode_switch.set_active, encode_task.get_video_codec().pmode)
 
-            def _apply_pme_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.pme_switch.set_active, encoding_task.video_codec.pme)
+            def _apply_pme_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.pme_switch.set_active, encode_task.get_video_codec().pme)
 
-            def _apply_uhd_bd_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.uhd_bd_switch.set_active, encoding_task.video_codec.uhd_bd)
+            def _apply_uhd_bd_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.uhd_bd_switch.set_active, encode_task.get_video_codec().uhd_bd)
 
-            def apply_settings_from_widgets(self):
-                x265_settings = x265.X265()
-                x265_settings.preset = self.preset_combobox.get_active()
-                x265_settings.profile = self.profile_combobox.get_active()
-                x265_settings.level = self.level_combobox.get_active()
-                x265_settings.tune = self.tune_combobox.get_active()
+            def apply_settings_from_widgets(self, is_delay_enabled: bool):
+                if is_delay_enabled:
+                    time.sleep(0.25)
+
+                x265_settings = video_codec.X265()
+                x265_settings.preset = self.preset_row.get_selected()
+                x265_settings.profile = self.profile_row.get_selected()
+                x265_settings.level = self.level_row.get_selected()
+                x265_settings.tune = self.tune_row.get_selected()
                 x265_settings.is_advanced_enabled = self.advanced_settings_switch.get_active()
 
                 self._apply_rate_type_settings_from_widgets(x265_settings)
 
                 if self.advanced_settings_switch.get_active():
-                    x265_settings.aq_mode = self.aq_mode_combobox.get_active()
+                    x265_settings.aq_mode = self.aq_mode_row.get_selected()
                     x265_settings.aq_strength = self.aq_strength_spin_button.get_value()
                     x265_settings.hevc_aq = self.hevc_aq_switch.get_active()
                     x265_settings.keyint = self.keyint_spin_button.get_value_as_int()
                     x265_settings.min_keyint = self.min_keyint_spin_button.get_value_as_int()
                     x265_settings.ref = self.ref_spin_button.get_value_as_int()
                     x265_settings.bframes = self.b_frames_spin_button.get_value_as_int()
-                    x265_settings.b_adapt = self.b_adapt_combobox.get_active()
+                    x265_settings.b_adapt = self.b_adapt_row.get_selected()
                     x265_settings.no_b_pyramid = self.no_b_pyramid_switch.get_active()
                     x265_settings.b_intra = self.b_intra_switch.get_active()
                     x265_settings.no_open_gop = self.no_gop_switch.get_active()
@@ -3116,15 +3156,15 @@ class SettingsSidebarWidgets:
                     x265_settings.no_high_tier = self.no_high_tier_switch.get_active()
                     x265_settings.psy_rd = self.psy_rd_spin_button.get_value()
                     x265_settings.psy_rdoq = self.psy_rdoq_spin_button.get_value()
-                    x265_settings.me = self.me_combobox.get_active()
+                    x265_settings.me = self.me_row.get_selected()
                     x265_settings.subme = self.subme_spin_button.get_value_as_int()
                     x265_settings.weightb = self.weight_b_switch.get_active()
                     x265_settings.no_weightp = self.no_weight_p_switch.get_active()
                     x265_settings.rd = self.rd_spin_button.get_value_as_int()
-                    x265_settings.rdoq_level = self.rdoq_level_combobox.get_active()
+                    x265_settings.rdoq_level = self.rdoq_level_row.get_selected()
                     x265_settings.rd_refine = self.rd_refine_switch.get_active()
-                    x265_settings.ctu = self.max_cu_size_combobox.get_active()
-                    x265_settings.min_cu_size = self.min_cu_size_combobox.get_active()
+                    x265_settings.ctu = self.max_cu_size_row.get_selected()
+                    x265_settings.min_cu_size = self.min_cu_size_row.get_selected()
                     x265_settings.rect = self.rect_switch.get_active()
                     x265_settings.amp = self.amp_switch.get_active()
                     x265_settings.wpp = self.wpp_switch.get_active()
@@ -3137,19 +3177,19 @@ class SettingsSidebarWidgets:
                     self._apply_deblock_settings_from_widgets(x265_settings)
 
                 for input_row in self.inputs_page.get_selected_rows():
-                    encoding_task = input_row.encoding_task
-                    encoding_task.video_codec = copy.deepcopy(x265_settings)
+                    encode_task = input_row.encode_task
+                    encode_task.set_video_codec(copy.deepcopy(x265_settings))
 
-                    if encoding_task.is_video_2_pass():
-                        stats_file_path = os.path.join(encoding_task.temp_output_file.dir,
-                                                       encoding_task.temp_output_file.name + '.log')
-                        encoding_task.video_codec.stats = stats_file_path
+                    if video_codec.is_codec_2_pass(encode_task.get_video_codec()):
+                        stats_file_path = os.path.join(encode_task.temp_output_file.dir,
+                                                       encode_task.temp_output_file.name + '.log')
+                        encode_task.video_codec.stats = stats_file_path
 
-                    print(encoding_task.get_info())
+                    print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
-                self.inputs_page.update_preview_page_encoding_task()
+                self.inputs_page.update_preview_page_encode_task()
 
-            def _apply_rate_type_settings_from_widgets(self, x265_settings: x265.X265):
+            def _apply_rate_type_settings_from_widgets(self, x265_settings: video_codec.X265):
                 if self.crf_check_button.get_active():
                     x265_settings.crf = self.crf_scale.get_value()
                 elif self.qp_check_button.get_active():
@@ -3160,11 +3200,11 @@ class SettingsSidebarWidgets:
                     if self.dual_pass_check_button.get_active():
                         x265_settings.encode_pass = 1
 
-            def _apply_vbv_settings_from_widgets(self, x265_settings: x265.X265):
+            def _apply_vbv_settings_from_widgets(self, x265_settings: video_codec.X265):
                 x265_settings.vbv_maxrate = self.vbv_maxrate_spin_button.get_value_as_int()
                 x265_settings.vbv_bufsize = self.vbv_bufsize_spin_button.get_value_as_int()
 
-            def _apply_sao_settings_from_widgets(self, x265_settings: x265.X265):
+            def _apply_sao_settings_from_widgets(self, x265_settings: video_codec.X265):
                 x265_settings.no_sao = self.no_sao_switch.get_active()
 
                 if not self.no_sao_switch.get_active():
@@ -3172,7 +3212,7 @@ class SettingsSidebarWidgets:
                     x265_settings.selective_sao = self.selective_sao_spin_button.get_value_as_int()
                     x265_settings.limit_sao = self.limit_sao_switch.get_active()
 
-            def _apply_deblock_settings_from_widgets(self, x265_settings: x265.X265):
+            def _apply_deblock_settings_from_widgets(self, x265_settings: video_codec.X265):
                 x265_settings.no_deblock = self.no_deblock_check_button.get_active()
 
                 if not self.no_deblock_check_button.get_active():
@@ -3184,7 +3224,15 @@ class SettingsSidebarWidgets:
                 if self.is_widgets_setting_up:
                     return
 
-                threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
+                is_delay_enabled = (self.crf_event_controller_scroll in args or self.qp_event_controller_scroll in args)
+
+                threading.Thread(target=self.apply_settings_from_widgets, args=(is_delay_enabled,)).start()
+
+            def on_scale_gesture_stopped(self, user_data, gesture_click):
+                if gesture_click.get_device():
+                    return
+
+                self.on_widget_changed_clicked_set()
 
             def on_crf_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -3329,7 +3377,7 @@ class SettingsSidebarWidgets:
                 self._setup_quality_row()
                 self._setup_speed_row()
                 self._setup_row_multithreading_row()
-                self._setup_rate_tyoe_row()
+                self._setup_rate_type_row()
                 self._setup_2_pass_row()
                 self._setup_crf_row()
                 self._setup_bitrate_row()
@@ -3351,42 +3399,28 @@ class SettingsSidebarWidgets:
                 self.codec_settings_group.add(self.two_pass_row)
 
             def _setup_quality_row(self):
-                self._setup_quality_combobox()
+                self._setup_quality_string_list()
 
-                self.quality_row = Adw.ActionRow()
+                self.quality_row = Adw.ComboRow()
                 self.quality_row.set_title('Quality')
                 self.quality_row.set_subtitle('Encoder quality')
-                self.quality_row.add_suffix(self.quality_combobox)
+                self.quality_row.set_model(self.quality_string_list)
+                self.quality_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_quality_combobox(self):
-                self.quality_combobox = Gtk.ComboBoxText()
-                self.quality_combobox.set_vexpand(False)
-                self.quality_combobox.set_valign(Gtk.Align.CENTER)
-
-                for quality_setting in vp9.VP9.QUALITY:
-                    self.quality_combobox.append_text(quality_setting)
-
-                self.quality_combobox.set_active(0)
-                self.quality_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_quality_string_list(self):
+                self.quality_string_list = Gtk.StringList.new(video_codec.VP9.QUALITY)
 
             def _setup_speed_row(self):
-                self._setup_speed_combobox()
+                self._setup_speed_string_list()
 
-                self.speed_row = Adw.ActionRow()
+                self.speed_row = Adw.ComboRow()
                 self.speed_row.set_title('Speed')
                 self.speed_row.set_subtitle('Encoder speed')
-                self.speed_row.add_suffix(self.speed_combobox)
+                self.speed_row.set_model(self.speed_string_list)
+                self.speed_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_speed_combobox(self):
-                self.speed_combobox = Gtk.ComboBoxText()
-                self.speed_combobox.set_vexpand(False)
-                self.speed_combobox.set_valign(Gtk.Align.CENTER)
-
-                for speed_setting in vp9.VP9.SPEED:
-                    self.speed_combobox.append_text(speed_setting)
-
-                self.speed_combobox.set_active(0)
-                self.speed_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_speed_string_list(self):
+                self.speed_string_list = Gtk.StringList.new(video_codec.VP9.SPEED)
 
             def _setup_row_multithreading_row(self):
                 self._setup_row_multithreading_switch()
@@ -3402,7 +3436,7 @@ class SettingsSidebarWidgets:
                 self.row_multithreading_switch.set_valign(Gtk.Align.CENTER)
                 self.row_multithreading_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
-            def _setup_rate_tyoe_row(self):
+            def _setup_rate_type_row(self):
                 self._setup_rate_type_radio_buttons()
 
                 self.rate_type_row = Adw.ActionRow()
@@ -3451,16 +3485,36 @@ class SettingsSidebarWidgets:
                 self.crf_row.add_suffix(self.crf_scale)
 
             def _setup_crf_scale(self):
+                self._setup_crf_gesture_click()
+                self._setup_crf_event_controller_key()
+                self._setup_crf_event_controller_scroll()
+
                 self.crf_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                          min=vp9.VP9.CRF_MIN,
-                                                          max=vp9.VP9.CRF_MAX,
+                                                          min=video_codec.VP9.CRF_MIN,
+                                                          max=video_codec.VP9.CRF_MAX,
                                                           step=1.0)
                 self.crf_scale.set_value(30)
                 self.crf_scale.set_digits(0)
                 self.crf_scale.set_draw_value(True)
                 self.crf_scale.set_value_pos(Gtk.PositionType.BOTTOM)
                 self.crf_scale.set_hexpand(True)
-                self.crf_scale.connect('adjust_bounds', self.on_scale_adjust_bounds)
+                self.crf_scale.add_controller(self.crf_gesture_click)
+                self.crf_scale.add_controller(self.crf_event_controller_key)
+                self.crf_scale.add_controller(self.crf_event_controller_scroll)
+
+            def _setup_crf_gesture_click(self):
+                self.crf_gesture_click = Gtk.GestureClick.new()
+                self.crf_gesture_click.connect('stopped', self.on_scale_gesture_stopped, self.crf_gesture_click)
+                self.crf_gesture_click.connect('unpaired-release', self.on_widget_changed_clicked_set)
+
+            def _setup_crf_event_controller_key(self):
+                self.crf_event_controller_key = Gtk.EventControllerKey.new()
+                self.crf_event_controller_key.connect('key-released', self.on_widget_changed_clicked_set)
+
+            def _setup_crf_event_controller_scroll(self):
+                self.crf_event_controller_scroll = Gtk.EventControllerScroll.new(
+                    Gtk.EventControllerScrollFlags.BOTH_AXES)
+                self.crf_event_controller_scroll.connect('scroll', self.on_widget_changed_clicked_set)
 
             def _setup_bitrate_row(self):
                 self._setup_bitrate_spin_button()
@@ -3473,7 +3527,7 @@ class SettingsSidebarWidgets:
 
             def _setup_bitrate_spin_button(self):
                 self.bitrate_spin_button = Gtk.SpinButton()
-                self.bitrate_spin_button.set_range(vp9.VP9.BITRATE_MIN, vp9.VP9.BITRATE_MAX)
+                self.bitrate_spin_button.set_range(video_codec.VP9.BITRATE_MIN, video_codec.VP9.BITRATE_MAX)
                 self.bitrate_spin_button.set_digits(0)
                 self.bitrate_spin_button.set_increments(100, 500)
                 self.bitrate_spin_button.set_numeric(True)
@@ -3495,7 +3549,7 @@ class SettingsSidebarWidgets:
 
             def _setup_max_bitrate_spin_button(self):
                 self.max_bitrate_spin_button = Gtk.SpinButton()
-                self.max_bitrate_spin_button.set_range(vp9.VP9.BITRATE_MIN, vp9.VP9.BITRATE_MAX)
+                self.max_bitrate_spin_button.set_range(video_codec.VP9.BITRATE_MIN, video_codec.VP9.BITRATE_MAX)
                 self.max_bitrate_spin_button.set_digits(0)
                 self.max_bitrate_spin_button.set_increments(100, 500)
                 self.max_bitrate_spin_button.set_numeric(True)
@@ -3517,7 +3571,7 @@ class SettingsSidebarWidgets:
 
             def _setup_min_bitrate_spin_button(self):
                 self.min_bitrate_spin_button = Gtk.SpinButton()
-                self.min_bitrate_spin_button.set_range(vp9.VP9.BITRATE_MIN, vp9.VP9.BITRATE_MAX)
+                self.min_bitrate_spin_button.set_range(video_codec.VP9.BITRATE_MIN, video_codec.VP9.BITRATE_MAX)
                 self.min_bitrate_spin_button.set_digits(0)
                 self.min_bitrate_spin_button.set_increments(100, 500)
                 self.min_bitrate_spin_button.set_numeric(True)
@@ -3604,67 +3658,71 @@ class SettingsSidebarWidgets:
             def set_widgets_setting_up(self, is_widgets_setting_up: bool):
                 self.is_widgets_setting_up = is_widgets_setting_up
 
-            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            def apply_settings_to_widgets(self, encode_task: task.Encode):
                 GLib.idle_add(self.set_widgets_setting_up, True)
-                self._apply_quality_setting_to_widgets(encoding_task)
-                self._apply_speed_setting_to_widgets(encoding_task)
-                self._apply_rate_type_settings_to_widgets(encoding_task)
-                self._apply_crf_setting_to_widgets(encoding_task)
-                self._apply_bitrate_setting_to_widgets(encoding_task)
-                self._apply_maxrate_setting_to_widgets(encoding_task)
-                self._apply_minrate_setting_to_widgets(encoding_task)
-                self._apply_bitrate_type_settings_to_widgets(encoding_task)
-                self._apply_row_multithreading_setting_to_widgets(encoding_task)
-                self._apply_encode_pass_setting_to_widgets(encoding_task)
+                self._apply_quality_setting_to_widgets(encode_task)
+                self._apply_speed_setting_to_widgets(encode_task)
+                self._apply_rate_type_settings_to_widgets(encode_task)
+                self._apply_crf_setting_to_widgets(encode_task)
+                self._apply_bitrate_setting_to_widgets(encode_task)
+                self._apply_maxrate_setting_to_widgets(encode_task)
+                self._apply_minrate_setting_to_widgets(encode_task)
+                self._apply_bitrate_type_settings_to_widgets(encode_task)
+                self._apply_row_multithreading_setting_to_widgets(encode_task)
+                self._apply_encode_pass_setting_to_widgets(encode_task)
                 GLib.idle_add(self.set_widgets_setting_up, False)
 
-            def _apply_quality_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.quality_combobox.set_active, encoding_task.video_codec.quality)
+            def _apply_quality_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.quality_row.set_selected, encode_task.get_video_codec().quality)
 
-            def _apply_speed_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.speed_combobox.set_active, encoding_task.video_codec.speed)
+            def _apply_speed_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.speed_row.set_selected, encode_task.get_video_codec().speed)
 
-            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_crf_enabled:
+            def _apply_rate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_crf_enabled:
                     GLib.idle_add(self.crf_check_button.set_active, True)
-                elif encoding_task.video_codec.is_bitrate_enabled:
+                elif encode_task.get_video_codec().is_bitrate_enabled:
                     GLib.idle_add(self.bitrate_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.constrained_check_button.set_active, True)
 
-            def _apply_crf_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.crf_scale.set_value, encoding_task.video_codec.crf)
+            def _apply_crf_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.crf_scale.set_value, encode_task.get_video_codec().crf)
 
-            def _apply_bitrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_crf_enabled:
+            def _apply_bitrate_setting_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_crf_enabled:
                     GLib.idle_add(self.bitrate_spin_button.set_value, 2500)
                 else:
-                    GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+                    GLib.idle_add(self.bitrate_spin_button.set_value, encode_task.get_video_codec().bitrate)
 
-            def _apply_maxrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.max_bitrate_spin_button.set_value, encoding_task.video_codec.maxrate)
+            def _apply_maxrate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.max_bitrate_spin_button.set_value, encode_task.get_video_codec().maxrate)
 
-            def _apply_minrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.min_bitrate_spin_button.set_value, encoding_task.video_codec.minrate)
+            def _apply_minrate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.min_bitrate_spin_button.set_value, encode_task.get_video_codec().minrate)
 
-            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_average_bitrate_enabled:
+            def _apply_bitrate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_average_bitrate_enabled:
                     GLib.idle_add(self.average_bitrate_check_button.set_active, True)
-                elif encoding_task.video_codec.is_vbr_bitrate_enabled:
+                elif encode_task.get_video_codec().is_vbr_bitrate_enabled:
                     GLib.idle_add(self.vbr_bitrate_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.constant_bitrate_check_button.set_active, True)
 
-            def _apply_row_multithreading_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.row_multithreading_switch.set_active, encoding_task.video_codec.row_multithreading)
+            def _apply_row_multithreading_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.row_multithreading_switch.set_active,
+                              encode_task.get_video_codec().row_multithreading)
 
-            def _apply_encode_pass_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.two_pass_switch.set_active, encoding_task.video_codec.encode_pass == 1)
+            def _apply_encode_pass_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.two_pass_switch.set_active, encode_task.get_video_codec().encode_pass == 1)
 
-            def apply_settings_from_widgets(self):
-                vp9_settings = vp9.VP9()
-                vp9_settings.quality = self.quality_combobox.get_active()
-                vp9_settings.speed = self.speed_combobox.get_active()
+            def apply_settings_from_widgets(self, is_delay_enabled: bool):
+                if is_delay_enabled:
+                    time.sleep(0.25)
+
+                vp9_settings = video_codec.VP9()
+                vp9_settings.quality = self.quality_row.get_selected()
+                vp9_settings.speed = self.speed_row.get_selected()
                 vp9_settings.row_multithreading = self.row_multithreading_switch.get_active()
 
                 self._apply_rate_type_settings_from_widgets(vp9_settings)
@@ -3672,19 +3730,19 @@ class SettingsSidebarWidgets:
                 self._apply_encode_pass_setting_from_widgets(vp9_settings)
 
                 for input_row in self.inputs_page.get_selected_rows():
-                    encoding_task = input_row.encoding_task
-                    encoding_task.video_codec = copy.deepcopy(vp9_settings)
+                    encode_task = input_row.encode_task
+                    encode_task.set_video_codec(copy.deepcopy(vp9_settings))
 
-                    if encoding_task.is_video_2_pass():
-                        stats_file_path = os.path.join(encoding_task.temp_output_file.dir,
-                                                       encoding_task.temp_output_file.name + '.log')
-                        encoding_task.video_codec.stats = stats_file_path
+                    if video_codec.is_codec_2_pass(encode_task.get_video_codec()):
+                        stats_file_path = os.path.join(encode_task.temp_output_file.dir,
+                                                       encode_task.temp_output_file.name + '.log')
+                        encode_task.video_codec.stats = stats_file_path
 
-                    print(encoding_task.get_info())
+                    print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
-                self.inputs_page.update_preview_page_encoding_task()
+                self.inputs_page.update_preview_page_encode_task()
 
-            def _apply_rate_type_settings_from_widgets(self, vp9_settings: vp9.VP9):
+            def _apply_rate_type_settings_from_widgets(self, vp9_settings: video_codec.VP9):
                 if self.crf_check_button.get_active():
                     vp9_settings.is_crf_enabled = True
                     vp9_settings.crf = self.crf_scale.get_value()
@@ -3697,7 +3755,7 @@ class SettingsSidebarWidgets:
                     vp9_settings.crf = self.crf_scale.get_value()
                     vp9_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
 
-            def _apply_bitrate_type_settings_from_widgets(self, vp9_settings: vp9.VP9):
+            def _apply_bitrate_type_settings_from_widgets(self, vp9_settings: video_codec.VP9):
                 if self.crf_check_button.get_active():
                     return
 
@@ -3712,7 +3770,7 @@ class SettingsSidebarWidgets:
                     vp9_settings.maxrate = self.max_bitrate_spin_button.get_value_as_int()
                     vp9_settings.minrate = self.min_bitrate_spin_button.get_value_as_int()
 
-            def _apply_encode_pass_setting_from_widgets(self, vp9_settings: vp9.VP9):
+            def _apply_encode_pass_setting_from_widgets(self, vp9_settings: video_codec.VP9):
                 if self.two_pass_switch.get_active():
                     vp9_settings.encode_pass = 1
 
@@ -3720,14 +3778,15 @@ class SettingsSidebarWidgets:
                 if self.is_widgets_setting_up:
                     return
 
-                threading.Thread(target=self.apply_settings_from_widgets, args=()).start()
+                is_delay_enabled = (self.crf_event_controller_scroll in args)
 
-            def on_scale_adjust_bounds(self, scale, value):
-                if self.is_widgets_setting_up:
+                threading.Thread(target=self.apply_settings_from_widgets, args=(is_delay_enabled,)).start()
+
+            def on_scale_gesture_stopped(self, user_data, gesture_click):
+                if gesture_click.get_device():
                     return
 
-                if int(value) != int(scale.get_value()):
-                    self.on_widget_changed_clicked_set(scale)
+                self.on_widget_changed_clicked_set()
 
             def on_crf_check_button_toggled(self, check_button):
                 if check_button.get_active():
@@ -3842,80 +3901,52 @@ class SettingsSidebarWidgets:
                 self.codec_settings_group.add(self.multi_pass_row)
 
             def _setup_preset_row(self):
-                self._setup_preset_combobox()
+                self._setup_preset_string_list()
 
-                self.preset_row = Adw.ActionRow()
+                self.preset_row = Adw.ComboRow()
                 self.preset_row.set_title('Preset')
                 self.preset_row.set_subtitle('Encoder preset')
-                self.preset_row.add_suffix(self.preset_combobox)
+                self.preset_row.set_model(self.preset_string_list)
+                self.preset_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_preset_combobox(self):
-                self.preset_combobox = Gtk.ComboBoxText()
-                self.preset_combobox.set_vexpand(False)
-                self.preset_combobox.set_valign(Gtk.Align.CENTER)
-
-                for preset_setting in h264_nvenc.H264Nvenc.PRESET:
-                    self.preset_combobox.append_text(preset_setting)
-
-                self.preset_combobox.set_active(0)
-                self.preset_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_preset_string_list(self):
+                self.preset_string_list = Gtk.StringList.new(video_codec.H264Nvenc.PRESET)
 
             def _setup_profile_row(self):
-                self._setup_profile_combobox()
+                self._setup_profile_string_list()
 
-                self.profile_row = Adw.ActionRow()
+                self.profile_row = Adw.ComboRow()
                 self.profile_row.set_title('Profile')
                 self.profile_row.set_subtitle('Encoder profile')
-                self.profile_row.add_suffix(self.profile_combobox)
+                self.profile_row.set_model(self.profile_string_list)
+                self.profile_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_profile_combobox(self):
-                self.profile_combobox = Gtk.ComboBoxText()
-                self.profile_combobox.set_vexpand(False)
-                self.profile_combobox.set_valign(Gtk.Align.CENTER)
-
-                for profile_setting in h264_nvenc.H264Nvenc.PROFILE:
-                    self.profile_combobox.append_text(profile_setting)
-
-                self.profile_combobox.set_active(0)
-                self.profile_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_profile_string_list(self):
+                self.profile_string_list = Gtk.StringList.new(video_codec.H264Nvenc.PROFILE)
 
             def _setup_level_row(self):
-                self._setup_level_combobox()
+                self._setup_level_string_list()
 
-                self.level_row = Adw.ActionRow()
+                self.level_row = Adw.ComboRow()
                 self.level_row.set_title('Level')
                 self.level_row.set_subtitle('Encoder restrictions')
-                self.level_row.add_suffix(self.level_combobox)
+                self.level_row.set_model(self.level_string_list)
+                self.level_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_level_combobox(self):
-                self.level_combobox = Gtk.ComboBoxText()
-                self.level_combobox.set_vexpand(False)
-                self.level_combobox.set_valign(Gtk.Align.CENTER)
-
-                for level_setting in h264_nvenc.H264Nvenc.LEVEL:
-                    self.level_combobox.append_text(level_setting)
-
-                self.level_combobox.set_active(0)
-                self.level_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_level_string_list(self):
+                self.level_string_list = Gtk.StringList.new(video_codec.H264Nvenc.LEVEL)
 
             def _setup_tune_row(self):
-                self._setup_tune_combobox()
+                self._setup_tune_string_list()
 
-                self.tune_row = Adw.ActionRow()
+                self.tune_row = Adw.ComboRow()
                 self.tune_row.set_title('Tune')
                 self.tune_row.set_subtitle('Encoder tune')
-                self.tune_row.add_suffix(self.tune_combobox)
+                self.tune_row.set_model(self.tune_string_list)
+                self.tune_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
 
-            def _setup_tune_combobox(self):
-                self.tune_combobox = Gtk.ComboBoxText()
-                self.tune_combobox.set_vexpand(False)
-                self.tune_combobox.set_valign(Gtk.Align.CENTER)
-
-                for tune_setting in h264_nvenc.H264Nvenc.TUNE:
-                    self.tune_combobox.append_text(tune_setting)
-
-                self.tune_combobox.set_active(0)
-                self.tune_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_tune_string_list(self):
+                self.tune_string_list = Gtk.StringList.new(video_codec.H264Nvenc.TUNE)
 
             def _setup_rate_type_row(self):
                 self._setup_rate_type_radio_buttons()
@@ -3957,8 +3988,8 @@ class SettingsSidebarWidgets:
 
             def _setup_qp_page(self):
                 self.qp_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                         min=h264_nvenc.H264Nvenc.QP_MIN,
-                                                         max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                         min=video_codec.H264Nvenc.QP_MIN,
+                                                         max=video_codec.H264Nvenc.QP_MAX,
                                                          step=1.0)
                 self.qp_scale.set_value(20)
                 self.qp_scale.set_digits(0)
@@ -3981,7 +4012,7 @@ class SettingsSidebarWidgets:
 
             def _setup_bitrate_spin_button(self):
                 self.bitrate_spin_button = Gtk.SpinButton()
-                self.bitrate_spin_button.set_range(h264_nvenc.H264Nvenc.BITRATE_MIN, h264_nvenc.H264Nvenc.BITRATE_MAX)
+                self.bitrate_spin_button.set_range(video_codec.H264Nvenc.BITRATE_MIN, video_codec.H264Nvenc.BITRATE_MAX)
                 self.bitrate_spin_button.set_digits(0)
                 self.bitrate_spin_button.set_increments(100, 500)
                 self.bitrate_spin_button.set_numeric(True)
@@ -4007,24 +4038,17 @@ class SettingsSidebarWidgets:
                 self.bitrate_type_horizontal_box.append(self.constant_bitrate_check_button)
 
             def _setup_multi_pass_row(self):
-                self._setup_multi_pass_combobox()
+                self._setup_multi_pass_string_list()
 
-                self.multi_pass_row = Adw.ActionRow()
+                self.multi_pass_row = Adw.ComboRow()
                 self.multi_pass_row.set_title('Multipass')
                 self.multi_pass_row.set_subtitle('Encoder multipass')
-                self.multi_pass_row.add_suffix(self.multi_pass_combobox)
+                self.multi_pass_row.set_model(self.multi_pass_string_list)
+                self.multi_pass_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.multi_pass_row.set_sensitive(False)
 
-            def _setup_multi_pass_combobox(self):
-                self.multi_pass_combobox = Gtk.ComboBoxText()
-                self.multi_pass_combobox.set_vexpand(False)
-                self.multi_pass_combobox.set_valign(Gtk.Align.CENTER)
-
-                for multi_pass_setting in h264_nvenc.H264Nvenc.MULTI_PASS:
-                    self.multi_pass_combobox.append_text(multi_pass_setting)
-
-                self.multi_pass_combobox.set_active(0)
-                self.multi_pass_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_multi_pass_string_list(self):
+                self.multi_pass_string_list = Gtk.StringList.new(video_codec.H264Nvenc.MULTI_PASS)
 
             def _setup_codec_advanced_settings(self):
                 self._setup_custom_quantizer_row()
@@ -4105,8 +4129,8 @@ class SettingsSidebarWidgets:
 
             def _setup_qp_i_scale(self):
                 self.qp_i_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                           min=h264_nvenc.H264Nvenc.QP_MIN,
-                                                           max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                           min=video_codec.H264Nvenc.QP_MIN,
+                                                           max=video_codec.H264Nvenc.QP_MAX,
                                                            step=1.0)
                 self.qp_i_scale.set_value(20.0)
                 self.qp_i_scale.set_digits(1)
@@ -4126,8 +4150,8 @@ class SettingsSidebarWidgets:
 
             def _setup_qp_p_scale(self):
                 self.qp_p_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                           min=h264_nvenc.H264Nvenc.QP_MIN,
-                                                           max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                           min=video_codec.H264Nvenc.QP_MIN,
+                                                           max=video_codec.H264Nvenc.QP_MAX,
                                                            step=1.0)
                 self.qp_p_scale.set_value(20.0)
                 self.qp_p_scale.set_digits(1)
@@ -4147,8 +4171,8 @@ class SettingsSidebarWidgets:
 
             def _setup_qp_b_scale(self):
                 self.qp_b_scale = Gtk.Scale.new_with_range(orientation=Gtk.Orientation.HORIZONTAL,
-                                                           min=h264_nvenc.H264Nvenc.QP_MIN,
-                                                           max=h264_nvenc.H264Nvenc.QP_MAX,
+                                                           min=video_codec.H264Nvenc.QP_MIN,
+                                                           max=video_codec.H264Nvenc.QP_MAX,
                                                            step=1.0)
                 self.qp_b_scale.set_value(20.0)
                 self.qp_b_scale.set_digits(1)
@@ -4158,24 +4182,17 @@ class SettingsSidebarWidgets:
                 self.qp_b_scale.connect('adjust-bounds', self.on_scale_adjust_bounds)
 
             def _setup_rc_row(self):
-                self._setup_rc_combobox()
+                self._setup_rc_string_list()
 
-                self.rc_row = Adw.ActionRow()
+                self.rc_row = Adw.ComboRow()
                 self.rc_row.set_title('Rate Control')
                 self.rc_row.set_subtitle('Rate control type')
-                self.rc_row.add_suffix(self.rc_combobox)
+                self.rc_row.set_model(self.rc_string_list)
+                self.rc_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.rc_row.set_sensitive(False)
 
-            def _setup_rc_combobox(self):
-                self.rc_combobox = Gtk.ComboBoxText()
-                self.rc_combobox.set_vexpand(False)
-                self.rc_combobox.set_valign(Gtk.Align.CENTER)
-
-                for rc_setting in h264_nvenc.H264Nvenc.RATE_CONTROL:
-                    self.rc_combobox.append_text(rc_setting)
-
-                self.rc_combobox.set_active(0)
-                self.rc_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_rc_string_list(self):
+                self.rc_string_list = Gtk.StringList.new(video_codec.H264Nvenc.RATE_CONTROL)
 
             def _setup_rc_lookahead_row(self):
                 self._setup_rc_lookahead_spin_button()
@@ -4188,8 +4205,8 @@ class SettingsSidebarWidgets:
 
             def _setup_rc_lookahead_spin_button(self):
                 self.rc_lookahead_spin_button = Gtk.SpinButton()
-                self.rc_lookahead_spin_button.set_range(h264_nvenc.H264Nvenc.RC_LOOKAHEAD_MIN,
-                                                        h264_nvenc.H264Nvenc.RC_LOOKAHEAD_MAX)
+                self.rc_lookahead_spin_button.set_range(video_codec.H264Nvenc.RC_LOOKAHEAD_MIN,
+                                                        video_codec.H264Nvenc.RC_LOOKAHEAD_MAX)
                 self.rc_lookahead_spin_button.set_digits(0)
                 self.rc_lookahead_spin_button.set_increments(10, 50)
                 self.rc_lookahead_spin_button.set_numeric(True)
@@ -4210,8 +4227,8 @@ class SettingsSidebarWidgets:
 
             def _setup_surfaces_spin_button(self):
                 self.surfaces_spin_button = Gtk.SpinButton()
-                self.surfaces_spin_button.set_range(h264_nvenc.H264Nvenc.SURFACES_MIN,
-                                                    h264_nvenc.H264Nvenc.SURFACES_MAX)
+                self.surfaces_spin_button.set_range(video_codec.H264Nvenc.SURFACES_MIN,
+                                                    video_codec.H264Nvenc.SURFACES_MAX)
                 self.surfaces_spin_button.set_digits(0)
                 self.surfaces_spin_button.set_increments(2, 8)
                 self.surfaces_spin_button.set_numeric(True)
@@ -4232,8 +4249,8 @@ class SettingsSidebarWidgets:
 
             def _setup_b_frames_spin_button(self):
                 self.b_frames_spin_button = Gtk.SpinButton()
-                self.b_frames_spin_button.set_range(h264_nvenc.H264Nvenc.B_FRAMES_MIN,
-                                                    h264_nvenc.H264Nvenc.B_FRAMES_MAX)
+                self.b_frames_spin_button.set_range(video_codec.H264Nvenc.B_FRAMES_MIN,
+                                                    video_codec.H264Nvenc.B_FRAMES_MAX)
                 self.b_frames_spin_button.set_digits(0)
                 self.b_frames_spin_button.set_increments(1, 4)
                 self.b_frames_spin_button.set_numeric(True)
@@ -4254,7 +4271,7 @@ class SettingsSidebarWidgets:
 
             def _setup_refs_spin_button(self):
                 self.refs_spin_button = Gtk.SpinButton()
-                self.refs_spin_button.set_range(h264_nvenc.H264Nvenc.REFS_MIN, h264_nvenc.H264Nvenc.REFS_MAX)
+                self.refs_spin_button.set_range(video_codec.H264Nvenc.REFS_MIN, video_codec.H264Nvenc.REFS_MAX)
                 self.refs_spin_button.set_digits(0)
                 self.refs_spin_button.set_increments(1, 4)
                 self.refs_spin_button.set_numeric(True)
@@ -4371,8 +4388,8 @@ class SettingsSidebarWidgets:
 
             def _setup_aq_strength_spin_button(self):
                 self.aq_strength_spin_button = Gtk.SpinButton()
-                self.aq_strength_spin_button.set_range(h264_nvenc.H264Nvenc.AQ_STRENGTH_MIN,
-                                                       h264_nvenc.H264Nvenc.AQ_STRENGTH_MAX)
+                self.aq_strength_spin_button.set_range(video_codec.H264Nvenc.AQ_STRENGTH_MIN,
+                                                       video_codec.H264Nvenc.AQ_STRENGTH_MAX)
                 self.aq_strength_spin_button.set_digits(0)
                 self.aq_strength_spin_button.set_increments(1, 4)
                 self.aq_strength_spin_button.set_numeric(True)
@@ -4412,44 +4429,30 @@ class SettingsSidebarWidgets:
                 self.weighted_pred_switch.connect('state-set', self.on_widget_changed_clicked_set)
 
             def _setup_coder_row(self):
-                self._setup_coder_combobox()
+                self._setup_coder_string_list()
 
-                self.coder_row = Adw.ActionRow()
+                self.coder_row = Adw.ComboRow()
                 self.coder_row.set_title('Coder')
                 self.coder_row.set_subtitle('Coder')
-                self.coder_row.add_suffix(self.coder_combobox)
+                self.coder_row.set_model(self.coder_string_list)
+                self.coder_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.coder_row.set_sensitive(False)
 
-            def _setup_coder_combobox(self):
-                self.coder_combobox = Gtk.ComboBoxText()
-                self.coder_combobox.set_vexpand(False)
-                self.coder_combobox.set_valign(Gtk.Align.CENTER)
-
-                for coder_setting in h264_nvenc.H264Nvenc.CODER:
-                    self.coder_combobox.append_text(coder_setting)
-
-                self.coder_combobox.set_active(0)
-                self.coder_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_coder_string_list(self):
+                self.coder_string_list = Gtk.StringList.new(video_codec.H264Nvenc.CODER)
 
             def _setup_b_ref_mode_row(self):
-                self._setup_b_ref_mode_combobox()
+                self._setup_b_ref_mode_string_list()
 
-                self.b_ref_mode_row = Adw.ActionRow()
+                self.b_ref_mode_row = Adw.ComboRow()
                 self.b_ref_mode_row.set_title('B-Ref Mode')
                 self.b_ref_mode_row.set_subtitle('B-Ref Mode')
-                self.b_ref_mode_row.add_suffix(self.b_ref_mode_combobox)
+                self.b_ref_mode_row.set_model(self.b_ref_mode_string_list)
+                self.b_ref_mode_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
                 self.b_ref_mode_row.set_sensitive(False)
 
-            def _setup_b_ref_mode_combobox(self):
-                self.b_ref_mode_combobox = Gtk.ComboBoxText()
-                self.b_ref_mode_combobox.set_vexpand(False)
-                self.b_ref_mode_combobox.set_valign(Gtk.Align.CENTER)
-
-                for b_ref_mode_setting in h264_nvenc.H264Nvenc.BREF_MODE:
-                    self.b_ref_mode_combobox.append_text(b_ref_mode_setting)
-
-                self.b_ref_mode_combobox.set_active(0)
-                self.b_ref_mode_combobox.connect('changed', self.on_widget_changed_clicked_set)
+            def _setup_b_ref_mode_string_list(self):
+                self.b_ref_mode_string_list = Gtk.StringList.new(video_codec.H264Nvenc.BREF_MODE)
 
             def _setup_tier_row(self):
                 self._setup_tier_switch()
@@ -4495,13 +4498,13 @@ class SettingsSidebarWidgets:
                 self.tier_row.set_sensitive(False)
                 self.b_adapt_row.set_sensitive(self.advanced_settings_switch.get_active() and True)
                 self.coder_row.set_sensitive(self.advanced_settings_switch.get_active() and True)
-                self._repopulate_combobox_text(self.preset_combobox, h264_nvenc.H264Nvenc.PRESET)
-                self._repopulate_combobox_text(self.profile_combobox, h264_nvenc.H264Nvenc.PROFILE)
-                self._repopulate_combobox_text(self.level_combobox, h264_nvenc.H264Nvenc.LEVEL)
-                self._repopulate_combobox_text(self.tune_combobox, h264_nvenc.H264Nvenc.TUNE)
-                self._repopulate_combobox_text(self.rc_combobox, h264_nvenc.H264Nvenc.RATE_CONTROL)
-                self._repopulate_combobox_text(self.multi_pass_combobox, h264_nvenc.H264Nvenc.MULTI_PASS)
-                self._repopulate_combobox_text(self.b_ref_mode_combobox, h264_nvenc.H264Nvenc.BREF_MODE)
+                self._repopulate_combo_row(self.preset_row, video_codec.H264Nvenc.PRESET)
+                self._repopulate_combo_row(self.profile_row, video_codec.H264Nvenc.PROFILE)
+                self._repopulate_combo_row(self.level_row, video_codec.H264Nvenc.LEVEL)
+                self._repopulate_combo_row(self.tune_row, video_codec.H264Nvenc.TUNE)
+                self._repopulate_combo_row(self.rc_row, video_codec.H264Nvenc.RATE_CONTROL)
+                self._repopulate_combo_row(self.multi_pass_row, video_codec.H264Nvenc.MULTI_PASS)
+                self._repopulate_combo_row(self.b_ref_mode_row, video_codec.H264Nvenc.BREF_MODE)
 
             def set_h265_advanced_settings_state(self):
                 self._is_h264_state = False
@@ -4510,181 +4513,179 @@ class SettingsSidebarWidgets:
                 self.tier_row.set_sensitive(self.advanced_settings_switch.get_active() and True)
                 self.b_adapt_row.set_sensitive(False)
                 self.coder_row.set_sensitive(False)
-                self._repopulate_combobox_text(self.preset_combobox, hevc_nvenc.HevcNvenc.PRESET)
-                self._repopulate_combobox_text(self.profile_combobox, hevc_nvenc.HevcNvenc.PROFILE)
-                self._repopulate_combobox_text(self.level_combobox, hevc_nvenc.HevcNvenc.LEVEL)
-                self._repopulate_combobox_text(self.tune_combobox, hevc_nvenc.HevcNvenc.TUNE)
-                self._repopulate_combobox_text(self.rc_combobox, hevc_nvenc.HevcNvenc.RATE_CONTROL)
-                self._repopulate_combobox_text(self.multi_pass_combobox, hevc_nvenc.HevcNvenc.MULTI_PASS)
-                self._repopulate_combobox_text(self.b_ref_mode_combobox, hevc_nvenc.HevcNvenc.BREF_MODE)
+                self._repopulate_combo_row(self.preset_row, video_codec.HevcNvenc.PRESET)
+                self._repopulate_combo_row(self.profile_row, video_codec.HevcNvenc.PROFILE)
+                self._repopulate_combo_row(self.level_row, video_codec.HevcNvenc.LEVEL)
+                self._repopulate_combo_row(self.tune_row, video_codec.HevcNvenc.TUNE)
+                self._repopulate_combo_row(self.rc_row, video_codec.HevcNvenc.RATE_CONTROL)
+                self._repopulate_combo_row(self.multi_pass_row, video_codec.HevcNvenc.MULTI_PASS)
+                self._repopulate_combo_row(self.b_ref_mode_row, video_codec.HevcNvenc.BREF_MODE)
 
-            def _repopulate_combobox_text(self, combobox: Gtk.ComboBoxText, items_list: list):
+            def _repopulate_combo_row(self, combo_row: Adw.ComboRow, items_list: list):
                 self.is_widgets_setting_up = True
 
-                combobox.remove_all()
-
-                for item in items_list:
-                    combobox.append_text(item)
-
-                combobox.set_active(0)
+                model_string_list = Gtk.StringList.new(items_list)
+                combo_row.set_model(model_string_list)
 
                 self.is_widgets_setting_up = False
 
             def set_widgets_setting_up(self, is_widgets_setting_up: bool):
                 self.is_widgets_setting_up = is_widgets_setting_up
 
-            def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+            def apply_settings_to_widgets(self, encode_task: task.Encode):
                 GLib.idle_add(self.set_widgets_setting_up, True)
-                self._apply_preset_setting_to_widgets(encoding_task)
-                self._apply_profile_setting_to_widgets(encoding_task)
-                self._apply_level_setting_to_widgets(encoding_task)
-                self._apply_tune_setting_to_widgets(encoding_task)
-                self._apply_rate_type_settings_to_widgets(encoding_task)
-                self._apply_qp_setting_to_widgets(encoding_task)
-                self._apply_bitrate_type_settings_to_widgets(encoding_task)
-                self._apply_advanced_settings_to_widgets(encoding_task)
-                self._apply_advanced_settings_state_to_widgets(encoding_task)
+                self._apply_preset_setting_to_widgets(encode_task)
+                self._apply_profile_setting_to_widgets(encode_task)
+                self._apply_level_setting_to_widgets(encode_task)
+                self._apply_tune_setting_to_widgets(encode_task)
+                self._apply_rate_type_settings_to_widgets(encode_task)
+                self._apply_qp_setting_to_widgets(encode_task)
+                self._apply_bitrate_type_settings_to_widgets(encode_task)
+                self._apply_advanced_settings_to_widgets(encode_task)
+                self._apply_advanced_settings_state_to_widgets(encode_task)
                 GLib.idle_add(self.set_widgets_setting_up, False)
 
-            def _apply_preset_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.preset_combobox.set_active, encoding_task.video_codec.preset)
+            def _apply_preset_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.preset_row.set_selected, encode_task.get_video_codec().preset)
 
-            def _apply_profile_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.profile_combobox.set_active, encoding_task.video_codec.profile)
+            def _apply_profile_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.profile_row.set_selected, encode_task.get_video_codec().profile)
 
-            def _apply_level_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.level_combobox.set_active, encoding_task.video_codec.level)
+            def _apply_level_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.level_row.set_selected, encode_task.get_video_codec().level)
 
-            def _apply_tune_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.tune_combobox.set_active, encoding_task.video_codec.tune)
+            def _apply_tune_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.tune_row.set_selected, encode_task.get_video_codec().tune)
 
-            def _apply_rate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_qp_enabled:
+            def _apply_rate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_qp_enabled:
                     GLib.idle_add(self.qp_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.bitrate_check_button.set_active, True)
 
-            def _apply_qp_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.qp_scale.set_value, encoding_task.video_codec.qp)
+            def _apply_qp_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.qp_scale.set_value, encode_task.get_video_codec().qp)
 
-            def _apply_bitrate_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.bitrate_spin_button.set_value, encoding_task.video_codec.bitrate)
+            def _apply_bitrate_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.bitrate_spin_button.set_value, encode_task.get_video_codec().bitrate)
 
-            def _apply_bitrate_type_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.is_bitrate_enabled:
-                    if encoding_task.video_codec.cbr:
+            def _apply_bitrate_type_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().is_bitrate_enabled:
+                    if encode_task.get_video_codec().cbr:
                         GLib.idle_add(self.constant_bitrate_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.average_bitrate_check_button.set_active, True)
 
-                GLib.idle_add(self.multi_pass_combobox.set_active, encoding_task.video_codec.multi_pass)
+                GLib.idle_add(self.multi_pass_row.set_selected, encode_task.get_video_codec().multi_pass)
 
-            def _apply_advanced_settings_state_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.is_video_h264_nvenc():
+            def _apply_advanced_settings_state_to_widgets(self, encode_task: task.Encode):
+                if video_codec.is_codec_h264_nvenc(encode_task):
                     GLib.idle_add(self.set_h264_advanced_settings_state)
                 else:
                     GLib.idle_add(self.set_h265_advanced_settings_state)
 
-            def _apply_advanced_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.advanced_settings_switch.set_active, encoding_task.video_codec.is_advanced_enabled)
-                self._apply_custom_qp_settings_to_widgets(encoding_task)
-                self._apply_rc_setting_to_widgets(encoding_task)
-                self._apply_rc_lookahead_setting_to_widgets(encoding_task)
-                self._apply_surfaces_setting_to_widgets(encoding_task)
-                self._apply_tier_setting_to_widgets(encoding_task)
-                self._apply_b_frames_setting_to_widgets(encoding_task)
-                self._apply_refs_setting_to_widgets(encoding_task)
-                self._apply_no_scenecut_setting_to_widgets(encoding_task)
-                self._apply_forced_idr_setting_to_widgets(encoding_task)
-                self._apply_b_adapt_setting_to_widgets(encoding_task)
-                self._apply_aq_method_settings_to_widgets(encoding_task)
-                self._apply_non_ref_p_setting_to_widgets(encoding_task)
-                self._apply_strict_gop_setting_to_widgets(encoding_task)
-                self._apply_aq_strength_setting_to_widgets(encoding_task)
-                self._apply_bluray_compat_setting_to_widgets(encoding_task)
-                self._apply_weighted_pred_setting_to_widgets(encoding_task)
-                self._apply_coder_setting_to_widgets(encoding_task)
-                self._apply_b_ref_mode_setting_to_widgets(encoding_task)
+            def _apply_advanced_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.advanced_settings_switch.set_active,
+                              encode_task.get_video_codec().is_advanced_enabled)
+                self._apply_custom_qp_settings_to_widgets(encode_task)
+                self._apply_rc_setting_to_widgets(encode_task)
+                self._apply_rc_lookahead_setting_to_widgets(encode_task)
+                self._apply_surfaces_setting_to_widgets(encode_task)
+                self._apply_tier_setting_to_widgets(encode_task)
+                self._apply_b_frames_setting_to_widgets(encode_task)
+                self._apply_refs_setting_to_widgets(encode_task)
+                self._apply_no_scenecut_setting_to_widgets(encode_task)
+                self._apply_forced_idr_setting_to_widgets(encode_task)
+                self._apply_b_adapt_setting_to_widgets(encode_task)
+                self._apply_aq_method_settings_to_widgets(encode_task)
+                self._apply_non_ref_p_setting_to_widgets(encode_task)
+                self._apply_strict_gop_setting_to_widgets(encode_task)
+                self._apply_aq_strength_setting_to_widgets(encode_task)
+                self._apply_bluray_compat_setting_to_widgets(encode_task)
+                self._apply_weighted_pred_setting_to_widgets(encode_task)
+                self._apply_coder_setting_to_widgets(encode_task)
+                self._apply_b_ref_mode_setting_to_widgets(encode_task)
 
-            def _apply_custom_qp_settings_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.custom_quantizer_switch.set_active, encoding_task.video_codec.is_qp_custom_enabled)
-                GLib.idle_add(self.qp_i_scale.set_value, encoding_task.video_codec.qp_i)
-                GLib.idle_add(self.qp_p_scale.set_value, encoding_task.video_codec.qp_p)
-                GLib.idle_add(self.qp_b_scale.set_value, encoding_task.video_codec.qp_b)
+            def _apply_custom_qp_settings_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.custom_quantizer_switch.set_active,
+                              encode_task.get_video_codec().is_qp_custom_enabled)
+                GLib.idle_add(self.qp_i_scale.set_value, encode_task.get_video_codec().qp_i)
+                GLib.idle_add(self.qp_p_scale.set_value, encode_task.get_video_codec().qp_p)
+                GLib.idle_add(self.qp_b_scale.set_value, encode_task.get_video_codec().qp_b)
 
-            def _apply_rc_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rc_combobox.set_active, encoding_task.video_codec.rc)
+            def _apply_rc_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rc_row.set_selected, encode_task.get_video_codec().rc)
 
-            def _apply_rc_lookahead_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.rc_lookahead_spin_button.set_value, encoding_task.video_codec.rc_lookahead)
+            def _apply_rc_lookahead_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.rc_lookahead_spin_button.set_value, encode_task.get_video_codec().rc_lookahead)
 
-            def _apply_surfaces_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.surfaces_spin_button.set_value, encoding_task.video_codec.surfaces)
+            def _apply_surfaces_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.surfaces_spin_button.set_value, encode_task.get_video_codec().surfaces)
 
-            def _apply_tier_setting_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.is_video_hevc_nvenc():
-                    GLib.idle_add(self.tier_switch.set_active, encoding_task.video_codec.tier)
+            def _apply_tier_setting_to_widgets(self, encode_task: task.Encode):
+                if video_codec.is_codec_hevc_nvenc(encode_task):
+                    GLib.idle_add(self.tier_switch.set_active, encode_task.get_video_codec().tier)
 
-            def _apply_b_frames_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_frames_spin_button.set_value, encoding_task.video_codec.b_frames)
+            def _apply_b_frames_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_frames_spin_button.set_value, encode_task.get_video_codec().b_frames)
 
-            def _apply_refs_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.refs_spin_button.set_value, encoding_task.video_codec.refs)
+            def _apply_refs_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.refs_spin_button.set_value, encode_task.get_video_codec().refs)
 
-            def _apply_no_scenecut_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.no_scenecut_switch.set_active, encoding_task.video_codec.no_scenecut)
+            def _apply_no_scenecut_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.no_scenecut_switch.set_active, encode_task.get_video_codec().no_scenecut)
 
-            def _apply_forced_idr_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.forced_idr_switch.set_active, encoding_task.video_codec.forced_idr)
+            def _apply_forced_idr_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.forced_idr_switch.set_active, encode_task.get_video_codec().forced_idr)
 
-            def _apply_b_adapt_setting_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.is_video_h264_nvenc():
-                    GLib.idle_add(self.b_adapt_switch.set_active, encoding_task.video_codec.b_adapt)
+            def _apply_b_adapt_setting_to_widgets(self, encode_task: task.Encode):
+                if video_codec.is_codec_h264_nvenc(encode_task):
+                    GLib.idle_add(self.b_adapt_switch.set_active, encode_task.get_video_codec().b_adapt)
 
-            def _apply_aq_method_settings_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.video_codec.spatial_aq:
+            def _apply_aq_method_settings_to_widgets(self, encode_task: task.Encode):
+                if encode_task.get_video_codec().spatial_aq:
                     GLib.idle_add(self.spatial_aq_check_button.set_active, True)
                 else:
                     GLib.idle_add(self.temporal_aq_check_button.set_active, True)
 
-            def _apply_non_ref_p_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.non_ref_p_switch.set_active, encoding_task.video_codec.non_ref_p)
+            def _apply_non_ref_p_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.non_ref_p_switch.set_active, encode_task.get_video_codec().non_ref_p)
 
-            def _apply_strict_gop_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.strict_gop_switch.set_active, encoding_task.video_codec.strict_gop)
+            def _apply_strict_gop_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.strict_gop_switch.set_active, encode_task.get_video_codec().strict_gop)
 
-            def _apply_aq_strength_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.aq_strength_spin_button.set_value, encoding_task.video_codec.aq_strength)
+            def _apply_aq_strength_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.aq_strength_spin_button.set_value, encode_task.get_video_codec().aq_strength)
 
-            def _apply_bluray_compat_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.bluray_compat_switch.set_active, encoding_task.video_codec.bluray_compat)
+            def _apply_bluray_compat_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.bluray_compat_switch.set_active, encode_task.get_video_codec().bluray_compat)
 
-            def _apply_weighted_pred_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.weighted_pred_switch.set_active, encoding_task.video_codec.weighted_pred)
+            def _apply_weighted_pred_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.weighted_pred_switch.set_active, encode_task.get_video_codec().weighted_pred)
 
-            def _apply_coder_setting_to_widgets(self, encoding_task: encoding.Task):
-                if encoding_task.is_video_h264_nvenc():
-                    GLib.idle_add(self.coder_combobox.set_active, encoding_task.video_codec.coder)
+            def _apply_coder_setting_to_widgets(self, encode_task: task.Encode):
+                if video_codec.is_codec_h264_nvenc(encode_task):
+                    GLib.idle_add(self.coder_row.set_selected, encode_task.get_video_codec().coder)
 
-            def _apply_b_ref_mode_setting_to_widgets(self, encoding_task: encoding.Task):
-                GLib.idle_add(self.b_ref_mode_combobox.set_active, encoding_task.video_codec.b_ref_mode)
+            def _apply_b_ref_mode_setting_to_widgets(self, encode_task: task.Encode):
+                GLib.idle_add(self.b_ref_mode_row.set_selected, encode_task.get_video_codec().b_ref_mode)
 
             def apply_settings_from_widgets(self, is_compatibilty_check_enabled=True):
                 if self._is_h264_state:
-                    nvenc_settings = h264_nvenc.H264Nvenc()
+                    nvenc_settings = video_codec.H264Nvenc()
                 else:
-                    nvenc_settings = hevc_nvenc.HevcNvenc()
+                    nvenc_settings = video_codec.HevcNvenc()
 
-                nvenc_settings.preset = self.preset_combobox.get_active()
-                nvenc_settings.profile = self.profile_combobox.get_active()
-                nvenc_settings.level = self.level_combobox.get_active()
-                nvenc_settings.tune = self.tune_combobox.get_active()
+                nvenc_settings.preset = self.preset_row.get_selected()
+                nvenc_settings.profile = self.profile_row.get_selected()
+                nvenc_settings.level = self.level_row.get_selected()
+                nvenc_settings.tune = self.tune_row.get_selected()
                 nvenc_settings.is_advanced_enabled = self.advanced_settings_switch.get_active()
 
                 self._apply_rate_type_settings_from_widgets(nvenc_settings)
 
                 if self.advanced_settings_switch.get_active():
-                    nvenc_settings.rc = self.rc_combobox.get_active()
+                    nvenc_settings.rc = self.rc_row.get_selected()
                     nvenc_settings.rc_lookahead = self.rc_lookahead_spin_button.get_value_as_int()
                     nvenc_settings.surfaces = self.surfaces_spin_button.get_value_as_int()
                     nvenc_settings.b_frames = self.b_frames_spin_button.get_value_as_int()
@@ -4695,7 +4696,7 @@ class SettingsSidebarWidgets:
                     nvenc_settings.strict_gop = self.strict_gop_switch.get_active()
                     nvenc_settings.bluray_compat = self.bluray_compat_switch.get_active()
                     nvenc_settings.weighted_pred = self.weighted_pred_switch.get_active()
-                    nvenc_settings.b_ref_mode = self.b_ref_mode_combobox.get_active()
+                    nvenc_settings.b_ref_mode = self.b_ref_mode_row.get_selected()
 
                     self._apply_tier_setting_from_widgets(nvenc_settings)
                     self._apply_coder_setting_from_widgets(nvenc_settings)
@@ -4706,40 +4707,41 @@ class SettingsSidebarWidgets:
                 is_settings_compatible = None
 
                 for input_row in self.inputs_page.get_selected_rows():
-                    encoding_task = input_row.encoding_task
-                    encoding_task.video_codec = copy.deepcopy(nvenc_settings)
+                    encode_task = input_row.encode_task
+                    encode_task.set_video_codec(copy.deepcopy(nvenc_settings))
 
                     if is_settings_compatible is None:
-                        is_settings_compatible = nvidia_helper.Compatibility.is_encoding_task_compatible(encoding_task)
-                    print(encoding_task.get_info())
+                        is_settings_compatible = ffmpeg_helper.Compatibility.is_video_codec_compatible(encode_task)
+                    print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
                 if is_compatibilty_check_enabled:
                     GLib.idle_add(self.show_settings_not_compatible_message, is_settings_compatible)
 
-                self.inputs_page.update_preview_page_encoding_task()
+                self.inputs_page.update_preview_page_encode_task()
 
             def _apply_rate_type_settings_from_widgets(self,
-                                                       nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                                                       nvenc_settings: video_codec.H264Nvenc | video_codec.HevcNvenc):
                 if self.qp_check_button.get_active():
                     nvenc_settings.qp = self.qp_scale.get_value()
                 else:
                     nvenc_settings.bitrate = self.bitrate_spin_button.get_value_as_int()
                     nvenc_settings.cbr = self.constant_bitrate_check_button.get_active()
-                    nvenc_settings.multi_pass = self.multi_pass_combobox.get_active()
+                    nvenc_settings.multi_pass = self.multi_pass_row.get_selected()
 
-            def _apply_tier_setting_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+            def _apply_tier_setting_from_widgets(self, nvenc_settings: video_codec.H264Nvenc | video_codec.HevcNvenc):
                 if self._is_h265_state:
                     nvenc_settings.tier = self.tier_switch.get_active()
 
-            def _apply_coder_setting_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+            def _apply_coder_setting_from_widgets(self, nvenc_settings: video_codec.H264Nvenc | video_codec.HevcNvenc):
                 if self._is_h264_state:
-                    nvenc_settings.coder = self.coder_combobox.get_active()
+                    nvenc_settings.coder = self.coder_row.get_selected()
 
-            def _apply_b_adapt_setting_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+            def _apply_b_adapt_setting_from_widgets(self,
+                                                    nvenc_settings: video_codec.H264Nvenc | video_codec.HevcNvenc):
                 if self._is_h264_state:
                     nvenc_settings.b_adapt = self.b_adapt_switch.get_active()
 
-            def _apply_aq_settings_from_widgets(self, nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+            def _apply_aq_settings_from_widgets(self, nvenc_settings: video_codec.H264Nvenc | video_codec.HevcNvenc):
                 if self.temporal_aq_check_button.get_active():
                     nvenc_settings.temporal_aq = True
                 else:
@@ -4747,7 +4749,7 @@ class SettingsSidebarWidgets:
                     nvenc_settings.aq_strength = self.aq_strength_spin_button.get_value_as_int()
 
             def _apply_qp_custom_settings_from_widgets(self,
-                                                       nvenc_settings: h264_nvenc.H264Nvenc | hevc_nvenc.HevcNvenc):
+                                                       nvenc_settings: video_codec.H264Nvenc | video_codec.HevcNvenc):
                 if self.custom_quantizer_switch.get_active():
                     nvenc_settings.is_qp_custom_enabled = True
                     nvenc_settings.qp_i = self.qp_i_scale.get_value()
@@ -4885,44 +4887,82 @@ class SettingsSidebarWidgets:
             self.audio_stream_settings_group.set_title('Audio Streams')
             self.audio_stream_settings_group.set_header_suffix(add_audio_stream_button)
 
-        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
-            self.is_widgets_setting_up = is_widgets_setting_up
-
         def update_audio_streams_from_extension(self, general_settings_page):
-            audio_codecs_list = general_settings_page.get_audio_codecs_list()
+            audio_codecs_list = self._get_codecs_list_from_extension(general_settings_page.get_selected_extension())
 
             for audio_stream_row in self.audio_stream_settings_group.children:
                 audio_stream_row.is_widgets_setting_up = True
-                selected_audio_codec = audio_stream_row.audio_codecs_combobox.get_active_text()
+                selected_audio_codec = audio_stream_row.audio_codec_row.get_selected_item().get_string()
 
-                audio_stream_row.repopulate_audio_codecs_combobox(audio_codecs_list)
+                audio_stream_row.repopulate_audio_codec_row(audio_codecs_list)
 
                 if selected_audio_codec in audio_codecs_list:
-                    audio_stream_row.audio_codecs_combobox.set_active(audio_codecs_list.index(selected_audio_codec))
+                    audio_stream_row.audio_codec_row.set_selected(audio_codecs_list.index(selected_audio_codec))
                 else:
-                    audio_stream_row.audio_codecs_combobox.set_active(1)
+                    audio_stream_row.audio_codec_row.set_selected(1)
 
                 audio_stream_row.is_widgets_setting_up = False
 
                 audio_stream_row.update_subtitle()
                 audio_stream_row.apply_settings_from_widgets()
 
-        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        @staticmethod
+        def _get_codecs_list_from_extension(extension: str) -> list[str]:
+            if extension == media_file.MP4_EXTENTION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_MP4_UI
+            elif extension == media_file.MKV_EXTENSION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_MKV_UI
+            elif extension == media_file.TS_EXTENSION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_TS_UI
+            elif extension == media_file.WEBM_EXTENSION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_WEBM_UI
+            elif extension == media_file.M4A_EXTENSION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_M4A_UI
+            elif extension == media_file.AAC_EXTENSION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_AAC_UI
+            elif extension == media_file.OGG_EXTENSION:
+                audio_codecs_list = audio_codec.AUDIO_CODECS_OGG_UI
+            else:
+                audio_codecs_list = ['N/A']
+
+            return audio_codecs_list
+
+        def set_available_state(self):
+            self.audio_stream_settings_group.set_sensitive(True)
+
+        def set_not_available_state(self):
+            self.audio_stream_settings_group.remove_children()
+            self.audio_stream_settings_group.set_sensitive(False)
+
+        def set_widgets_setting_up(self, is_widgets_setting_up: bool):
+            self.is_widgets_setting_up = is_widgets_setting_up
+
+        def apply_settings_to_widgets(self, encode_task: task.Encode):
             GLib.idle_add(self.set_widgets_setting_up, True)
-            GLib.idle_add(self.audio_stream_settings_group.remove_children)
-            self._apply_audio_streams_to_widgets(encoding_task)
+
+            if self._is_encode_task_valid(encode_task):
+                GLib.idle_add(self.set_available_state)
+                GLib.idle_add(self.audio_stream_settings_group.remove_children)
+                self._apply_audio_streams_to_widgets(encode_task)
+            else:
+                GLib.idle_add(self.set_not_available_state)
+
             GLib.idle_add(self.set_widgets_setting_up, False)
 
-        def _apply_audio_streams_to_widgets(self, encoding_task: encoding.Task):
-            for audio_stream, audio_stream_codec in encoding_task.audio_streams.items():
-                GLib.idle_add(self._create_audio_stream_row_from_task, encoding_task, audio_stream, audio_stream_codec)
+        @staticmethod
+        def _is_encode_task_valid(encode_task: task.Encode) -> bool:
+            return encode_task.input_file.is_audio or encode_task.input_file.is_folder
+
+        def _apply_audio_streams_to_widgets(self, encode_task: task.Encode):
+            for audio_stream, audio_stream_codec in encode_task.audio_streams.items():
+                GLib.idle_add(self._create_audio_stream_row_from_task, encode_task, audio_stream, audio_stream_codec)
 
         def _create_audio_stream_row_from_task(self,
-                                               encoding_task: encoding.Task,
-                                               audio_stream: encoding.input.AudioStream,
+                                               encode_task: task.Encode,
+                                               audio_stream: stream.AudioStream,
                                                audio_stream_codec):
             audio_stream_row = self.AudioStreamRow(self,
-                                                   encoding_task,
+                                                   encode_task,
                                                    audio_stream,
                                                    audio_stream_codec,
                                                    self.audio_stream_settings_group.number_of_children + 1)
@@ -4930,13 +4970,13 @@ class SettingsSidebarWidgets:
 
         def on_add_audio_stream_button_clicked(self, button):
             if self.audio_stream_settings_group.number_of_children < 4:
-                encoding_task = self.inputs_page.inputs_list_box.get_selected_row().encoding_task
-                new_audio_stream = copy.deepcopy(encoding_task.input_file.audio_streams[0])
-                encoding_task.add_audio_stream(new_audio_stream)
-                new_audio_stream_codec = aac.Aac(encoding_task.get_audio_stream_index(new_audio_stream))
-                encoding_task.set_audio_stream_codec(new_audio_stream, new_audio_stream_codec)
+                encode_task = self.inputs_page.inputs_list_box.get_selected_row().encode_task
+                new_audio_stream = copy.deepcopy(encode_task.input_file.audio_streams[0])
+                encode_task.add_audio_stream(new_audio_stream)
+                new_audio_stream_codec = audio_codec.Aac(encode_task.get_audio_stream_index(new_audio_stream))
+                encode_task.set_audio_stream_codec(new_audio_stream, new_audio_stream_codec)
                 audio_stream_row = self.AudioStreamRow(self,
-                                                       encoding_task,
+                                                       encode_task,
                                                        new_audio_stream,
                                                        new_audio_stream_codec,
                                                        self.audio_stream_settings_group.number_of_children + 1)
@@ -4945,14 +4985,14 @@ class SettingsSidebarWidgets:
         class AudioStreamRow(Adw.ExpanderRow):
             def __init__(self,
                          audio_codec_settings_page,
-                         encoding_task: encoding.Task,
-                         audio_stream: encoding.input.AudioStream,
+                         encode_task: task.Encode,
+                         audio_stream: stream.AudioStream,
                          audio_stream_codec,
                          row_count: int):
                 super().__init__()
 
                 self.audio_codec_settings_page = audio_codec_settings_page
-                self.encoding_task = encoding_task
+                self.encode_task = encode_task
                 self.audio_stream = audio_stream
                 self.row_count = row_count
                 self.audio_stream_codec = audio_stream_codec
@@ -4972,7 +5012,7 @@ class SettingsSidebarWidgets:
 
                 self.add_row(self.stream_row)
                 self.add_row(self.audio_codec_row)
-                self.add_row(self.channels_setting_row)
+                self.add_row(self.channels_row)
                 self.add_row(self.bitrate_setting_row)
                 self.add_prefix(self.remove_button)
 
@@ -4980,89 +5020,81 @@ class SettingsSidebarWidgets:
                     self.set_codec_copy_state()
 
             def _setup_stream_row(self):
-                self._setup_stream_combobox()
-
-                self.stream_row = Adw.ActionRow()
+                self.stream_row = Adw.ComboRow()
                 self.stream_row.set_title('Selected Stream')
-                self.stream_row.set_subtitle('Audio stream to use')
-                self.stream_row.add_suffix(self.stream_combobox)
+                self._setup_stream_combo_row()
+                self.stream_row.set_use_subtitle(True)
+                self.stream_row.connect('notify::selected-item', self.on_stream_combo_row_notify_selected_item)
 
-            def _setup_stream_combobox(self):
-                self.stream_combobox = Gtk.ComboBoxText()
-                self.stream_combobox.set_vexpand(False)
-                self.stream_combobox.set_valign(Gtk.Align.CENTER)
+            def _setup_stream_combo_row(self):
+                stream_string_list = Gtk.StringList.new()
+                selected_stream_index = 0
 
-                stream_combobox_index = 0
+                for audio_stream in self.encode_task.input_file.audio_streams:
+                    stream_string_list.append(audio_stream.get_info())
 
-                for stream in self.encoding_task.input_file.audio_streams:
-                    self.stream_combobox.append_text(stream.get_info())
+                    if audio_stream.index == self.audio_stream.index:
+                        selected_stream_index = self.encode_task.input_file.audio_streams.index(audio_stream)
 
-                    if stream.index == self.audio_stream.index:
-                        stream_combobox_index = self.encoding_task.input_file.audio_streams.index(stream)
-
-                self.stream_combobox.set_active(stream_combobox_index)
-                self.stream_combobox.connect('changed', self.on_stream_combobox_changed)
+                self.stream_row.set_model(stream_string_list)
+                self.stream_row.set_selected(selected_stream_index)
 
             def _setup_codec_row(self):
-                self._setup_audio_codecs_combobox()
-
-                self.audio_codec_row = Adw.ActionRow()
+                self.audio_codec_row = Adw.ComboRow()
                 self.audio_codec_row.set_title('Codec')
                 self.audio_codec_row.set_subtitle('Audio codec to encode the audio stream')
-                self.audio_codec_row.add_suffix(self.audio_codecs_combobox)
+                self._setup_audio_codecs_combo_row()
+                self.audio_codec_row.connect('notify::selected-item', self.on_audio_codec_combo_row_notify_selected_item)
 
-            def _setup_audio_codecs_combobox(self):
-                self.audio_codecs_combobox = Gtk.ComboBoxText()
-                self.audio_codecs_combobox.set_vexpand(False)
-                self.audio_codecs_combobox.set_valign(Gtk.Align.CENTER)
-
+            def _setup_audio_codecs_combo_row(self):
                 if self.audio_stream_codec:
                     audio_codec_name = self.audio_stream_codec.codec_name
                 else:
                     audio_codec_name = 'copy'
 
-                if self.encoding_task.output_file.extension == '.mp4':
-                    audio_codecs = self.encoding_task.AUDIO_CODECS_MP4_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_MP4.index(audio_codec_name)
-                elif self.encoding_task.output_file.extension == '.mkv':
-                    audio_codecs = self.encoding_task.AUDIO_CODECS_MKV_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_MKV.index(audio_codec_name)
-                elif self.encoding_task.output_file.extension == '.ts':
-                    audio_codecs = self.encoding_task.AUDIO_CODECS_TS_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_TS.index(audio_codec_name)
+                if self.encode_task.output_file.extension == '.mp4':
+                    audio_codecs = audio_codec.AUDIO_CODECS_MP4_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_MP4.index(audio_codec_name)
+                elif self.encode_task.output_file.extension == '.mkv':
+                    audio_codecs = audio_codec.AUDIO_CODECS_MKV_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_MKV.index(audio_codec_name)
+                elif self.encode_task.output_file.extension == '.ts':
+                    audio_codecs = audio_codec.AUDIO_CODECS_TS_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_TS.index(audio_codec_name)
+                elif self.encode_task.output_file.extension == '.webm':
+                    audio_codecs = audio_codec.AUDIO_CODECS_WEBM_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_WEBM.index(audio_codec_name)
+                elif self.encode_task.output_file.extension == '.m4a':
+                    audio_codecs = audio_codec.AUDIO_CODECS_M4A_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_M4A.index(audio_codec_name)
+                elif self.encode_task.output_file.extension == '.aac':
+                    audio_codecs = audio_codec.AUDIO_CODECS_AAC_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_AAC.index(audio_codec_name)
                 else:
-                    audio_codecs = self.encoding_task.AUDIO_CODECS_WEBM_UI
-                    audio_codec_index = self.encoding_task.AUDIO_CODECS_WEBM.index(audio_codec_name)
+                    audio_codecs = audio_codec.AUDIO_CODECS_OGG_UI
+                    audio_codec_index = audio_codec.AUDIO_CODECS_OGG.index(audio_codec_name)
 
-                for audio_codec in audio_codecs:
-                    self.audio_codecs_combobox.append_text(audio_codec)
-
-                self.audio_codecs_combobox.set_active(audio_codec_index)
-                self.audio_codecs_combobox.connect('changed', self.on_audio_codec_combobox_changed)
+                audio_codecs_string_list = Gtk.StringList.new(audio_codecs)
+                self.audio_codec_row.set_model(audio_codecs_string_list)
+                self.audio_codec_row.set_selected(audio_codec_index)
 
             def _setup_channels_setting_row(self):
-                self._setup_channels_combobox()
+                self.channels_row = Adw.ComboRow()
+                self.channels_row.set_title('Channels')
+                self.channels_row.set_subtitle('Number of audio channels the codec should use')
+                self._setup_channels_combo_row()
+                self.channels_row.connect('notify::selected-item', self.on_channels_combo_row_notify_selected_item)
 
-                self.channels_setting_row = Adw.ActionRow()
-                self.channels_setting_row.set_title('Channels')
-                self.channels_setting_row.set_subtitle('Number of audio channels the codec should use')
-                self.channels_setting_row.add_suffix(self.channels_combobox)
-
-            def _setup_channels_combobox(self):
-                self.channels_combobox = Gtk.ComboBoxText()
-
+            def _setup_channels_combo_row(self):
                 if self.audio_stream_codec:
-                    for channel_setting in self.audio_stream_codec.CHANNELS_UI:
-                        self.channels_combobox.append_text(channel_setting)
-
-                    self.channels_combobox.set_active(self.audio_stream_codec.channels)
+                    channels_string_list = Gtk.StringList.new(self.audio_stream_codec.CHANNELS_UI)
+                    channels_index = self.audio_stream_codec.channels
                 else:
-                    self.channels_combobox.append_text('auto')
-                    self.channels_combobox.set_active(0)
+                    channels_string_list = Gtk.StringList.new(['auto'])
+                    channels_index = 0
 
-                self.channels_combobox.set_vexpand(False)
-                self.channels_combobox.set_valign(Gtk.Align.CENTER)
-                self.channels_combobox.connect('changed', self.on_channels_combobox_changed)
+                self.channels_row.set_model(channels_string_list)
+                self.channels_row.set_selected(channels_index)
 
             def _setup_bitrate_setting_row(self):
                 self._setup_bitrate_spin_button()
@@ -5099,70 +5131,69 @@ class SettingsSidebarWidgets:
                 self.set_title(''.join(['Audio Stream ', str(self.row_count)]))
 
             def update_subtitle(self):
-                codec_name = self.audio_codecs_combobox.get_active_text()
+                codec_name = self.audio_codec_row.get_selected_item().get_string()
 
-                if self.channels_combobox.get_active() < 1 or self.audio_codecs_combobox.get_active() < 1:
+                if self.channels_row.get_selected() < 1 or self.audio_codec_row.get_selected() < 1:
                     channels = ' '.join([str(self.audio_stream.channels), 'channels'])
                 else:
-                    channels = ' '.join([self.channels_combobox.get_active_text(), 'channels'])
+                    channels = ' '.join([self.channels_row.get_selected_item().get_string(), 'channels'])
 
                 self.set_subtitle(','.join([codec_name, channels]))
 
-            def _update_channels_combobox(self):
+            def _update_channels_row(self):
                 self.is_widgets_setting_up = True
-                self.channels_combobox.remove_all()
 
                 if self.audio_stream_codec:
-                    for channel_setting in self.audio_stream_codec.CHANNELS_UI:
-                        self.channels_combobox.append_text(channel_setting)
-
-                    self.channels_combobox.set_active(self.audio_stream_codec.channels)
+                    channels_string_list = Gtk.StringList.new(self.audio_stream_codec.CHANNELS_UI)
+                    channels_index = self.audio_stream_codec.channels
                 else:
-                    self.channels_combobox.append_text('auto')
-                    self.channels_combobox.set_active(0)
+                    channels_string_list = Gtk.StringList.new(['auto'])
+                    channels_index = 0
+
+                self.channels_row.set_model(channels_string_list)
+                self.channels_row.set_selected(channels_index)
 
                 self.is_widgets_setting_up = False
 
             def set_codec_copy_state(self):
-                self.channels_setting_row.set_sensitive(False)
+                self.channels_row.set_sensitive(False)
                 self.bitrate_setting_row.set_sensitive(False)
 
-            def repopulate_audio_codecs_combobox(self, audio_codecs_list: list):
-                self.audio_codecs_combobox.remove_all()
-
-                for audio_codec in audio_codecs_list:
-                    self.audio_codecs_combobox.append_text(audio_codec)
+            def repopulate_audio_codec_row(self, audio_codecs_list: list):
+                audio_codecs_string_list = Gtk.StringList.new(audio_codecs_list)
+                self.audio_codec_row.set_model(audio_codecs_string_list)
 
             def apply_settings_from_widgets(self):
                 self._apply_stream_setting_from_widgets()
 
-                if self.audio_codecs_combobox.get_active_text() == 'aac':
-                    audio_stream_codec = aac.Aac(self.encoding_task.get_audio_stream_index(self.audio_stream))
-                elif self.audio_codecs_combobox.get_active_text() == 'opus':
-                    audio_stream_codec = opus.Opus(self.encoding_task.get_audio_stream_index(self.audio_stream))
+                if self.audio_codec_row.get_selected_item().get_string() == 'aac':
+                    audio_stream_codec = audio_codec.Aac(self.encode_task.get_audio_stream_index(self.audio_stream))
+                elif self.audio_codec_row.get_selected_item().get_string() == 'opus':
+                    audio_stream_codec = audio_codec.Opus(self.encode_task.get_audio_stream_index(self.audio_stream))
                 else:
-                    self.encoding_task.set_audio_stream_codec(self.audio_stream, None)
+                    self.encode_task.set_audio_stream_codec(self.audio_stream, None)
 
                     return
 
-                audio_stream_codec.channels = self.channels_combobox.get_active()
+                audio_stream_codec.channels = self.channels_row.get_selected()
                 audio_stream_codec.bitrate = self.bitrate_spin_button.get_value_as_int()
 
-                self.encoding_task.set_audio_stream_codec(self.audio_stream, audio_stream_codec)
+                self.encode_task.set_audio_stream_codec(self.audio_stream, audio_stream_codec)
+                print(ffmpeg_helper.Args.get_args(self.encode_task, cli_args=True))
 
             def _apply_stream_setting_from_widgets(self):
                 new_audio_stream = copy.deepcopy(
-                    self.encoding_task.input_file.audio_streams[self.stream_combobox.get_active()])
-                self.encoding_task.audio_streams = OrderedDict(
-                    (new_audio_stream if audio_stream is self.audio_stream else audio_stream, audio_codec) for
-                    audio_stream, audio_codec in self.encoding_task.audio_streams.items())
+                    self.encode_task.input_file.audio_streams[self.stream_row.get_selected()])
+                self.encode_task.audio_streams = OrderedDict(
+                    (new_audio_stream if audio_stream is self.audio_stream else audio_stream, codec) for
+                    audio_stream, codec in self.encode_task.audio_streams.items())
                 self.audio_stream = new_audio_stream
 
             def on_remove_button_clicked(self, button):
-                self.encoding_task.remove_audio_stream(self.audio_stream)
+                self.encode_task.remove_audio_stream(self.audio_stream)
                 self.audio_codec_settings_page.audio_stream_settings_group.remove(self)
 
-            def on_stream_combobox_changed(self, combobox):
+            def on_stream_combo_row_notify_selected_item(self, *args, **kwargs):
                 if self.is_widgets_setting_up:
                     return
 
@@ -5174,22 +5205,22 @@ class SettingsSidebarWidgets:
 
                 self.apply_settings_from_widgets()
 
-            def on_channels_combobox_changed(self, combobox):
+            def on_channels_combo_row_notify_selected_item(self, *args, **kwargs):
                 if self.is_widgets_setting_up:
                     return
 
                 self.update_subtitle()
                 self.apply_settings_from_widgets()
 
-            def on_audio_codec_combobox_changed(self, combobox):
+            def on_audio_codec_combo_row_notify_selected_item(self, *args, **kwargs):
                 if self.is_widgets_setting_up:
                     return
 
-                is_codec_settings_editable = bool(combobox.get_active())
-                self.channels_setting_row.set_sensitive(is_codec_settings_editable)
+                is_codec_settings_editable = bool(self.audio_codec_row.get_selected())
+                self.channels_row.set_sensitive(is_codec_settings_editable)
                 self.bitrate_setting_row.set_sensitive(is_codec_settings_editable)
 
-                self._update_channels_combobox()
+                self._update_channels_row()
                 self.update_subtitle()
                 self.apply_settings_from_widgets()
 
@@ -5226,53 +5257,74 @@ class SettingsSidebarWidgets:
             self.deinterlace_settings_group.add(self.deinterlace_method_row)
 
         def _setup_deinterlace_method_setting(self):
-            self.deinterlace_method_combobox = Gtk.ComboBoxText()
-            self.deinterlace_method_combobox.set_vexpand(False)
-            self.deinterlace_method_combobox.set_valign(Gtk.Align.CENTER)
+            self._setup_deinterlace_method_string_list()
 
-            for deinterlace_method in filters.Deinterlace.DEINT_FILTERS:
-                self.deinterlace_method_combobox.append_text(deinterlace_method)
-
-            self.deinterlace_method_combobox.set_active(0)
-            self.deinterlace_method_combobox.connect('changed', self.on_widget_changed_clicked_set)
-
-            self.deinterlace_method_row = Adw.ActionRow()
+            self.deinterlace_method_row = Adw.ComboRow()
             self.deinterlace_method_row.set_title('Method')
             self.deinterlace_method_row.set_subtitle('Deinterlacing method')
-            self.deinterlace_method_row.add_suffix(self.deinterlace_method_combobox)
+            self.deinterlace_method_row.set_model(self.deinterlace_method_string_list)
+            self.deinterlace_method_row.connect('notify::selected-item', self.on_widget_changed_clicked_set)
             self.deinterlace_method_row.set_sensitive(False)
+
+        def _setup_deinterlace_method_string_list(self):
+            self.deinterlace_method_string_list = Gtk.StringList.new(filter.Deinterlace.DEINT_FILTERS)
+
+        def set_filters_available_state(self):
+            self.deinterlace_settings_group.set_sensitive(True)
+
+        def set_filters_not_available_state(self):
+            self.deinterlace_method_row.set_selected(0)
+            self.deinterlace_enabled_switch.set_active(False)
+            self.deinterlace_settings_group.set_sensitive(False)
 
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
 
-        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        def apply_settings_to_widgets(self, encode_task: task.Encode):
             GLib.idle_add(self.set_widgets_setting_up, True)
-            self._apply_deinterlace_settings_to_widgets(encoding_task)
+
+            if self.is_encode_task_valid(encode_task):
+                self.set_filters_available_state()
+                self._apply_deinterlace_settings_to_widgets(encode_task)
+            else:
+                self.set_filters_not_available_state()
+
             GLib.idle_add(self.set_widgets_setting_up, False)
 
-        def _apply_deinterlace_settings_to_widgets(self, encoding_task: encoding.Task):
-            is_deinterlace_settings_enabled = encoding_task.filter.deinterlace is not None
+        @staticmethod
+        def is_encode_task_valid(encode_task: task.Encode) -> bool:
+            if video_codec.is_codec_copy(encode_task.get_video_codec()):
+                return False
+
+            if encode_task.output_file.extension in media_file.VIDEO_OUTPUT_EXTENSIONS:
+                return True
+            return False
+
+        def _apply_deinterlace_settings_to_widgets(self, encode_task: task.Encode):
+            is_deinterlace_settings_enabled = encode_task.filters.deinterlace is not None
             GLib.idle_add(self.deinterlace_enabled_switch.set_active, is_deinterlace_settings_enabled)
 
             if is_deinterlace_settings_enabled:
-                GLib.idle_add(self.deinterlace_method_combobox.set_active, encoding_task.filter.deinterlace.method)
+                GLib.idle_add(self.deinterlace_method_row.set_selected, encode_task.filters.deinterlace.method)
             else:
-                GLib.idle_add(self.deinterlace_method_combobox.set_active, 0)
+                GLib.idle_add(self.deinterlace_method_row.set_selected, 0)
 
         def apply_settings_from_widgets(self):
             self._apply_deinterlace_settings_from_widgets()
 
-            self.inputs_page.update_preview_page_encoding_task()
+            self.inputs_page.update_preview_page_encode_task()
 
         def _apply_deinterlace_settings_from_widgets(self):
             if self.deinterlace_enabled_switch.get_active():
-                deinterlace_settings = filters.Deinterlace()
-                deinterlace_settings.method = self.deinterlace_method_combobox.get_active()
+                deinterlace_settings = filter.Deinterlace()
+                deinterlace_settings.method = self.deinterlace_method_row.get_selected()
             else:
                 deinterlace_settings = None
 
             for input_row in self.inputs_page.get_selected_rows():
-                input_row.encoding_task.filter.deinterlace = deinterlace_settings
+                encode_task = input_row.encode_task
+                encode_task.filters.deinterlace = deinterlace_settings
+                print(ffmpeg_helper.Args.get_args(encode_task, cli_args=True))
 
         def on_deinterlace_enabled_switch_state_set(self, switch, user_data):
             self.deinterlace_method_row.set_sensitive(switch.get_active())
@@ -5322,48 +5374,68 @@ class SettingsSidebarWidgets:
                 subtitle_stream_row.update_available_streams()
                 subtitle_stream_row.update_method()
 
+        def set_not_available_state(self):
+            self.subtitle_stream_settings_group.remove_children()
+            self.subtitle_stream_settings_group.set_sensitive(False)
+
+        def set_available_state(self):
+            self.subtitle_stream_settings_group.set_sensitive(True)
+
+        def set_video_copy_state(self):
+            for subtitle_stream_row in self.subtitle_stream_settings_group.children:
+                if subtitle_stream_row.is_method_burn_in():
+                    subtitle_stream_row.set_method_copy()
+
+                    break
+
         def set_widgets_setting_up(self, is_widgets_setting_up: bool):
             self.is_widgets_setting_up = is_widgets_setting_up
 
-        def apply_settings_to_widgets(self, encoding_task: encoding.Task):
+        def apply_settings_to_widgets(self, encode_task: task.Encode):
             GLib.idle_add(self.set_widgets_setting_up, True)
-            GLib.idle_add(self.subtitle_stream_settings_group.remove_children)
-            self._apply_subtitle_streams_to_widgets(encoding_task)
+
+            if encode_task.input_file.is_video and encode_task.input_file.subtitle_streams:
+                GLib.idle_add(self.set_available_state)
+                GLib.idle_add(self.subtitle_stream_settings_group.remove_children)
+                self._apply_subtitle_streams_to_widgets(encode_task)
+            else:
+                GLib.idle_add(self.set_not_available_state)
+
             GLib.idle_add(self.set_widgets_setting_up, False)
 
-        def _apply_subtitle_streams_to_widgets(self, encoding_task: encoding.Task):
-            for subtitle_stream in encoding_task.filter.subtitles.streams_in_use:
-                GLib.idle_add(self._create_subtitle_stream_row_from_task, encoding_task, subtitle_stream)
+        def _apply_subtitle_streams_to_widgets(self, encode_task: task.Encode):
+            for subtitle_stream in encode_task.filters.subtitles.streams_in_use:
+                GLib.idle_add(self._create_subtitle_stream_row_from_task, encode_task, subtitle_stream)
 
         def _create_subtitle_stream_row_from_task(self,
-                                                  encoding_task: encoding.Task,
-                                                  subtitle_stream: encoding.input.SubtitleStream):
+                                                  encode_task: task.Encode,
+                                                  subtitle_stream: stream.SubtitleStream):
             subtitle_stream_row = self.SubtitleStreamRow(self,
-                                                         encoding_task,
+                                                         encode_task,
                                                          subtitle_stream,
                                                          self.subtitle_stream_settings_group.number_of_children + 1)
             self.subtitle_stream_settings_group.add(subtitle_stream_row)
 
         def on_add_subtitle_stream_button_clicked(self, button):
-            encoding_task = self.inputs_page.inputs_list_box.get_selected_row().encoding_task
+            encode_task = self.inputs_page.inputs_list_box.get_selected_row().encode_task
 
-            if encoding_task.filter.subtitles.streams_available:
-                subtitle_stream = encoding_task.filter.subtitles.streams_available[0]
-                encoding_task.filter.subtitles.use_stream(subtitle_stream)
+            if encode_task.filters.subtitles.streams_available:
+                subtitle_stream = encode_task.filters.subtitles.streams_available[0]
+                encode_task.filters.subtitles.use_stream(subtitle_stream)
 
                 subtitle_stream_row = self.SubtitleStreamRow(self,
-                                                             encoding_task,
+                                                             encode_task,
                                                              subtitle_stream,
                                                              self.subtitle_stream_settings_group.number_of_children + 1)
                 self.subtitle_stream_settings_group.add(subtitle_stream_row)
                 self.update_subtitle_stream_rows()
 
         class SubtitleStreamRow(Adw.ExpanderRow):
-            def __init__(self, subtitle_settings_page, encoding_task: encoding.Task, subtitle_stream, row_count: int):
+            def __init__(self, subtitle_settings_page, encode_task: task.Encode, subtitle_stream, row_count: int):
                 super().__init__()
 
                 self.subtitle_settings_page = subtitle_settings_page
-                self.encoding_task = encoding_task
+                self.encode_task = encode_task
                 self.subtitle_stream = subtitle_stream
                 self.row_count = row_count
                 self.is_widgets_setting_up = False
@@ -5382,45 +5454,35 @@ class SettingsSidebarWidgets:
                 self.add_prefix(self.remove_button)
 
             def _setup_stream_row(self):
-                self._setup_stream_combobox()
+                self._setup_stream_string_list()
 
-                self.stream_row = Adw.ActionRow()
+                self.stream_row = Adw.ComboRow()
                 self.stream_row.set_title('Selected Stream')
-                self.stream_row.add_suffix(self.stream_combobox)
+                self.stream_row.set_model(self.streams_string_list)
+                self.stream_row.connect('notify::selected-item', self.on_stream_combo_row_notify_selected_item)
 
-            def _setup_stream_combobox(self):
-                self.stream_combobox = Gtk.ComboBoxText()
-                self.stream_combobox.set_vexpand(False)
-                self.stream_combobox.set_valign(Gtk.Align.CENTER)
-                self.stream_combobox.append_text(self.subtitle_stream.get_info())
+            def _setup_stream_string_list(self):
+                streams_list = [self.subtitle_stream.get_info()]
+                for subtitle_stream in self.encode_task.filters.subtitles.streams_available:
+                    streams_list.append(subtitle_stream.get_info())
 
-                for stream in self.encoding_task.filter.subtitles.streams_available:
-                    self.stream_combobox.append_text(stream.get_info())
-
-                self.stream_combobox.set_active(0)
-                self.stream_combobox.connect('changed', self.on_stream_combobox_changed)
+                self.streams_string_list = Gtk.StringList.new(streams_list)
 
             def _setup_method_row(self):
-                self._setup_method_combobox()
-
-                self.method_row = Adw.ActionRow()
+                self.method_row = Adw.ComboRow()
                 self.method_row.set_title('Method')
                 self.method_row.set_subtitle('Method to apply to the subtitle stream')
-                self.method_row.add_suffix(self.method_combobox)
+                self._setup_method_combo_row()
+                self.method_row.set_model('notify::selected-item', self.on_method_combo_row_notify_selected_item)
 
-            def _setup_method_combobox(self):
-                self.method_combobox = Gtk.ComboBoxText()
-                self.method_combobox.append_text('Copy')
-                self.method_combobox.append_text('Burn-In')
+            def _setup_method_combo_row(self):
+                method_string_list = Gtk.StringList.new(['Copy', 'Burn-In'])
+                self.method_row.set_model(method_string_list)
 
-                if self.encoding_task.filter.subtitles.burn_in_stream_index == self.subtitle_stream.index:
-                    self.method_combobox.set_active(1)
+                if self.encode_task.filters.subtitles.burn_in_stream_index == self.subtitle_stream.index:
+                    self.method_row.set_selected(1)
                 else:
-                    self.method_combobox.set_active(0)
-
-                self.method_combobox.set_vexpand(False)
-                self.method_combobox.set_valign(Gtk.Align.CENTER)
-                self.method_combobox.connect('changed', self.on_method_combobox_changed)
+                    self.method_row.set_selected(0)
 
             def _setup_remove_button(self):
                 self.remove_button = Gtk.Button.new_from_icon_name('list-remove-symbolic')
@@ -5434,56 +5496,64 @@ class SettingsSidebarWidgets:
             def update_available_streams(self):
                 self.is_widgets_setting_up = True
 
-                self.stream_combobox.remove_all()
-                self.stream_combobox.append_text(self.subtitle_stream.get_info())
+                streams_list = [self.subtitle_stream.get_info()]
+                for subtitle_stream in self.encode_task.filters.subtitles.streams_available:
+                    streams_list.append(subtitle_stream.get_info())
 
-                for subtitle_stream in self.encoding_task.filter.subtitles.streams_available:
-                    self.stream_combobox.append_text(subtitle_stream.get_info())
-
-                self.stream_combobox.set_active(0)
+                streams_string_list = Gtk.StringList.new(streams_list)
+                self.stream_row.set_model(streams_string_list)
 
                 self.is_widgets_setting_up = False
 
             def update_method(self):
                 self.is_widgets_setting_up = True
 
-                if self.encoding_task.filter.subtitles.burn_in_stream_index == self.subtitle_stream.index:
-                    self.method_combobox.set_active(1)
+                if self.encode_task.filters.subtitles.burn_in_stream_index == self.subtitle_stream.index:
+                    self.set_method_burn_in()
                 else:
-                    self.method_combobox.set_active(0)
+                    self.set_method_copy()
 
                 self.is_widgets_setting_up = False
 
-            def on_stream_combobox_changed(self, combobox):
+            def is_method_burn_in(self):
+                return self.method_row.get_selected() == 1
+
+            def set_method_burn_in(self):
+                self.method_row.set_selected(1)
+
+            def set_method_copy(self):
+                self.method_row.set_selected(0)
+
+            def on_stream_combo_row_notify_selected_item(self, *args, **kwargs):
                 if self.is_widgets_setting_up:
                     return
 
-                self.encoding_task.filter.subtitles.remove_stream(self.subtitle_stream)
+                self.encode_task.filters.subtitles.remove_stream(self.subtitle_stream)
 
-                new_subtitle_stream = self.stream_combobox.get_active() - 1
-                self.subtitle_stream = self.encoding_task.filter.subtitles.streams_available[new_subtitle_stream]
-                self.encoding_task.filter.subtitles.use_stream(self.subtitle_stream)
-                self.encoding_task.filter.update_args()
+                new_subtitle_stream = self.stream_row.get_selected() - 1
+                self.subtitle_stream = self.encode_task.filters.subtitles.streams_available[new_subtitle_stream]
+                self.encode_task.filters.subtitles.use_stream(self.subtitle_stream)
+                self.encode_task.filters.update_args()
 
                 self.set_subtitle(self.subtitle_stream.get_info())
                 self.subtitle_settings_page.update_subtitle_stream_rows()
 
-            def on_method_combobox_changed(self, combobox):
+            def on_method_combo_row_notify_selected_item(self, *args, **kwargs):
                 if self.is_widgets_setting_up:
                     return
 
-                if combobox.get_active():
-                    self.encoding_task.filter.subtitles.set_stream_method_burn_in(self.subtitle_stream)
+                if self.method_row.get_selected():
+                    self.encode_task.filters.subtitles.set_stream_method_burn_in(self.subtitle_stream)
                 else:
-                    self.encoding_task.filter.subtitles.burn_in_stream_index = None
+                    self.encode_task.filters.subtitles.burn_in_stream_index = None
 
-                self.encoding_task.filter.update_args()
+                self.encode_task.filters.update_args()
 
                 self.subtitle_settings_page.update_subtitle_stream_rows()
 
             def on_remove_button_clicked(self, button):
-                self.encoding_task.filter.subtitles.remove_stream(self.subtitle_stream)
-                self.encoding_task.filter.update_args()
+                self.encode_task.filters.subtitles.remove_stream(self.subtitle_stream)
+                self.encode_task.filters.update_args()
 
                 self.subtitle_settings_page.subtitle_stream_settings_group.remove(self)
                 self.subtitle_settings_page.update_subtitle_stream_rows()

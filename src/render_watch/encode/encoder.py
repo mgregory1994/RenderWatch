@@ -16,40 +16,40 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import logging
 import os
 import re
 import signal
 import subprocess
 
-from render_watch.ffmpeg import encoding
-from render_watch.helpers import format_converter
+from render_watch.ffmpeg import task, video_codec
+from render_watch.helpers import ffmpeg_helper, format_converter
+from render_watch import logger
 
 
-def run_encode_subprocess(encoding_task: encoding.Task) -> int:
+def run_encode_subprocess(encode_task: task.Encode) -> int:
     """
     Runs ffmpeg via a subprocess using ffmpeg args from the given encoding task. Updates the
     encoding task's status while the process runs.
 
     Parameters:
-        encoding_task: Encoding task to use for the ffmpeg subprocess.
+        encode_task: Encoding task to use for the ffmpeg subprocess.
 
     Returns:
         Process return code as an integer.
     """
-    for encode_pass, ffmpeg_args in enumerate(encoding.FFmpegArgs.get_args(encoding_task)):
+    for encode_pass, ffmpeg_args in enumerate(ffmpeg_helper.Args.get_args(encode_task)):
         with subprocess.Popen(ffmpeg_args,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT,
                               universal_newlines=True,
                               bufsize=1) as ffmpeg_process:
             while True:
-                if encoding_task.is_stopped and ffmpeg_process.poll() is None:
+                if encode_task.is_stopped and ffmpeg_process.poll() is None:
                     os.kill(ffmpeg_process.pid, signal.SIGKILL)
 
                     break
-                elif encoding_task.is_paused and ffmpeg_process.poll() is None:
-                    _pause_ffmpeg_process(ffmpeg_process, encoding_task)
+                elif encode_task.is_paused and ffmpeg_process.poll() is None:
+                    _pause_ffmpeg_process(encode_task, ffmpeg_process)
 
                 stdout = ffmpeg_process.stdout.readline().strip()
                 if stdout == '' and ffmpeg_process.poll() is not None:
@@ -57,116 +57,113 @@ def run_encode_subprocess(encoding_task: encoding.Task) -> int:
 
                 stdout_last_line = stdout
 
-                _update_task_status(encoding_task, stdout, encode_pass)
+                _update_task_status(encode_task, stdout, encode_pass)
 
-    _log_ffmpeg_process_state(ffmpeg_process, encoding_task, stdout_last_line)
+    _log_ffmpeg_process_state(encode_task, ffmpeg_process, stdout_last_line)
 
-    encoding_task.progress = 1.0
+    encode_task.progress = 1.0
 
     return ffmpeg_process.wait()
 
 
-def _pause_ffmpeg_process(ffmpeg_process: subprocess.Popen, encoding_task: encoding.Task):
+def _pause_ffmpeg_process(encode_task: task.Encode, ffmpeg_process: subprocess.Popen):
     # Pauses the subprocess and waits until the encoding task signals the paused threading event to resume.
     os.kill(ffmpeg_process.pid, signal.SIGSTOP)
-    encoding_task.paused_threading_event.wait()
+    encode_task.paused_threading_event.wait()
     os.kill(ffmpeg_process.pid, signal.SIGCONT)
 
 
-def _update_task_status(encoding_task: encoding.Task, stdout: str, encode_pass: int):
+def _update_task_status(encode_task: task.Encode, stdout: str, encode_pass: int):
     # Updates the encoding task using the stdout of the ffmpeg subprocess.
-    _update_task_bitrate_status(encoding_task, stdout)
-    _update_task_file_size_status(encoding_task, stdout)
-    _update_task_speed_status(encoding_task, stdout)
-    _update_task_current_position_status(encoding_task, stdout)
-    _update_task_progress_status(encoding_task, encode_pass)
-    _update_task_time_left_status(encoding_task, encode_pass)
+    _update_task_bitrate_status(encode_task, stdout)
+    _update_task_file_size_status(encode_task, stdout)
+    _update_task_speed_status(encode_task, stdout)
+    _update_task_current_position_status(encode_task, stdout)
+    _update_task_progress_status(encode_task, encode_pass)
+    _update_task_time_left_status(encode_task, encode_pass)
 
 
-def _update_task_bitrate_status(encoding_task: encoding.Task, stdout: str):
+def _update_task_bitrate_status(encode_task: task.Encode, stdout: str):
     # Uses the ffmpeg subprocess' stdout to update the encoding task's bitrate status.
     try:
         bitrate = re.search(r'bitrate=\d+\.\d+|bitrate=\s+\d+\.\d+', stdout).group().split('=')[1]
-        encoding_task.bitrate = float(bitrate)
+        encode_task.bitrate = float(bitrate)
     except (AttributeError, TypeError):
         pass
 
 
-def _update_task_file_size_status(encoding_task: encoding.Task, stdout: str):
+def _update_task_file_size_status(encode_task: task.Encode, stdout: str):
     # Uses the ffmpeg subprocess' stdout to update the encoding task's file size status.
     try:
         file_size_in_kilobytes = re.search(r'size=\d+|size=\s+\d+', stdout).group().split('=')[1]
         file_size_in_bytes = format_converter.get_bytes_from_kilobytes(int(file_size_in_kilobytes))
-        encoding_task.file_size = file_size_in_bytes
+        encode_task.file_size = file_size_in_bytes
     except (AttributeError, TypeError):
         pass
 
 
-def _update_task_speed_status(encoding_task: encoding.Task, stdout: str):
+def _update_task_speed_status(encode_task: task.Encode, stdout: str):
     # Uses the ffmpeg subprocess' stdout to update the encoding task's speed status.
     try:
         speed = re.search(r'speed=\d+\.\d+|speed=\s+\d+\.\d+', stdout).group().split('=')[1]
-        encoding_task.speed = float(speed)
+        encode_task.speed = float(speed)
     except (AttributeError, TypeError):
         pass
 
 
-def _update_task_current_position_status(encoding_task: encoding.Task, stdout: str):
+def _update_task_current_position_status(encode_task: task.Encode, stdout: str):
     # Uses the ffmpeg subprocess' stdout to update the encoding task's current position status.
     try:
         current_position_timecode = re.search(r'time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
                                               stdout).group().split('=')[1]
         current_position_in_seconds = format_converter.get_seconds_from_timecode(current_position_timecode)
-        encoding_task.current_position = current_position_in_seconds
+        encode_task.current_position = current_position_in_seconds
     except (AttributeError, TypeError):
         pass
 
 
-def _update_task_progress_status(encoding_task: encoding.Task, encode_pass: int):
+def _update_task_progress_status(encode_task: task.Encode, encode_pass: int):
     # Updates the encoding task's progress status.
     try:
-        if encoding_task.is_video_2_pass():
+        if video_codec.is_codec_2_pass(encode_task.get_video_codec()):
             encode_passes = 2
         else:
             encode_passes = 1
 
         if encode_pass == 0:
-            progress = (encoding_task.current_position / encoding_task.input_file.duration) / encode_passes
+            progress = (encode_task.current_time_position / encode_task.input_file.duration) / encode_passes
         else:
-            progress = 0.5 + ((encoding_task.current_position / encoding_task.input_file.duration) / encode_passes)
+            progress = 0.5 + ((encode_task.current_time_position / encode_task.input_file.duration) / encode_passes)
 
-        encoding_task.progress = round(progress, 4)
+        encode_task.progress = round(progress, 4)
     except (AttributeError, TypeError, ZeroDivisionError):
         pass
 
 
-def _update_task_time_left_status(encoding_task: encoding.Task, encode_pass: int):
+def _update_task_time_left_status(encode_task: task.Encode, encode_pass: int):
     # Updates the encoding task's time left status.
     try:
-        if not encoding_task.speed > 0.0:
+        if not encode_task.speed > 0.0:
             return
 
-        if encoding_task.is_video_2_pass() and encode_pass == 0:
-            duration_in_seconds = encoding_task.input_file.duration * 2
+        if video_codec.is_codec_2_pass(encode_task.get_video_codec()) and encode_pass == 0:
+            duration_in_seconds = encode_task.input_file.duration * 2
         else:
-            duration_in_seconds = encoding_task.input_file.duration
+            duration_in_seconds = encode_task.input_file.duration
 
-        if encoding_task.current_position >= duration_in_seconds:
+        if encode_task.current_time_position >= duration_in_seconds:
             time_left = 0
         else:
-            time_left = (duration_in_seconds - encoding_task.current_position) / encoding_task.speed
+            time_left = (duration_in_seconds - encode_task.current_time_position) / encode_task.speed
 
-        encoding_task.time_left_in_seconds = round(time_left)
+        encode_task.time_left_in_seconds = round(time_left)
     except (AttributeError, TypeError, ZeroDivisionError):
         pass
 
 
-def _log_ffmpeg_process_state(ffmpeg_process: subprocess.Popen, encoding_task: encoding.Task, stdout_last_line: str):
+def _log_ffmpeg_process_state(encode_task: task.Encode, ffmpeg_process: subprocess.Popen, stdout_last_line: str):
     # Logs the status of the ffmpeg subprocess if it was stopped or has failed.
-    if encoding_task.is_stopped:
-        logging.info(''.join(['--- ENCODE PROCESS STOPPED: ', encoding_task.output_file.file_path, ' ---']))
+    if encode_task.is_stopped:
+        logger.log_encode_process_stopped(encode_task.output_file.file_path)
     elif ffmpeg_process.wait():
-        logging.error(''.join(['--- ENCODE PROCESS FAILED: ',
-                               encoding_task.output_file.file_path,
-                               ' ---\n',
-                               stdout_last_line]))
+        logger.log_encode_process_failed(encode_task.output_file.file_path, stdout_last_line)

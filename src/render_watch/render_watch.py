@@ -18,11 +18,10 @@
 
 import sys
 
-from render_watch import logger
-from render_watch import app_preferences
 from render_watch.ui import application
 from render_watch.encode import encoder_queue, preview, benchmark
-from render_watch.helpers import nvidia_helper
+from render_watch.helpers import ffmpeg_helper
+from render_watch import app_preferences, logger
 
 
 def main(args=None):
@@ -60,5 +59,5 @@ def _get_application_settings() -> app_preferences.Settings:
 
 def _setup_nvenc_compatibility(app_settings: app_preferences.Settings):
     # Checks for Nvenc compatibility and configures Nvenc if applicable.
-    if nvidia_helper.Compatibility.is_nvenc_supported():
-        nvidia_helper.Parallel.setup_nvenc_max_workers(app_settings)
+    if ffmpeg_helper.Compatibility.is_nvenc_supported():
+        ffmpeg_helper.Parallel.setup_nvenc_max_workers(app_settings)

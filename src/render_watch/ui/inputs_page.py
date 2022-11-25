@@ -19,14 +19,13 @@
 import logging
 import os
 import threading
-import time
 
 from pathlib import Path
 
 from render_watch.ui import Gtk, Gio, Gdk, GLib, Adw, GdkPixbuf, Pango
 from render_watch.ui import settings_sidebar, additional_task_settings_pages
 from render_watch.encode import preview, benchmark
-from render_watch.ffmpeg import encoding, input
+from render_watch.ffmpeg import task, media_file, filter
 from render_watch.helpers import directory_helper
 from render_watch import app_preferences
 
@@ -34,13 +33,13 @@ from render_watch import app_preferences
 class InputActionRow(Adw.PreferencesRow):
     def __init__(self,
                  inputs_page_widgets,
-                 encoding_task: encoding.Task,
+                 encode_task: task.Encode,
                  preview_generator: preview.PreviewGenerator,
                  app_settings: app_preferences.Settings):
         super().__init__()
 
         self.inputs_page_widgets = inputs_page_widgets
-        self.encoding_task = encoding_task
+        self.encode_task = encode_task
         self.preview_generator = preview_generator
         self.app_settings = app_settings
 
@@ -64,16 +63,16 @@ class InputActionRow(Adw.PreferencesRow):
         self.set_child(self.row_contents_horizontal_center_box)
 
     def _setup_title_label(self):
-        self.title_label = Gtk.Label(label=self.encoding_task.input_file.name)
+        self.title_label = Gtk.Label(label=self.encode_task.input_file.name)
         self.title_label.set_ellipsize(Pango.EllipsizeMode.END)
         self.title_label.set_max_width_chars(30)
         self.title_label.set_vexpand(True)
         self.title_label.set_valign(Gtk.Align.END)
 
     def _setup_subtitle_label(self):
-        if self.encoding_task.input_file.is_folder:
+        if self.encode_task.input_file.is_folder:
             self.subtitle_label = Gtk.Label(label='Folder')
-        elif self.encoding_task.input_file.is_video:
+        elif self.encode_task.input_file.is_video:
             self.subtitle_label = Gtk.Label(label='Video')
         else:
             self.subtitle_label = Gtk.Label(label='Audio')
@@ -86,9 +85,9 @@ class InputActionRow(Adw.PreferencesRow):
         self.subtitle_label.set_halign(Gtk.Align.START)
 
     def _setup_contents(self):
-        if self.encoding_task.input_file.is_folder:
+        if self.encode_task.input_file.is_folder:
             self._setup_folder_contents()
-        elif self.encoding_task.input_file.is_video:
+        elif self.encode_task.input_file.is_video:
             self._setup_video_contents()
         else:
             self._setup_audio_contents()
@@ -190,9 +189,9 @@ class InputActionRow(Adw.PreferencesRow):
         input_label.set_hexpand(True)
         input_label.set_halign(Gtk.Align.CENTER)
 
-        if self.encoding_task.input_file.is_folder:
+        if self.encode_task.input_file.is_folder:
             input_type_label = Gtk.Label(label='Type: Folder')
-        elif self.encoding_task.input_file.is_video:
+        elif self.encode_task.input_file.is_video:
             input_type_label = Gtk.Label(label='Type: Video')
         else:
             input_type_label = Gtk.Label(label='Type: Audio')
@@ -201,8 +200,8 @@ class InputActionRow(Adw.PreferencesRow):
         input_type_label.set_halign(Gtk.Align.START)
 
         input_file_label = Gtk.Label(label=''.join(['File: ',
-                                                    self.encoding_task.input_file.name,
-                                                    self.encoding_task.input_file.extension]))
+                                                    self.encode_task.input_file.name,
+                                                    self.encode_task.input_file.extension]))
         input_file_label.set_hexpand(True)
         input_file_label.set_halign(Gtk.Align.START)
 
@@ -215,7 +214,7 @@ class InputActionRow(Adw.PreferencesRow):
         self._setup_task_info_popover_input_audio_streams()
 
     def _setup_task_info_popover_input_video_streams(self):
-        for video_stream in self.encoding_task.input_file.video_streams:
+        for video_stream in self.encode_task.input_file.video_streams:
             video_stream_label = Gtk.Label(label=''.join(['Video Stream[', str(video_stream.index), ']']))
             video_stream_label.set_hexpand(True)
             video_stream_label.set_halign(Gtk.Align.START)
@@ -256,7 +255,7 @@ class InputActionRow(Adw.PreferencesRow):
             self.input_contents_vertical_box.append(video_stream_frame_rate_label)
 
     def _setup_task_info_popover_input_audio_streams(self):
-        for audio_stream in self.encoding_task.input_file.audio_streams:
+        for audio_stream in self.encode_task.input_file.audio_streams:
             audio_stream_label = Gtk.Label(label=''.join(['Audio Stream[', str(audio_stream.index), ']']))
             audio_stream_label.set_hexpand(True)
             audio_stream_label.set_halign(Gtk.Align.START)
@@ -299,7 +298,7 @@ class InputActionRow(Adw.PreferencesRow):
         output_label.set_hexpand(True)
         output_label.set_halign(Gtk.Align.CENTER)
 
-        output_file_path = Gtk.Label(label=''.join(['File path: ', self.encoding_task.output_file.file_path]))
+        output_file_path = Gtk.Label(label=''.join(['File path: ', self.encode_task.output_file.file_path]))
         output_file_path.set_ellipsize(Pango.EllipsizeMode.START)
         output_file_path.set_max_width_chars(20)
 
@@ -307,17 +306,18 @@ class InputActionRow(Adw.PreferencesRow):
         self.output_contents_vertical_box.append(output_label)
         self.output_contents_vertical_box.append(output_file_path)
 
-        if self.encoding_task.input_file.is_video or self.encoding_task.input_file.is_folder:
-            video_codec_label = Gtk.Label(label=''.join(['Video Codec: ', self.encoding_task.video_codec.codec_name]))
+        if self.encode_task.input_file.is_video or self.encode_task.input_file.is_folder:
+            video_codec_label = Gtk.Label(label=''.join(['Video Codec: ',
+                                                         self.encode_task.get_video_codec().codec_name]))
             video_codec_label.set_hexpand(True)
             video_codec_label.set_halign(Gtk.Align.START)
 
             self.output_contents_vertical_box.append(video_codec_label)
 
-        if self.encoding_task.input_file.is_audio or self.encoding_task.input_file.is_folder:
-            for audio_stream in self.encoding_task.audio_streams:
-                audio_stream_index = self.encoding_task.get_audio_stream_index(audio_stream)
-                audio_stream_codec = self.encoding_task.get_audio_stream_codec(audio_stream)
+        if self.encode_task.input_file.is_audio or self.encode_task.input_file.is_folder:
+            for audio_stream in self.encode_task.audio_streams:
+                audio_stream_index = self.encode_task.get_audio_stream_index(audio_stream)
+                audio_stream_codec = self.encode_task.get_audio_stream_codec(audio_stream)
 
                 audio_stream_label = Gtk.Label(label=''.join(['Audio Stream [', str(audio_stream_index), ']']))
                 audio_stream_label.set_hexpand(True)
@@ -344,9 +344,9 @@ class InputActionRow(Adw.PreferencesRow):
         self.remove_button.connect('clicked', self.on_remove_button_clicked)
 
     def _setup_output_path_link_button(self):
-        output_path_uri = ''.join(['file:/', self.encoding_task.output_file.file_path])
+        output_path_uri = ''.join(['file:/', self.encode_task.output_file.file_path])
         self.output_path_link_button = Gtk.LinkButton.new_with_label(output_path_uri,
-                                                                     self.encoding_task.output_file.file_path)
+                                                                     self.encode_task.output_file.file_path)
         self.output_path_link_button.get_child().set_ellipsize(Pango.EllipsizeMode.START)
         self.output_path_link_button.set_size_request(200, -1)
         self.output_path_link_button.set_hexpand(True)
@@ -372,7 +372,7 @@ class InputActionRow(Adw.PreferencesRow):
 
     def _setup_preview(self):
         preview_pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-            self.encoding_task.temp_output_file.crop_preview_file_path,
+            self.encode_task.task_preview_file,
             width=256,
             height=72,
             preserve_aspect_ratio=True
@@ -411,8 +411,8 @@ class InputActionRow(Adw.PreferencesRow):
         self.row_contents_horizontal_center_box.set_end_widget(audio_end_contents_horizontal_box)
 
     def set_output_file_path_link(self, output_dir, output_file_name):
-        self.encoding_task.output_file.dir = output_dir
-        self.encoding_task.output_file.name = Path(output_file_name).resolve().stem
+        self.encode_task.output_file.dir = output_dir
+        self.encode_task.output_file.name = Path(output_file_name).resolve().stem
 
         output_file_path = os.path.join(output_dir, output_file_name)
         output_path_uri = ''.join(['file:/', output_file_path])
@@ -652,12 +652,12 @@ class InputsPageWidgets:
         self.task_chunks_horizontal_box.append(self.task_chunks_switch)
         self.task_chunks_horizontal_box.set_sensitive(self.app_settings.is_encoding_parallel_tasks)
 
-    def update_preview_page_encoding_task(self):
+    def update_preview_page_encode_task(self):
         is_additional_tasks_visible = self.inputs_page_stack.get_visible_child_name() == 'additional_task_settings_page'
         is_preview_page_visible = self.additional_task_settings_stack.get_visible_child_name() == 'preview_page'
 
         if is_additional_tasks_visible and is_preview_page_visible:
-            self.preview_page.update_encoding_task_preview()
+            self.preview_page.generate_new_preview()
 
     def get_selected_rows(self):
         return self.inputs_list_box.get_selected_rows()
@@ -692,7 +692,7 @@ class InputsPageWidgets:
 
         if list_box_row:
             threading.Thread(target=self.settings_sidebar_widgets.apply_settings_to_widgets,
-                             args=(list_box.get_selected_row().encoding_task,)).start()
+                             args=(list_box.get_selected_row().encode_task,)).start()
 
     def on_inputs_list_drop_target_drop(self, drop_target, files_list, x_pos, y_pos):
         threading.Thread(target=self._add_drop_inputs, args=(files_list.get_files(),)).start()
@@ -725,7 +725,7 @@ class InputsPageWidgets:
             if os.path.isdir(file.get_path()):
                 dir_contents = directory_helper.get_gfiles_from_directory(file.get_path())
                 acceptable_files.extend(dir_contents)
-            elif Path(file.get_path()).resolve().suffix.lower() in input.VALID_EXTENSIONS:
+            elif Path(file.get_path()).resolve().suffix.lower() in media_file.VALID_EXTENSIONS:
                 acceptable_files.append(file)
 
         return acceptable_files
@@ -741,47 +741,39 @@ class InputsPageWidgets:
             GLib.idle_add(self.adding_inputs_status_page.set_description, file.get_path())
             self._set_adding_inputs_progress(index, len(input_files))
 
-            encoding_task = self._create_encoding_task(file)
+            encode_task = self._create_encode_task(file)
 
-            if encoding_task:
-                GLib.idle_add(self._create_input_row, encoding_task)
+            if encode_task:
+                GLib.idle_add(self._create_input_row, encode_task)
 
         GLib.idle_add(self.main_window_widgets.set_adding_inputs_state, False)
         GLib.idle_add(self.main_widget.set_visible_child_name, 'edit_inputs')
 
-    def _create_encoding_task(self, input_file: Gio.File):
+    def _create_encode_task(self, input_file: Gio.File):
         try:
-            encoding_task = encoding.Task(input_file.get_path(), self.app_settings)
+            input_media_file = media_file.InputFile(input_file.get_path())
 
-            if encoding_task.input_file.is_video:
+            if input_media_file.is_folder:
+                encode_task = task.Folder(input_media_file, self.app_settings)
+            else:
+                encode_task = task.Encode(input_media_file, self.app_settings)
+
+            if encode_task.input_file.is_video:
                 if self.app_settings.is_auto_cropping_inputs:
-                    encoding_task.filter.crop = encoding.filters.Crop(encoding_task, self.app_settings)
+                    encode_task.filters.crop = filter.Crop(encode_task, self.app_settings)
 
-                self.preview_generator.generate_previews(encoding_task)
-
-                while not self._are_task_previews_generated(encoding_task):
-                    time.sleep(0.25)
+                crop_preview_task = task.CropPreview(encode_task)
+                self.preview_generator.generate_crop_preview(crop_preview_task)
+                crop_preview_task.preview_threading_event.wait()
         except Exception as e:
             logging.exception(e)
 
             return None
         else:
-            return encoding_task
+            return encode_task
 
-    @staticmethod
-    def _are_task_previews_generated(encoding_task):
-        if encoding_task.temp_output_file.crop_preview_file_path is None:
-            return False
-
-        if encoding_task.temp_output_file.trim_preview_file_path is None:
-            return False
-
-        if encoding_task.temp_output_file.settings_preview_file_path is None:
-            return False
-        return True
-
-    def _create_input_row(self, encoding_task: encoding.Task):
-        input_row = InputActionRow(self, encoding_task, self.preview_generator, self.app_settings)
+    def _create_input_row(self, encode_task: task.Encode):
+        input_row = InputActionRow(self, encode_task, self.preview_generator, self.app_settings)
         input_row.output_path_link_button.connect('activate-link',
                                                   self.main_window_widgets.on_output_path_link_button_activate_link,
                                                   input_row)
@@ -831,26 +823,26 @@ class InputsPageWidgets:
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('preview_page')
 
-        encoding_task = self.get_selected_rows()[-1].encoding_task
-        self.preview_page.setup_encoding_task(encoding_task)
+        encode_task = self.get_selected_rows()[-1].encode_task
+        self.preview_page.setup_encode_task(encode_task)
 
     def on_crop_preview_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('crop_page')
 
-        encoding_task = self.get_selected_rows()[-1].encoding_task
-        threading.Thread(target=self.crop_page.apply_settings_to_widgets, args=(encoding_task,)).start()
+        encode_task = self.get_selected_rows()[-1].encode_task
+        threading.Thread(target=self.crop_page.apply_settings_to_widgets, args=(encode_task,)).start()
 
     def on_trim_preview_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('trim_page')
 
-        encoding_task = self.get_selected_rows()[-1].encoding_task
-        threading.Thread(target=self.trim_page.apply_settings_to_widgets, args=(encoding_task,)).start()
+        encode_task = self.get_selected_rows()[-1].encode_task
+        threading.Thread(target=self.trim_page.apply_settings_to_widgets, args=(encode_task,)).start()
 
     def on_benchmark_button_clicked(self, button):
         self.inputs_page_stack.set_visible_child_name('additional_task_settings_page')
         self.additional_task_settings_stack.set_visible_child_name('benchmark_page')
 
-        encoding_task = self.get_selected_rows()[-1].encoding_task
-        self.benchmark_page.setup_encode_task(encoding_task)
+        encode_task = self.get_selected_rows()[-1].encode_task
+        self.benchmark_page.setup_encode_task(encode_task)

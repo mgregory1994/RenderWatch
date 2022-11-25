@@ -24,13 +24,9 @@ import subprocess
 import threading
 import re
 
-from render_watch.ffmpeg import encoding, trim
-from render_watch.helpers import format_converter
-from render_watch import app_preferences
-
-
-SHORT_BENCHMARK_DURATION = 15
-LONG_BENCHMARK_DURATION = 30
+from render_watch.ffmpeg import task, video_codec
+from render_watch.helpers import ffmpeg_helper, format_converter
+from render_watch import app_preferences, logger
 
 
 class BenchmarkGenerator:
@@ -53,87 +49,36 @@ class BenchmarkGenerator:
         # Loop that runs a benchmark for each queued encoding task.
         try:
             while True:
-                encoding_task, is_long_benchmark = self._benchmark_tasks_queue.get()
+                benchmark_task = self._benchmark_tasks_queue.get()
 
-                if encoding_task:
-                    encoding_task_copy = encoding_task.get_copy()
-                    benchmark_length = self._get_benchmark_length(is_long_benchmark)
-                    time_position = self._get_time_position(encoding_task_copy, benchmark_length)
-                else:
-                    logging.info('--- STOPPING BENCHMARK QUEUE LOOP ---')
+                if not benchmark_task:
+                    logger.log_stopping_benchmark_queue_loop()
 
                     break
 
                 try:
-                    self._reset_encoding_task(encoding_task)
-                    self._setup_encoding_task(encoding_task_copy, time_position, benchmark_length)
-                    self._process_benchmark_task(encoding_task, encoding_task_copy, benchmark_length)
+                    benchmark_task.reset()
+                    self._process_benchmark_task(benchmark_task)
                 except:
-                    logging.exception(''.join(['--- BENCHMARK TASK FAILED ---\n', encoding_task.input_file.file_path]))
+                    benchmark_task.has_failed = True
+
+                    logger.log_benchmark_task_failed(benchmark_task.encode_task.input_file.file_path)
                 finally:
-                    encoding_task.has_benchmark_started = False
-                    encoding_task.is_benchmark_stopped = False
+                    benchmark_task.is_done = True
         except:
             logging.exception('--- BENCHMARK QUEUE LOOP FAILED ---')
 
-    @staticmethod
-    def _get_benchmark_length(is_long_benchmark: bool):
-        # Returns the benchmark length to use depending on whether the user has selected the longer benchmark option.
-        if is_long_benchmark:
-            return LONG_BENCHMARK_DURATION
-        return SHORT_BENCHMARK_DURATION
-
-    @staticmethod
-    def _get_time_position(encoding_task: encoding.Task, benchmark_length: int):
-        # Returns the time position to use for the benchmark.
-        if (encoding_task.input_file.duration / benchmark_length) >= 2:
-            return encoding_task.input_file.duration / 2
-        return 0
-
-    @staticmethod
-    def _reset_encoding_task(encoding_task: encoding.Task):
-        # Resets the benchmark values in the encoding task.
-        encoding_task.benchmark_progress = 0.0
-        encoding_task.benchmark_bitrate = None
-        encoding_task.benchmark_speed = None
-        encoding_task.benchmark_file_size = None
-        encoding_task.benchmark_time_estimate = None
-        encoding_task.benchmark_current_position = None
-
-    def _setup_encoding_task(self, encoding_task: encoding.Task, time_position: int | float, benchmark_length: int):
-        # Changes the encoding task's settings for running a benchmark.
-        encoding_task.temp_output_file.name = 'benchmark'
-        encoding_task.temp_output_file.extension = encoding_task.output_file.extension
-        encoding_task.is_using_temp_output_file = True
-        self._setup_encoding_task_trim_settings(encoding_task, time_position, benchmark_length)
-
-    @staticmethod
-    def _setup_encoding_task_trim_settings(encoding_task: encoding.Task,
-                                           time_position: int | float,
-                                           benchmark_length: int):
-        # Sets the encoding task's trim settings for running a benchmark.
-        trim_settings = trim.TrimSettings()
-        trim_settings.start_time = time_position
-        trim_settings.trim_duration = benchmark_length
-        encoding_task.trim = trim_settings
-
-    def _process_benchmark_task(self,
-                                encoding_task: encoding.Task,
-                                encoding_task_copy: encoding.Task,
-                                benchmark_length: int):
+    def _process_benchmark_task(self, benchmark_task: task.Benchmark):
         # Gets the ffmpeg args for the benchmark task and sends them to the benchmark subprocess.
-        benchmark_subprocess_args = encoding.FFmpegArgs.get_args(encoding_task_copy)
+        benchmark_subprocess_args = ffmpeg_helper.Args.get_args(benchmark_task.encode_task)
 
-        encoding_task.has_benchmark_started = True
+        benchmark_task.has_started = True
 
-        if self._run_benchmark_subprocess(encoding_task, benchmark_subprocess_args, benchmark_length):
-            if not encoding_task.is_benchmark_stopped:
+        if self._run_benchmark_subprocess(benchmark_task, benchmark_subprocess_args):
+            if not benchmark_task.is_stopped:
                 raise Exception
 
-    def _run_benchmark_subprocess(self,
-                                  encoding_task: encoding.Task,
-                                  benchmark_subprocess_args: list,
-                                  benchmark_length: int) -> int:
+    def _run_benchmark_subprocess(self, benchmark_task: task.Benchmark, benchmark_subprocess_args: list) -> int:
         # Runs the benchmark subprocess for the benchmark task.
         for encode_pass, ffmpeg_args in enumerate(benchmark_subprocess_args):
             with subprocess.Popen(ffmpeg_args,
@@ -142,7 +87,7 @@ class BenchmarkGenerator:
                                   universal_newlines=True,
                                   bufsize=1) as benchmark_process:
                 while True:
-                    if encoding_task.is_benchmark_stopped and benchmark_process.poll() is None:
+                    if benchmark_task.is_stopped and benchmark_process.poll() is None:
                         os.kill(benchmark_process.pid, signal.SIGKILL)
 
                         break
@@ -153,120 +98,116 @@ class BenchmarkGenerator:
 
                     stdout_last_line = stdout
 
-                    self._update_task_status(encoding_task, stdout, encode_pass, benchmark_length)
+                    self._update_task_status(benchmark_task, stdout, encode_pass)
 
-        self._update_task_total_file_size_status(encoding_task, benchmark_length)
-        self._update_task_time_estimate(encoding_task, len(benchmark_subprocess_args))
-        self._log_benchmark_process_state(benchmark_process, encoding_task, stdout_last_line)
+        self._update_task_total_file_size(benchmark_task)
+        self._update_task_encode_time_estimate(benchmark_task, len(benchmark_subprocess_args))
+        self._log_benchmark_process_state(benchmark_process, benchmark_task, stdout_last_line)
 
-        encoding_task.benchmark_progress = 1.0
+        benchmark_task.progress = 1.0
 
         return benchmark_process.wait()
 
-    def _update_task_status(self, encoding_task: encoding.Task, stdout: str, encode_pass: int, benchmark_length: int):
+    def _update_task_status(self, benchmark_task: task.Benchmark, stdout: str, encode_pass: int):
         # Updates the benchmark status variables of the encoding task.
-        self._update_task_bitrate_status(encoding_task, stdout)
-        self._update_task_file_size_status(encoding_task, stdout)
-        self._update_task_speed_status(encoding_task, stdout)
-        self._update_task_current_position_status(encoding_task, stdout)
-        self._update_task_progress_status(encoding_task, encode_pass, benchmark_length)
+        self._update_task_bitrate(benchmark_task, stdout)
+        self._update_task_file_size(benchmark_task, stdout)
+        self._update_task_speed(benchmark_task, stdout)
+        self._update_task_current_time_position(benchmark_task, stdout)
+        self._update_task_progress(benchmark_task, encode_pass)
 
     @staticmethod
-    def _update_task_bitrate_status(encoding_task: encoding.Task, stdout: str):
+    def _update_task_bitrate(benchmark_task: task.Benchmark, stdout: str):
         # Uses the benchmark subprocess' stdout to update the benchmark task's bitrate status.
         try:
             bitrate = re.search(r'bitrate=\d+\.\d+|bitrate=\s+\d+\.\d+', stdout).group().split('=')[1]
-            encoding_task.benchmark_bitrate = float(bitrate)
+            benchmark_task.bitrate = float(bitrate)
         except (AttributeError, TypeError):
             pass
 
     @staticmethod
-    def _update_task_file_size_status(encoding_task: encoding.Task, stdout: str):
+    def _update_task_file_size(benchmark_task: task.Benchmark, stdout: str):
         # Uses the ffmpeg subprocess' stdout to update the encoding task's file size status.
         try:
             file_size_in_kilobytes = re.search(r'size=\d+|size=\s+\d+', stdout).group().split('=')[1]
             file_size_in_bytes = format_converter.get_bytes_from_kilobytes(int(file_size_in_kilobytes))
-            encoding_task.benchmark_file_size = file_size_in_bytes
+            benchmark_task.file_size = file_size_in_bytes
         except (AttributeError, TypeError):
             pass
 
     @staticmethod
-    def _update_task_speed_status(encoding_task: encoding.Task, stdout: str):
+    def _update_task_speed(benchmark_task: task.Benchmark, stdout: str):
         # Uses the benchmark subprocess' stdout to update the benchmark task's speed status.
         try:
             speed = re.search(r'speed=\d+\.\d+|speed=\s+\d+\.\d+', stdout).group().split('=')[1]
-            encoding_task.benchmark_speed = float(speed)
+            benchmark_task.speed = float(speed)
         except (AttributeError, TypeError):
             pass
 
     @staticmethod
-    def _update_task_current_position_status(encoding_task: encoding.Task, stdout: str):
+    def _update_task_current_time_position(benchmark_task: task.Benchmark, stdout: str):
         # Uses the benchmark subprocess' stdout to update the benchmark task's current position status.
         try:
             current_position_timecode = re.search(r'time=\d+:\d+:\d+\.\d+|time=\s+\d+:\d+:\d+\.\d+',
                                                   stdout).group().split('=')[1]
             current_position_in_seconds = format_converter.get_seconds_from_timecode(current_position_timecode)
-            encoding_task.benchmark_current_position = current_position_in_seconds
+            benchmark_task.current_time_position = current_position_in_seconds
         except (AttributeError, TypeError):
             pass
 
     @staticmethod
-    def _update_task_progress_status(encoding_task: encoding.Task, encode_pass: int, benchmark_length: int):
+    def _update_task_progress(benchmark_task: task.Benchmark, encode_pass: int):
         # Updates the benchmark task's progress status.
         try:
-            current_time_position = encoding_task.benchmark_current_position
+            current_time_position = benchmark_task.current_time_position
 
-            if encoding_task.is_video_2_pass():
+            if video_codec.is_codec_2_pass(benchmark_task.encode_task):
                 encode_passes = 2
             else:
                 encode_passes = 1
 
             if encode_pass == 0:
-                progress = (current_time_position / benchmark_length) / encode_passes
+                progress = (current_time_position / benchmark_task.preview_duration) / encode_passes
             else:
-                progress = 0.5 + ((current_time_position / benchmark_length) / encode_passes)
+                progress = 0.5 + ((current_time_position / benchmark_task.preview_duration) / encode_passes)
 
-            encoding_task.benchmark_progress = round(progress, 4)
+            benchmark_task.progress = round(progress, 4)
         except (AttributeError, TypeError, ZeroDivisionError):
             pass
 
     @staticmethod
-    def _update_task_total_file_size_status(encoding_task: encoding.Task, benchmark_length: int):
+    def _update_task_total_file_size(benchmark_task: task.Benchmark):
         # Updates the benchmark task's file size status.
-        ratio = encoding_task.input_file.duration / benchmark_length
-        encoding_task.benchmark_file_size = encoding_task.benchmark_file_size * ratio
+        ratio = benchmark_task.encode_task.input_file.duration / benchmark_task.preview_duration
+        benchmark_task.file_size = benchmark_task.file_size * ratio
 
     @staticmethod
-    def _update_task_time_estimate(encoding_task: encoding.Task, encode_passes: int):
+    def _update_task_encode_time_estimate(benchmark_task: task.Benchmark, encode_passes: int):
         # Updates the benchmark task's time estimate.
-        time_estimate = round((encoding_task.input_file.duration * encode_passes) / encoding_task.benchmark_speed)
-        encoding_task.benchmark_time_estimate = time_estimate
+        time_estimate = round((benchmark_task.encode_task.input_file.duration * encode_passes) / benchmark_task.speed)
+        benchmark_task.encode_time_estimate = time_estimate
 
     @staticmethod
     def _log_benchmark_process_state(benchmark_process: subprocess.Popen,
-                                     encoding_task: encoding.Task,
+                                     benchmark_task: task.Benchmark,
                                      stdout_last_line: str):
         # Logs whether the benchmark task has been stopped or if the benchmark task failed.
-        if encoding_task.is_benchmark_stopped:
-            logging.info(''.join(['--- BENCHMARK PROCESS STOPPED: ', encoding_task.input_file.file_path, ' ---']))
+        if benchmark_task.is_stopped:
+            logger.log_benchmark_process_stopped(benchmark_task.encode_task.input_file.file_path)
         elif benchmark_process.wait():
-            logging.error(''.join(['--- BENCHMARK PROCESS FAILED: ',
-                                   encoding_task.input_file.file_path,
-                                   ' ---\n',
-                                   stdout_last_line]))
+            logger.log_benchmark_process_failed(benchmark_task.encode_task.input_file.file_path, stdout_last_line)
 
-    def add_benchmark_task(self, encoding_task: encoding.Task, long_benchmark=False):
+    def add_benchmark_task(self, benchmark_task: task.Benchmark):
         """
         Adds the given encoding task to the benchmark tasks queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the benchmark tasks queue.
-            long_benchmark: Boolean that represents whether to run a longer benchmark.
+            benchmark_task: benchmark task to add to the benchmark tasks queue.
 
         Returns:
             None
         """
-        self._benchmark_tasks_queue.put((encoding_task, long_benchmark))
+        self._benchmark_tasks_queue.put(benchmark_task)
 
     def kill(self):
         """
@@ -285,4 +226,4 @@ class BenchmarkGenerator:
 
     def _add_stop_task(self):
         # Adds a False boolean that represents the stop task for the benchmark queue loop.
-        self._benchmark_tasks_queue.put((False, False))
+        self._benchmark_tasks_queue.put(False)

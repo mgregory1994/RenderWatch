@@ -20,9 +20,12 @@ import subprocess
 import re
 import os
 
+from datetime import datetime
 from pathlib import Path
 
+from render_watch.ffmpeg import stream
 from render_watch.helpers import format_converter
+from render_watch import app_preferences
 
 
 VALID_EXTENSIONS = ('.mp4',
@@ -40,6 +43,19 @@ VALID_EXTENSIONS = ('.mp4',
                     '.wav',
                     '.flac',
                     '.mp3')
+MP4_EXTENTION = '.mp4'
+MKV_EXTENSION = '.mkv'
+TS_EXTENSION = '.ts'
+WEBM_EXTENSION = '.webm'
+M4A_EXTENSION = '.m4a'
+AAC_EXTENSION = '.aac'
+OGG_EXTENSION = '.ogg'
+VIDEO_OUTPUT_EXTENSIONS = [MP4_EXTENTION, MKV_EXTENSION, TS_EXTENSION, WEBM_EXTENSION]
+AUDIO_OUTPUT_EXTENSIONS = [M4A_EXTENSION, AAC_EXTENSION, OGG_EXTENSION]
+OUTPUT_EXTENSIONS = VIDEO_OUTPUT_EXTENSIONS.copy()
+OUTPUT_EXTENSIONS.extend(AUDIO_OUTPUT_EXTENSIONS)
+VALID_FAST_START_EXTENSION = '.mp4'
+
 VALID_SUBTITLE_CODECS = ('hdmv_pgs_subtitle',)
 
 FFPROBE_ARGS = [
@@ -50,6 +66,8 @@ FFPROBE_ARGS = [
     '-show_entries',
     'stream=codec_name,codec_type,width,height,r_frame_rate,bit_rate,channels,sample_rate,index:stream_tags=language:format=duration'
 ]
+
+ALIAS_COUNTER = -1
 
 
 class InputFile:
@@ -73,8 +91,32 @@ class InputFile:
         self.is_video = False
         self.is_audio = False
 
-        if not self.is_folder:
+        if self.is_folder:
+            self._setup_folder_streams()
+        else:
             _InputInformation(self)
+
+    def _setup_folder_streams(self):
+        self.video_streams.append(self._get_folder_video_stream())
+        self.audio_streams.append(self._get_folder_audio_stream())
+
+    @staticmethod
+    def _get_folder_video_stream() -> stream.VideoStream:
+        video_stream = stream.VideoStream()
+        video_stream.index = 0
+        video_stream.codec_name = 'N/A'
+        video_stream.width = 'N/A'
+        video_stream.height = 'N/A'
+
+        return video_stream
+
+    @staticmethod
+    def _get_folder_audio_stream() -> stream.AudioStream:
+        audio_stream = stream.AudioStream()
+        audio_stream.index = 0
+        audio_stream.codec_name = 'N/A'
+
+        return audio_stream
 
     def is_valid(self) -> bool:
         """
@@ -94,311 +136,21 @@ class InputFile:
             return False
         return True
 
+    def get_initial_video_stream(self) -> stream.VideoStream | None:
+        if self.is_video or self.is_folder:
+            return self.video_streams[0]
+        return None
 
-class VideoStream:
-    """Class that configures the necessary information for the video stream of a video file."""
-
-    def __init__(self):
-        """
-        Initializes the VideoStream class with all the necessary variables for the information of a video stream.
-        """
-        self.index = None
-        self.codec_name = None
-        self.width = None
-        self.height = None
-        self._frame_rate = None
-        self._bitrate = None
-        self._language = None
-
-    @property
-    def frame_rate(self) -> float | str:
-        """
-        Returns the frame rate of the video stream.
-
-        Returns:
-            Frame rate as a float or a string that represents no value.
-        """
-        if self._frame_rate is None:
-            return 'N/A'
-        return self._frame_rate
-
-    @frame_rate.setter
-    def frame_rate(self, frame_rate_value: float | None):
-        """
-        Sets the frame rate value of the video stream.
-
-        Parameters:
-            frame_rate_value: The frame rate value as a float.
-
-        Returns:
-            None
-        """
-        self._frame_rate = float(('%.3f' % frame_rate_value).rstrip('0').rstrip('.'))
-
-    @property
-    def bitrate(self) -> int | str:
-        """
-        Returns the bitrate of the video stream.
-
-        Returns:
-            Bitrate as an int or a string that represents no value.
-        """
-        if self._bitrate is None:
-            return 'N/A'
-        return self._bitrate
-
-    @bitrate.setter
-    def bitrate(self, bitrate_value: int | None):
-        """
-        Sets the bitrate value of the video stream.
-
-        Parameters:
-            bitrate_value: The bitrate value as an int.
-
-        Returns:
-            None
-        """
-        self._bitrate = bitrate_value
-
-    @property
-    def language(self) -> str:
-        """
-        Returns the language of the video stream.
-
-        Returns:
-            String that represents the language.
-        """
-        if self._language is None:
-            return 'N/A'
-        return self._language
-
-    @language.setter
-    def language(self, language_value: str | None):
-        """
-        Sets the language of the video stream.
-
-        Parameters:
-            language_value: String that represents the language.
-
-        Returns:
-            None
-        """
-        self._language = language_value
-
-    def get_dimensions(self) -> tuple:
-        """
-        Returns the video stream's dimensions.
-
-        Returns:
-            Tuple that contains the video stream's width and height respectively.
-        """
-        return self.width, self.height
-
-    def get_info(self) -> str:
-        """
-        Returns the video stream's information as a string.
-
-        Returns:
-            String that represents the video stream's information.
-        """
-        return ''.join(['[',
-                        str(self.index),
-                        ',',
-                        self.language,
-                        ']',
-                        self.codec_name,
-                        '(',
-                        str(self.width),
-                        'x',
-                        str(self.height),
-                        ',',
-                        str(self.frame_rate),
-                        ')'])
-
-
-class AudioStream:
-    """Class that configures the necessary information for the audio stream of a video/audio file."""
-
-    def __init__(self):
-        """
-        Initializes the AudioStream class with all the necessary variables for the information of an audio stream.
-        """
-        self.index = None
-        self.codec_name = None
-        self._sample_rate = None
-        self._channels = None
-        self._bitrate = None
-        self._language = None
-
-    @property
-    def sample_rate(self) -> int | str:
-        """
-        Returns the sample rate of the audio stream.
-
-        Returns:
-            Sample rate as an int or a string that represents no value.
-        """
-        if self._sample_rate is None:
-            return 'N/A'
-        return self._sample_rate
-
-    @sample_rate.setter
-    def sample_rate(self, sample_rate_value: int | None):
-        """
-        Sets the frame rate value of the audio stream.
-
-        Parameters:
-            sample_rate_value: Sample rate value as an int.
-
-        Returns:
-            None
-        """
-        self._sample_rate = sample_rate_value
-
-    @property
-    def channels(self) -> int | str:
-        """
-        Returns the channels of the audio stream.
-
-        Returns:
-            Channels as an int or a string that represents no value.
-        """
-        if self._channels is None:
-            return 'N/A'
-        return self._channels
-
-    @channels.setter
-    def channels(self, channels_value: int | None):
-        """
-        Sets the channels value of the audio stream.
-
-        Parameters:
-            channels_value: The channels value as an int.
-
-        Returns:
-            None
-        """
-        self._channels = channels_value
-
-    @property
-    def bitrate(self) -> int | str:
-        """
-        Returns the bitrate of the audio stream.
-
-        Returns:
-            Bitrate as an int or a string that represents no value.
-        """
-        if self._bitrate is None:
-            return 'N/A'
-        return self._bitrate
-
-    @bitrate.setter
-    def bitrate(self, bitrate_value: int | None):
-        """
-        Sets the bitrate value of the audio stream.
-
-        Parameters:
-            bitrate_value: The bitrate value as an int.
-
-        Returns:
-            None
-        """
-        self._bitrate = bitrate_value
-
-    @property
-    def language(self) -> str:
-        """
-        Returns the langauge of the audio stream as a string.
-
-        Returns:
-            A string that represents the language.
-        """
-        if self._language is None:
-            return 'N/A'
-        return self._language
-
-    @language.setter
-    def language(self, language_value: str | None):
-        """
-        Sets the language of the audio stream.
-
-        Parameters:
-            language_value: A string that represents the language.
-
-        Returns:
-            None
-        """
-        self._language = language_value
-
-    def get_info(self) -> str:
-        """
-        Returns the audio stream's information as a string.
-
-        Returns:
-            String that represents the audio stream's information.
-        """
-        return ''.join(['[',
-                        str(self.index),
-                        ',',
-                        self.language,
-                        '] ',
-                        self.codec_name,
-                        ' (',
-                        str(self.channels),
-                        ' Ch,',
-                        str(self.sample_rate),
-                        'hz)'])
-
-
-class SubtitleStream:
-    """Class that configures the necessary information for the subtitle stream of a video file."""
-
-    def __init__(self):
-        """
-        Initializes the SubtitleStream class with all the necessary variables for the information of a subtitle stream.
-        """
-        self.index = None
-        self.codec_name = None
-        self._language = None
-
-    @property
-    def language(self) -> str:
-        """
-        Returns the language of the subtitle stream.
-
-        Returns:
-            String that represents the language.
-        """
-        if self._language is None:
-            return 'N/A'
-        return self._language
-
-    @language.setter
-    def language(self, language_value: str | None):
-        """
-        Sets the language of the subtitle stream.
-
-        Parameters:
-            language_value: String that represents the language.
-
-        Returns:
-            None
-        """
-        self._language = language_value
-
-    def get_info(self) -> str:
-        """
-        Returns the subtitle stream's information as a string.
-
-        Returns:
-            String that represents the subtitles stream's information.
-        """
-        return ''.join(['[', str(self.index), ',', self.language, ']', self.codec_name])
+    def get_initial_audio_stream(self) -> stream.AudioStream | None:
+        if self.is_audio or self.is_folder:
+            return self.audio_streams[0]
+        return None
 
 
 class _InputInformation:
     """Class that generates the necessary information about an input file."""
-    IMAGE_CODECS = ('mjpeg')
+
+    IMAGE_CODECS = ('mjpeg',)
 
     def __init__(self, input_file: InputFile):
         """
@@ -474,7 +226,7 @@ class _InputInformation:
         Returns:
             None
         """
-        video_stream = VideoStream()
+        video_stream = stream.VideoStream()
         video_stream.index = self.get_index_from_stream_info()
         video_stream.codec_name = self.get_codec_name_from_stream_info()
         video_stream.language = self.get_language_from_stream_info()
@@ -485,7 +237,7 @@ class _InputInformation:
 
         self.add_video_stream(video_stream)
 
-    def add_video_stream(self, video_stream: VideoStream):
+    def add_video_stream(self, video_stream: stream.VideoStream):
         """
         Checks to see if enough information was collected about the video stream and adds it to the list of
         video streams.
@@ -515,7 +267,7 @@ class _InputInformation:
         Returns:
             None
         """
-        audio_stream = AudioStream()
+        audio_stream = stream.AudioStream()
         audio_stream.index = self.get_index_from_stream_info()
         audio_stream.codec_name = self.get_codec_name_from_stream_info()
         audio_stream.language = self.get_language_from_stream_info()
@@ -525,7 +277,7 @@ class _InputInformation:
 
         self.add_audio_stream(audio_stream)
 
-    def add_audio_stream(self, audio_stream: AudioStream):
+    def add_audio_stream(self, audio_stream: stream.AudioStream):
         """
         Checks to see if enough information was collected about the audio stream and adds it to the list of
         audio streams.
@@ -550,14 +302,14 @@ class _InputInformation:
         Returns:
             None
         """
-        subtitle_stream = SubtitleStream()
+        subtitle_stream = stream.SubtitleStream()
         subtitle_stream.index = self.get_index_from_stream_info()
         subtitle_stream.codec_name = self.get_codec_name_from_stream_info()
         subtitle_stream.language = self.get_language_from_stream_info()
 
         self.add_subtitle_stream(subtitle_stream)
 
-    def add_subtitle_stream(self, subtitle_stream: SubtitleStream):
+    def add_subtitle_stream(self, subtitle_stream: stream.SubtitleStream):
         """
         Checks to see if enough information was collected about the subtitle stream and adds it to the list of
         subtitle streams.
@@ -743,3 +495,208 @@ class _InputInformation:
         """
         self.input_file.is_video = bool(self.input_file.video_streams)
         self.input_file.is_audio = bool(self.input_file.audio_streams)
+
+
+class OutputFile:
+    """Class that configures all the necessary information for the output file."""
+
+    def __init__(self, input_file: InputFile, app_settings: app_preferences.Settings):
+        """
+        Initializes the OutputFile class with all the necessary variables for the information of the output file.
+        """
+        self.input_file = input_file
+        self._dir = app_settings.output_directory
+        self.name = input_file.name
+        self._file_size = None
+        self._average_bitrate = None
+        self._average_bitrate_counter = 0
+
+        if input_file.is_video or input_file.is_folder:
+            self._extension = MP4_EXTENTION
+        else:
+            self._extension = M4A_EXTENSION
+
+    @property
+    def extension(self) -> str:
+        """
+        Returns the extension of the output file.
+
+        Returns:
+            String that represents the output file's extension.
+        """
+        return self._extension
+
+    @extension.setter
+    def extension(self, extension_value: str | None):
+        """
+        Sets the output file's extension.
+
+        Parameters:
+            extension_value: Extension as a string.
+
+        Returns:
+            None
+        """
+        if extension_value is None:
+            return
+
+        self._extension = extension_value
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns the directory path that contains the output file.
+
+        Returns:
+            String that represents the output file's directory path.
+        """
+        return self._dir
+
+    @dir.setter
+    def dir(self, dir_path: str | None):
+        """
+        Sets the directory path for the output file.
+
+        Parameters:
+            dir_path: Output file's directory path as a string.
+
+        Returns:
+            None
+        """
+        if dir_path is None:
+            return
+
+        self._dir = dir_path
+
+    @property
+    def file_path(self):
+        """
+        Returns the complete file path for the output file.
+
+        Returns:
+            Output file path as a string.
+        """
+        if self.input_file.is_folder:
+            return self.dir
+        return ''.join([self.dir, '/', self.name, self.extension])
+
+    @property
+    def file_size(self) -> int:
+        return self._file_size
+
+    @property
+    def average_bitrate(self) -> float:
+        return self._average_bitrate
+
+    def add_file_size(self, new_file_size: int):
+        if self._file_size:
+            self._file_size += new_file_size
+
+    def add_average_bitrate(self, new_bitrate_average: float):
+        self._average_bitrate_counter += 1
+        self._average_bitrate += new_bitrate_average
+        self._average_bitrate /= self._average_bitrate_counter
+
+    def get_name_and_extension(self):
+        if self.input_file.is_folder:
+            return self.name
+        return ''.join([self.name, self.extension])
+
+
+class TempFile:
+    """Class that configures the necessary information for the temporary output file."""
+
+    def __init__(self, input_file: InputFile, temp_output_file_dir: str):
+        """
+        Initializes the TempOutputFile class with all the necessary variables for the information of the
+        temporary output file.
+        """
+        self._dir = temp_output_file_dir
+        self.name = AliasGenerator.generate_alias_from_name(input_file.name)
+        self._extension = '.mp4'
+
+    @property
+    def dir(self) -> str:
+        """
+        Returns the directory path that contains the temporary output file.
+
+        Returns:
+            String that represents the temporary output file's directory path.
+        """
+        return self._dir
+
+    @dir.setter
+    def dir(self, dir_path: str):
+        """
+        Sets the directory path for the temporary output file.
+
+        Parameters:
+            dir_path: Temporary output file's directory path as a string.
+
+        Returns:
+            None
+        """
+        if dir_path is None:
+            return
+
+        self._dir = dir_path
+
+    @property
+    def extension(self) -> str:
+        """
+        Returns the extension of the temporary output file.
+
+        Returns:
+            String that represents the temporary output file's extension.
+        """
+        return self._extension
+
+    @extension.setter
+    def extension(self, extension_value: str | None):
+        """
+        Sets the temporary output file's extension.
+
+        Parameters:
+            extension_value: Extension as a string.
+
+        Returns:
+            None
+        """
+        if extension_value is None:
+            return
+
+        self._extension = extension_value
+
+    @property
+    def file_path(self):
+        """
+        Returns the complete file path for the temporary output file.
+
+        Returns:
+            Temporary output file path as a string.
+        """
+        return ''.join([self.dir, '/', self.name, self.extension])
+
+
+class AliasGenerator:
+    """Class that contains functions for generating a name alias."""
+
+    global ALIAS_COUNTER
+
+    @staticmethod
+    def generate_alias_from_name(name: str) -> str:
+        """
+        Creates a unique alias based off of the first character of the given name.
+
+        Parameters:
+            name: Name to generate a unique alias from.
+
+        Returns:
+            Unique alias as a string.
+        """
+        global ALIAS_COUNTER
+        ALIAS_COUNTER += 1
+
+        current_date_time = datetime.now().strftime('_%m-%d-%Y_%H%M%S')
+
+        return name[0] + str(ALIAS_COUNTER) + current_date_time

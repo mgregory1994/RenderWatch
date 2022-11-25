@@ -308,7 +308,7 @@ class MainWindowWidgets:
             link_button: Gtk.LinkButton that emitted the 'activate-link' signal (not used).
             input_row: Input row that the link button belongs to.
         """
-        if input_row.encoding_task.input_file.is_folder:
+        if input_row.encode_task.input_file.is_folder:
             action = Gtk.FileChooserAction.SELECT_FOLDER
         else:
             action = Gtk.FileChooserAction.SAVE
@@ -321,10 +321,10 @@ class MainWindowWidgets:
                                                     resizable=False)
         output_file_chooser.add_buttons('Save', Gtk.ResponseType.ACCEPT, 'Cancel', Gtk.ResponseType.CANCEL)
         output_file_chooser.set_size_request(1000, 700)
-        output_file_chooser.set_current_folder(Gio.File.new_for_path(input_row.encoding_task.output_file.dir))
+        output_file_chooser.set_current_folder(Gio.File.new_for_path(input_row.encode_task.output_file.dir))
 
-        if not input_row.encoding_task.input_file.is_folder:
-            output_file_chooser.set_current_name(input_row.encoding_task.output_file.get_name_and_extension())
+        if not input_row.encode_task.input_file.is_folder:
+            output_file_chooser.set_current_name(input_row.encode_task.output_file.get_name_and_extension())
 
         output_file_chooser.connect('response', self._set_new_output_file, input_row)
         output_file_chooser.show()

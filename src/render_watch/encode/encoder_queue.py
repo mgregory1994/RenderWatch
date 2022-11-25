@@ -16,7 +16,6 @@
 # along with Render Watch.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import logging
 import os.path
 import threading
 import queue
@@ -27,10 +26,9 @@ from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
 
 from render_watch.encode import encoder, watch_folder
-from render_watch.ffmpeg import encoding
-from render_watch.ffmpeg import filters
-from render_watch.helpers import nvidia_helper, directory_helper
-from render_watch import app_preferences
+from render_watch.ffmpeg import task, video_codec
+from render_watch.helpers import ffmpeg_helper
+from render_watch import app_preferences, logger
 
 
 COPY_CODEC_TASK_WORKERS = 1
@@ -55,52 +53,52 @@ class TaskQueue:
         self._parallel_tasks_queue = _ParallelTasksQueue(self, self.app_settings)
         self._watch_folder_tasks_queue = _WatchFolderTasksQueue(self, self.app_settings)
 
-    def add_encoding_task(self, encoding_task: encoding.Task):
+    def add_task(self, encode_task: task.Encode | task.Folder | task.WatchFolder):
         """
         Adds the encoding task to the proper tasks queue based on whether the task is a watch folder or if the
         user has enabled parallel tasks.
 
         Parameters:
-            encoding_task: Encoding task to add to one of the task queues.
+            encode_task: Encoding task to add to one of the task queues.
 
         Returns:
             None
         """
-        if encoding_task.is_watch_folder:
-            self._watch_folder_tasks_queue.add_encoding_task(encoding_task)
+        if isinstance(encode_task, task.WatchFolder):
+            self._watch_folder_tasks_queue.add_encoding_task(encode_task)
         elif self.is_using_parallel_tasks_queue:
-            self._parallel_tasks_queue.add_encoding_task(encoding_task)
+            self._parallel_tasks_queue.add_encoding_task(encode_task)
         else:
-            self._standard_tasks_queue.add_encoding_task(encoding_task)
+            self._standard_tasks_queue.add_encoding_task(encode_task)
 
-    def add_to_running_tasks(self, encoding_task: encoding.Task):
+    def add_to_running_tasks(self, encode_task: task.Encode | task.Folder):
         """
         Adds the given encoding task to the list of currently running tasks.
 
         Parameters:
-            encoding_task: Encoding task to add to the list of currently running tasks.
+            encode_task: Encoding task to add to the list of currently running tasks.
 
         Returns:
             None
         """
         with self._running_tasks_lock:
-            self._running_tasks.append(encoding_task)
+            self._running_tasks.append(encode_task)
 
-    def remove_from_running_tasks(self, encoding_task: encoding.Task):
+    def remove_from_running_tasks(self, encode_task: task.Encode | task.Folder):
         """
         Removes the given encoding task from the list of currently running tasks.
 
         Parameters:
-            encoding_task: Encoding task to removed from the list of running tasks.
+            encode_task: Encoding task to removed from the list of running tasks.
 
         Returns:
             None
         """
         try:
             with self._running_tasks_lock:
-                self._running_tasks.remove(encoding_task)
+                self._running_tasks.remove(encode_task)
         except ValueError:
-            logging.exception('--- TASK NOT IN RUNNING TASKS LIST ---\n' + encoding_task.output_file.file_path)
+            logger.log_task_not_in_running_tasks_list(encode_task.output_file.file_path)
 
     def get_currently_running_tasks(self) -> list:
         """
@@ -149,11 +147,11 @@ class TaskQueue:
 
     def _watch_folder_task_exists_in_running_tasks(self) -> bool:
         # Returns whether any of the currently running encoding tasks are watch folder tasks.
-        for encoding_task in self.get_currently_running_tasks():
-            if encoding_task.is_watch_folder \
-                    and not encoding_task.is_idle \
-                    and not encoding_task.is_stopped \
-                    and encoding_task.has_started:
+        for encode_task in self.get_currently_running_tasks():
+            if encode_task.is_watch_folder \
+                    and not encode_task.is_idle \
+                    and not encode_task.is_stopped \
+                    and encode_task.has_started:
                 return True
         return False
 
@@ -167,49 +165,44 @@ class TaskQueue:
         self._standard_tasks_queue.join_queue()
         self._parallel_tasks_queue.join_queue()
 
-    def run_encoding_task(self, encoding_task: encoding.Task):
+    def run_encoding_task(self, encode_task: task.Encode | task.Folder):
         """
         Sends the given encoding task to the encoder. If the encoding task is a folder task, then the files contained in
         that folder are sent to the encoder.
 
         Parameters:
-            encoding_task: Encoding task to send to the encoder.
+            encode_task: Encoding task to send to the encoder.
 
         Returns:
             None
         """
-        if encoding_task.is_stopped:
+        if encode_task.is_stopped:
             return
 
-        if encoding_task.input_file.is_folder:
-            self._run_folder_encoding_task(encoding_task)
+        if isinstance(encode_task, task.Folder):
+            self._run_folder_encoding_task(encode_task)
         else:
-            TaskQueue._run_standard_encoding_task(encoding_task)
+            self._run_standard_encoding_task(encode_task)
 
     @staticmethod
-    def _run_standard_encoding_task(encoding_task: encoding.Task):
+    def _run_standard_encoding_task(encode_task: task.Encode):
         # Sends the given encoding task to the encoder.
-        if encoding_task.is_video_nvenc():
-            nvidia_helper.Compatibility.wait_until_nvenc_available()
+        if video_codec.is_codec_nvenc(encode_task.get_video_codec()):
+            ffmpeg_helper.Compatibility.wait_until_nvenc_available()
 
-        encoding_task.has_started = True
-        encoding_task.has_failed = encoder.run_encode_subprocess(encoding_task) != 0
+        encode_task.has_started = True
+        encode_task.has_failed = encoder.run_encode_subprocess(encode_task) != 0
+        encode_task.is_done = True
 
-    def _run_folder_encoding_task(self, encoding_task: encoding.Task):
+    def _run_folder_encoding_task(self, folder_task: task.Folder):
         # Creates a child encoding task for each file in the folder task and sends them to the encoder.
-        folder_dir = encoding_task.input_file.dir
-        is_recursively_searching_folder = encoding_task.input_file.is_recursively_searching_folder
+        while folder_task.next_encode_task:
+            self._run_standard_encoding_task(folder_task.next_encode_task)
 
-        for file_path in directory_helper.get_files_in_directory(folder_dir, recursive=is_recursively_searching_folder):
-            child_encoding_task = encoding_task.get_copy()
-            child_encoding_task.input_file = encoding.input.InputFile(file_path)
-            child_encoding_task.output_file = encoding.output.OutputFile(file_path, self.app_settings)
-            child_encoding_task.output_file.name = directory_helper.get_unique_file_name(child_encoding_task.output_file.file_path,
-                                                                                         child_encoding_task.output_file.name)
+            if not folder_task.has_failed:
+                folder_task.has_failed = folder_task.next_encode_task.has_failed
 
-            if child_encoding_task.input_file.is_valid():
-                TaskQueue._run_standard_encoding_task(child_encoding_task)
-                encoding_task.has_failed = child_encoding_task.has_failed
+            folder_task.process_next_encode_task()
 
     def kill(self):
         """
@@ -265,37 +258,34 @@ class _StandardTasksQueue:
         # Processes each encoding task added to the queue.
         try:
             while True:
-                encoding_task = self.standard_tasks_queue.get()
+                encode_task = self.standard_tasks_queue.get()
 
-                if not encoding_task:
+                if not encode_task:
                     return
 
                 try:
                     self.task_queue.wait_for_parallel_tasks()
-
-                    self.task_queue.add_to_running_tasks(encoding_task)
-                    self.task_queue.run_encoding_task(encoding_task)
+                    self.task_queue.add_to_running_tasks(encode_task)
+                    self.task_queue.run_encoding_task(encode_task)
                 except:
-                    logging.exception(''.join(['--- FAILED TO RUN STANDARD ENCODING TASK ---\n',
-                                               encoding_task.output_file.file_path]))
+                    logger.log_failed_to_run_standard_encoding_task(encode_task.output_file.file_path)
                 finally:
-                    encoding_task.is_done = True
-                    self.task_queue.remove_from_running_tasks(encoding_task)
+                    self.task_queue.remove_from_running_tasks(encode_task)
                     self.standard_tasks_queue.task_done()
         except:
-            logging.exception('--- STANDARD TASKS QUEUE LOOP FAILED ---')
+            logger.log_standard_tasks_queue_loop_failed()
 
-    def add_encoding_task(self, encoding_task: encoding.Task):
+    def add_encoding_task(self, encode_task: task.Encode | task.Folder):
         """
         Adds the given encoding task to the queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the queue.
+            encode_task: Encoding task to add to the queue.
 
         Returns:
             None
         """
-        self.standard_tasks_queue.put(encoding_task)
+        self.standard_tasks_queue.put(encode_task)
 
     def add_stop_task(self):
         """
@@ -352,10 +342,10 @@ class _ParallelTasksQueue:
         threading.Thread(target=self._initialize_vp9_codec_queue_loop, args=(self.app_settings,), daemon=True).start()
         threading.Thread(target=self._initialize_copy_codec_queue_loop, args=(), daemon=True).start()
 
-        if nvidia_helper.Compatibility.is_nvenc_supported():
+        if ffmpeg_helper.Compatibility.is_nvenc_supported():
             threading.Thread(target=self._initialize_nvenc_codec_queue_loop, args=(), daemon=True).start()
         else:
-            logging.info('--- PARALLEL NVENC QUEUE LOOP DISABLED ---')
+            logger.log_parallel_nvenc_queue_loop_disabled()
 
     def _initialize_x264_codec_queue_loop(self, app_settings: app_preferences.Settings):
         # Starts queue loop instances for the user specified number of x264 encoding tasks.
@@ -388,13 +378,13 @@ class _ParallelTasksQueue:
         # Starts queue loop instances for the user specified number of NVENC encoding tasks.
         try:
             self.nvenc_codec_queue = queue.Queue()
-            self.number_of_nvenc_tasks = nvidia_helper.Parallel.nvenc_max_workers
+            self.number_of_nvenc_tasks = ffmpeg_helper.Parallel.nvenc_max_workers
 
             with ThreadPoolExecutor(max_workers=self.number_of_nvenc_tasks) as future_executor:
                 future_executor.map(self._run_codec_queue_loop_instance,
                                     repeat(self.nvenc_codec_queue, self.number_of_nvenc_tasks))
         except ValueError:
-            logging.info('--- PARALLEL NVENC QUEUE LOOP DISABLED ---')
+            logger.log_parallel_nvenc_queue_loop_disabled()
 
     def _initialize_copy_codec_queue_loop(self):
         # Starts queue loop instances for the number of copy encoding tasks.
@@ -403,7 +393,7 @@ class _ParallelTasksQueue:
 
         with ThreadPoolExecutor(max_workers=self.number_of_copy_codec_tasks) as future_executor:
             future_executor.map(self._run_codec_queue_loop_instance,
-                            repeat(self.copy_codec_queue, self.number_of_copy_codec_tasks))
+                                repeat(self.copy_codec_queue, self.number_of_copy_codec_tasks))
 
     def _run_codec_queue_loop_instance(self, codec_queue: queue.Queue, codec_name: str):
         # Processes each encoding task added to the given codec queue.
@@ -412,27 +402,27 @@ class _ParallelTasksQueue:
                 if codec_queue.empty():
                     self._move_codec_queue_to_end_of_task_list(codec_queue)
 
-                encoding_task = codec_queue.get()
+                encode_task = codec_queue.get()
 
-                if not encoding_task:
+                if not encode_task:
                     break
 
                 try:
                     self.task_queue.wait_for_standard_tasks()
 
-                    if not encoding_task.is_video_nvenc() or not self.app_settings.is_nvenc_tasks_parallel:
+                    if not video_codec.is_codec_nvenc(encode_task.get_video_codec) \
+                            or not self.app_settings.is_nvenc_tasks_parallel:
                         self._wait_for_current_codec_queue_loop(codec_queue)
 
-                    self.task_queue.add_to_running_tasks(encoding_task)
-                    self.task_queue.run_encoding_task(encoding_task)
+                    self.task_queue.add_to_running_tasks(encode_task)
+                    self.task_queue.run_encoding_task(encode_task)
                 except:
-                    logging.exception(''.join(['--- FAILED TO RUN ', codec_name, ' ENCODING TASK ---']))
+                    logger.log_failed_to_run_encoding_task(codec_name)
                 finally:
-                    encoding_task.is_done = True
-                    self.task_queue.remove_from_running_tasks(encoding_task)
+                    self.task_queue.remove_from_running_tasks(encode_task)
                     codec_queue.task_done()
         except:
-            logging.exception(''.join(['--- ', codec_name, ' CODEC QUEUE LOOP INSTANCE FAILED ---']))
+            logger.log_codec_queue_loop_instance_failed(codec_name)
 
     def _wait_for_current_codec_queue_loop(self, codec_queue: queue.Queue):
         # Blocks the calling thread until the given codec queue is first in the codec task list.
@@ -445,30 +435,30 @@ class _ParallelTasksQueue:
         current_codec_queue.join()
         self._wait_for_current_codec_queue_loop(codec_queue)
 
-    def add_encoding_task(self, encoding_task: encoding.Task):
+    def add_encoding_task(self, encode_task: task.Encode):
         """
         Adds the given encoding task to the proper codec queue.
 
         Parameters:
-            encoding_task: Encoding task to add to one of the codec queues.
+            encode_task: Encoding task to add to one of the codec queues.
 
         Returns:
             None
         """
-        if encoding_task.is_video_x264():
-            self.x264_codec_queue.put(encoding_task)
+        if video_codec.is_codec_x264(encode_task.get_video_codec()):
+            self.x264_codec_queue.put(encode_task)
             self._add_codec_queue_to_task_list(self.x264_codec_queue)
-        elif encoding_task.is_video_x265():
-            self.x265_codec_queue.put(encoding_task)
+        elif video_codec.is_codec_x265(encode_task.get_video_codec()):
+            self.x265_codec_queue.put(encode_task)
             self._add_codec_queue_to_task_list(self.x265_codec_queue)
-        elif encoding_task.is_video_vp9():
-            self.vp9_codec_queue.put(encoding_task)
+        elif video_codec.is_codec_vp9(encode_task.get_video_codec()):
+            self.vp9_codec_queue.put(encode_task)
             self._add_codec_queue_to_task_list(self.vp9_codec_queue)
-        elif encoding_task.is_video_nvenc():
-            self.nvenc_codec_queue.put(encoding_task)
+        elif video_codec.is_codec_nvenc(encode_task.get_video_codec()):
+            self.nvenc_codec_queue.put(encode_task)
             self._add_codec_queue_to_task_list(self.nvenc_codec_queue)
         else:
-            self.copy_codec_queue.put(encoding_task)
+            self.copy_codec_queue.put(encode_task)
             self._add_codec_queue_to_task_list(self.copy_codec_queue)
 
     def _add_codec_queue_to_task_list(self, codec_queue: queue.Queue):
@@ -495,13 +485,13 @@ class _ParallelTasksQueue:
         self._add_codec_queue_stop_task(self.vp9_codec_queue, self.number_of_vp9_tasks)
         self._add_codec_queue_stop_task(self.copy_codec_queue, self.number_of_copy_codec_tasks)
 
-        if nvidia_helper.Compatibility.is_nvenc_supported():
+        if ffmpeg_helper.Compatibility.is_nvenc_supported():
             self._add_codec_queue_stop_task(self.nvenc_codec_queue, self.number_of_nvenc_tasks)
 
     @staticmethod
     def _add_codec_queue_stop_task(codec_queue: queue.Queue, number_of_tasks: int):
         # Adds a False boolean to the given codec queue for each number of tasks that codec is running in parallel.
-        for task in range(number_of_tasks):
+        for encode_task in range(number_of_tasks):
             codec_queue.put(False)
 
     def join_queue(self):
@@ -529,7 +519,7 @@ class _ParallelTasksQueue:
         self._empty_codec_queue(self.vp9_codec_queue)
         self._empty_codec_queue(self.copy_codec_queue)
 
-        if nvidia_helper.Compatibility.is_nvenc_supported():
+        if ffmpeg_helper.Compatibility.is_nvenc_supported():
             self._empty_codec_queue(self.nvenc_codec_queue)
 
     @staticmethod
@@ -562,72 +552,61 @@ class _WatchFolderTasksQueue:
         # Processes each encoding task added to the queue and starts a scheduling task for each one.
         try:
             while True:
-                encoding_task = self.watch_folder_tasks_queue.get()
+                watch_folder_task = self.watch_folder_tasks_queue.get()
 
-                if not encoding_task:
+                if not watch_folder_task:
                     return
 
-                self.task_queue.add_to_running_tasks(encoding_task)
-                threading.Thread(target=self._schedule_encoding_task, args=(encoding_task,)).start()
+                self.task_queue.add_to_running_tasks(watch_folder_task)
+                threading.Thread(target=self._schedule_watch_folder_task, args=(watch_folder_task,)).start()
 
                 self.watch_folder_tasks_queue.task_done()
         except:
-            logging.exception('--- WATCH FOLDER QUEUE LOOP INSTANCE FAILED ---')
+            logger.log_watch_folder_queue_loop_failed()
 
-    def _schedule_encoding_task(self, encoding_task: encoding.Task):
+    def _schedule_watch_folder_task(self, watch_folder_task: task.WatchFolder):
         # Schedules and processes the given watch folder encoding task.
-        self.watch_folder_scheduler.add_folder_path(encoding_task.input_file.dir)
-        self._run_encoding_task(encoding_task)
+        self.watch_folder_scheduler.add_folder_path(watch_folder_task.input_file.dir)
+        self._run_watch_folder_task_loop(watch_folder_task)
+        watch_folder_task.has_started = True
 
-    def _run_encoding_task(self, encoding_task: encoding.Task):
+    def _run_watch_folder_task_loop(self, watch_folder_task: task.WatchFolder):
         # Processes a child encoding task for each file in the watch folder task.
         try:
             while True:
-                if encoding_task.is_stopped:
+                if watch_folder_task.is_stopped:
                     break
 
-                if self.watch_folder_scheduler.is_instance_empty(encoding_task.input_file.dir):
-                    encoding_task.is_idle = True
-                encoding_task.has_started = False
+                if self.watch_folder_scheduler.is_instance_empty(watch_folder_task.input_file.dir):
+                    watch_folder_task.is_idle = True
 
-                child_encoding_task = self._get_child_encoding_task(encoding_task)
+                next_encode_task = self._get_next_encode_task(watch_folder_task)
 
-                if not child_encoding_task:
+                if not next_encode_task:
                     continue
-                encoding_task.child_encoding_task = child_encoding_task
 
                 try:
-                    self._run_child_encoding_task(child_encoding_task, encoding_task)
+                    self._run_next_encode_task(next_encode_task, watch_folder_task)
                 except:
-                    logging.exception(''.join(['--- WATCH FOLDER CHILD ENCODING TASK FAILED ---\n',
-                                               child_encoding_task.output_file.file_path]))
+                    logger.log_watch_folder_next_encode_task_failed(next_encode_task.output_file.file_path)
                 finally:
-                    encoding_task.has_failed = child_encoding_task.has_failed
-
                     if self.app_settings.is_watch_folders_moving_to_done:
-                        self._move_child_encoding_task_to_done_folder(child_encoding_task)
+                        self._move_next_encode_task_to_done_folder(next_encode_task)
         except:
-            logging.exception('--- WATCH FOLDER ENCODING TASK LOOP FAILED ---\n', encoding_task.output_file.file_path)
+            logger.log_watch_folder_encoding_task_loop_failed(watch_folder_task.output_file.file_path)
 
-    def _get_child_encoding_task(self, encoding_task: encoding.Task) -> encoding.Task | None:
+    def _get_next_encode_task(self, watch_folder_task: task.WatchFolder) -> task.Encode | None:
         # Returns a child encoding task from the watch folder encoding task that has a new file.
-        child_file_path = self.watch_folder_scheduler.get_instance_new_file(encoding_task.input_file.dir)
+        new_input_file_path = self.watch_folder_scheduler.get_instance_new_file(watch_folder_task.input_file.dir)
 
-        if not child_file_path:
+        if new_input_file_path:
+            watch_folder_task.process_next_encode_task(new_input_file_path)
+
+            return watch_folder_task.next_encode_task
+        else:
             return None
 
-        child_encoding_task = encoding_task.get_copy()
-        child_encoding_task.input_file = encoding.input.InputFile(child_file_path)
-        child_encoding_task.output_file = encoding.output.OutputFile(child_encoding_task.input_file, self.app_settings)
-        child_encoding_task.output_file.name = directory_helper.get_unique_file_name(child_encoding_task.output_file.file_path,
-                                                                                     child_encoding_task.output_file.name)
-        child_encoding_task.filter.crop = filters.Crop(child_encoding_task, self.app_settings)
-
-        if child_encoding_task.input_file.is_valid():
-            return child_encoding_task
-        return None
-
-    def _run_child_encoding_task(self, child_encoding_task: encoding.Task, encoding_task: encoding.Task):
+    def _run_next_encode_task(self, next_encode_task: task.Encode, watch_folder_task: task.WatchFolder):
         # Sends the given child encoding task to the encoder.
         if self.app_settings.is_watch_folders_waiting_for_tasks:
             self.task_queue.wait_for_all_tasks()
@@ -635,33 +614,34 @@ class _WatchFolderTasksQueue:
         if not self.app_settings.is_encoding_parallel_watch_folders:
             self.task_queue.wait_for_watch_folder_tasks()
 
-        encoding_task.has_started = True
-        encoding_task.is_idle = False
-        self.task_queue.run_encoding_task(child_encoding_task)
+        watch_folder_task.is_idle = False
+        self.task_queue.run_encoding_task(next_encode_task)
+
+        if not watch_folder_task.has_failed:
+            watch_folder_task.has_failed = next_encode_task.has_failed
 
     @staticmethod
-    def _move_child_encoding_task_to_done_folder(child_encoding_task: encoding.Task):
+    def _move_next_encode_task_to_done_folder(next_encode_task: task.Encode):
         # Moves the encoded child encoding task's file to a done folder.
-        original_file_path = child_encoding_task.input_file.file_path
+        original_file_path = next_encode_task.input_file.file_path
+        next_encode_task.input_file.dir = os.path.join(next_encode_task.input_file.dir, 'done')
 
-        child_encoding_task.input_file.dir = os.path.join(child_encoding_task.input_file.dir, 'done')
+        if not os.path.exists(next_encode_task.input_file.dir):
+            os.mkdir(next_encode_task.input_file.dir)
 
-        if not os.path.exists(child_encoding_task.input_file.dir):
-            os.mkdir(child_encoding_task.input_file.dir)
+        shutil.move(original_file_path, next_encode_task.input_file.file_path)
 
-        shutil.move(original_file_path, child_encoding_task.input_file.file_path)
-
-    def add_encoding_task(self, encoding_task: encoding.Task):
+    def add_encoding_task(self, watch_folder_task: task.WatchFolder):
         """
         Adds the given encoding task to the queue.
 
         Parameters:
-            encoding_task: Encoding task to add to the queue.
+            watch_folder_task: Watch folder task to add to the queue.
 
         Returns:
             None
         """
-        self.watch_folder_tasks_queue.put(encoding_task)
+        self.watch_folder_tasks_queue.put(watch_folder_task)
 
     def add_stop_task(self):
         """
